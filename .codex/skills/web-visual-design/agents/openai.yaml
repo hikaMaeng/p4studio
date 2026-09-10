@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Visual Design"
+  short_description: "Commit to a visual direction without breaking the view contracts."
+  default_prompt: "Run bash scripts/check-design.sh, report every violation line verbatim, and fix them by moving color and font literals into the token site, adding a reduced-motion branch, restoring focus visibility, and giving imagery its alt key or aria-hidden. Then state the aesthetic direction you committed to."

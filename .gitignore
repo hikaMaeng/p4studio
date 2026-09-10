@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+data/
+tests/artifacts/
+/test/
+.env
+.env.*
+*.log

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Monorepo Architecture Guard"
+  short_description: "Enforce monorepo boundaries and service-module shape."
+  default_prompt: "Use $monorepo-architecture-guard to align this workspace with the monorepo architecture constraints."

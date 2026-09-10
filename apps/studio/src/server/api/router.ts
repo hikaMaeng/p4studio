@@ -1,0 +1,87 @@
+import { Router } from "express";
+import { P4_PROTOCOL } from "@p4studio/p4-protocol";
+import type { StudioDatabase } from "../database/client.js";
+import { inspectRegisteredAgent } from "../agent-socket/inspection/coordinator.js";
+import type { AgentObservationStore } from "../agent-socket/inspection/store.js";
+import type { AgentInspector } from "../agent-socket/inspection/types.js";
+import { agentInput, modelInput, nodeInput, pipelineInput } from "./validation.js";
+
+const apiError = (code: string, message: string, issues?: unknown) => ({ error: { code, message, ...(issues ? { issues } : {}) } });
+
+export const createApiRouter = (
+  database: StudioDatabase,
+  observations: AgentObservationStore,
+  inspector: AgentInspector,
+  probeTimeoutMs: number,
+) => {
+  const router = Router();
+
+  router.get("/snapshot", (_request, response) => response.json({
+    agents: database.agents().map((agent) => observations.view(agent)), nodes: database.nodes(), models: database.models(), pipelines: database.pipelines(),
+    protocol: P4_PROTOCOL, generatedAt: new Date().toISOString(),
+  }));
+
+  router.post("/agents", async (request, response) => {
+    const parsed = agentInput.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_agent", "에이전트 입력을 확인하세요.", parsed.error.issues));
+    let agent;
+    try { agent = database.createAgent(parsed.data); }
+    catch { return response.status(409).json(apiError("agent_conflict", "같은 이름 또는 주소의 에이전트가 이미 있습니다.")); }
+    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
+    return response.status(201).json(inspected);
+  });
+
+  router.patch("/agents/:id", async (request, response) => {
+    if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
+    const parsed = agentInput.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_agent", "에이전트 입력을 확인하세요.", parsed.error.issues));
+    let agent;
+    try { agent = database.updateAgent(request.params.id, parsed.data); }
+    catch { return response.status(409).json(apiError("agent_conflict", "같은 이름 또는 주소의 에이전트가 이미 있습니다.")); }
+    if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
+    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
+    return response.json(inspected);
+  });
+
+  router.post("/agents/:id/probe", async (request, response) => {
+    const agent = database.agent(request.params.id);
+    if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
+    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
+    return response.json(inspected);
+  });
+
+  router.post("/agents/:id/nodes", (request, response) => {
+    const agent = database.agent(request.params.id);
+    if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
+    const parsed = nodeInput.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_node", "노드 입력을 확인하세요.", parsed.error.issues));
+    try { return response.status(201).json(database.createNode({ agentId: agent.id, ...parsed.data })); }
+    catch { return response.status(409).json(apiError("node_conflict", "같은 이름의 노드가 이미 있습니다.")); }
+  });
+
+  router.delete("/agents/:id", (request, response) => {
+    try {
+      if (!database.deleteAgent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
+      observations.delete(request.params.id);
+      return response.status(204).end();
+    } catch {
+      return response.status(409).json(apiError("agent_in_use", "노드가 연결된 에이전트는 삭제할 수 없습니다."));
+    }
+  });
+
+  router.post("/models", (request, response) => {
+    const parsed = modelInput.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_model", "모델 입력을 확인하세요.", parsed.error.issues));
+    try { return response.status(201).json(database.createModel(parsed.data)); }
+    catch { return response.status(409).json(apiError("model_conflict", "같은 이름의 모델이 이미 있습니다.")); }
+  });
+
+  router.post("/pipelines", (request, response) => {
+    const parsed = pipelineInput.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_pipeline", "파이프라인 입력을 확인하세요.", parsed.error.issues));
+    try { return response.status(201).json(database.createPipeline(parsed.data)); }
+    catch { return response.status(409).json(apiError("pipeline_conflict", "파이프라인 관계 또는 이름이 충돌합니다.")); }
+  });
+
+  return router;
+};

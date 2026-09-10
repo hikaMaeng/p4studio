@@ -1,0 +1,4 @@
+interface:
+  display_name: "Headless Browser Test"
+  short_description: "Run browser smoke/E2E checks and collect screenshots."
+  default_prompt: "Use $headless-browser-test to verify a web service in headless Chromium with script-backed smoke or JSON scenario tests."

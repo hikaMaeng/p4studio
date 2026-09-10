@@ -1,0 +1,4 @@
+interface:
+  display_name: "i18n Resource Map"
+  short_description: "Keep user-visible text in translated resource keys."
+  default_prompt: "Run bash scripts/check-i18n.sh, report every violation line verbatim, and fix literals by adding a key to every language bundle plus an entry in the owning folder's resource.ts."

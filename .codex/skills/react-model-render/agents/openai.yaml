@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Model Render"
+  short_description: "Screen projects a pure model outside React; state is only a trigger."
+  default_prompt: "Use $react-model-render to design, implement, or refactor this React frontend so the source of truth is a pure model outside React, state is only an update trigger, and each component subscribes to the smallest slice it reads."

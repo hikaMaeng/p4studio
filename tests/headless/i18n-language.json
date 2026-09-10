@@ -1,0 +1,13 @@
+[
+  { "action": "goto", "url": "/" },
+  { "action": "assertRole", "role": "main" },
+  { "action": "assertText", "text": "운영 개요" },
+  { "action": "click", "role": "button", "name": "언어 변경" },
+  { "action": "screenshot", "name": "language-menu" },
+  { "action": "click", "role": "menuitem", "name": "العربية" },
+  { "action": "assertText", "text": "نظرة عامة على التشغيل" },
+  { "action": "screenshot", "name": "arabic-rtl" },
+  { "action": "goto", "url": "/" },
+  { "action": "assertText", "text": "نظرة عامة على التشغيل" },
+  { "action": "screenshot", "name": "arabic-persisted" }
+]

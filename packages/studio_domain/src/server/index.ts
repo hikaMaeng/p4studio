@@ -1,0 +1,1 @@
+export const STUDIO_SERVER_DOMAIN_VERSION = 1;

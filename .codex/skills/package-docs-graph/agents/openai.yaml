@@ -1,0 +1,4 @@
+interface:
+  display_name: "Package Docs Graph"
+  short_description: "Write package docs as a drill-down dependency graph with blast-radius records."
+  default_prompt: "Use $package-docs-graph to create or update this package's docs as a navigable graph: router architecture table, doc<->code edges, consumer/invariant blast radius, and decisions."

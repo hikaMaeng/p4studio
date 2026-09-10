@@ -1,0 +1,26 @@
+{
+  "name": "p4studio-root",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.17.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "deploy": "node scripts/deploy.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "turbo": "2.10.12",
+    "typescript": "7.0.2"
+  }
+}

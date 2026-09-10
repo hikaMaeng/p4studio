@@ -1,0 +1,27 @@
+name: p4studio
+
+services:
+  studio:
+    container_name: studio
+    build:
+      context: ./apps/studio
+      dockerfile: docker/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${P4STUDIO_PORT:?P4STUDIO_PORT is required}:${P4STUDIO_PORT:?P4STUDIO_PORT is required}"
+    volumes:
+      - studio-data:/app/data
+    networks:
+      - studio-internal
+      - studio-edge
+    restart: unless-stopped
+
+volumes:
+  studio-data:
+
+networks:
+  studio-internal:
+    internal: true
+  studio-edge:
+    driver: bridge

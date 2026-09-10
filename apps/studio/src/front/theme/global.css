@@ -1,0 +1,12 @@
+:root { color-scheme: dark; font-synthesis: none; --direction: 1; }
+[dir="rtl"] { --direction: -1; }
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; min-width: 320px; height: 100%; margin: 0; }
+body { overflow: hidden; }
+button, input { font: inherit; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #383838; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+.metric-number { font-variant-numeric: tabular-nums; }
+.directional-icon { transform: scaleX(var(--direction)); }
+.back-icon { transform: scaleX(calc(var(--direction) * -1)); }

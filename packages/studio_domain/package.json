@@ -1,0 +1,23 @@
+{
+  "name": "@p4studio/studio_domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/front/index.js",
+  "types": "dist/front/index.d.ts",
+  "exports": {
+    "./front": {
+      "types": "./dist/front/index.d.ts",
+      "import": "./dist/front/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}

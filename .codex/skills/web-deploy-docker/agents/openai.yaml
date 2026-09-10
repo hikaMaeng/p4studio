@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Deploy Docker"
+  short_description: "Run the repository Docker deploy."
+  default_prompt: "Ask only if the service name is missing and more than one exists. Otherwise run npm run deploy <service> and base the final answer on the deploy-report block it prints."

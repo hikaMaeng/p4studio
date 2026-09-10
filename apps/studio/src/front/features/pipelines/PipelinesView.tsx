@@ -1,0 +1,14 @@
+import { Box, Paper, Typography } from "@mui/material";
+import type { StudioSnapshot } from "../../../common/domain.js";
+import { formatMessage } from "../../i18n/format.js";
+import { useTranslation } from "../../i18n/useTranslation.js";
+import { EmptyState } from "../../shared/components/EmptyState.js";
+import { Icon } from "../../shared/components/Icon.js";
+import { StatusPill } from "../../shared/components/StatusPill.js";
+import { RSC } from "./resource.js";
+
+export const PipelinesView = ({ snapshot, onCreate }: { snapshot: StudioSnapshot; onCreate: () => void }) => {
+  const { t } = useTranslation();
+  if (snapshot.pipelines.length === 0) return <EmptyState title={t[RSC.PIPELINES_EMPTY_TITLE_TEXT]} detail={t[RSC.PIPELINES_EMPTY_DETAIL_MESSAGE]} action={t[RSC.PIPELINES_CREATE_BUTTON]} onAction={onCreate} />;
+  return <Box component="section" aria-label={t[RSC.PIPELINES_LIST_LABEL]} sx={{ display: "grid", gap: 1.5 }}>{snapshot.pipelines.map((pipeline) => { const model = snapshot.models.find((item) => item.id === pipeline.modelId); return <Paper component="article" key={pipeline.id} variant="outlined" sx={{ p: 2.5, bgcolor: "background.paper" }}><Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}><Box sx={{ display: "flex", gap: 1.5 }}><Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: "action.hover", display: "grid", placeItems: "center" }}><Icon name="hub" fontSize="small" /></Box><Box><Typography component="h2" sx={{ fontWeight: 620 }}>{pipeline.name}</Typography><Typography variant="body2" color="text.secondary">{model?.name ?? t[RSC.PIPELINES_UNKNOWN_MODEL_TEXT]} · {formatMessage(t[RSC.PIPELINES_STAGE_COUNT_TEXT], { count: pipeline.stages.length })}</Typography></Box></Box><StatusPill value={pipeline.status} /></Box><Box sx={{ display: "flex", alignItems: "center", overflowX: "auto", mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>{pipeline.stages.map((stage, index) => { const node = snapshot.nodes.find((item) => item.id === stage.nodeId); const agent = snapshot.agents.find((item) => item.id === node?.agentId); return <Box key={stage.id} sx={{ display: "flex", alignItems: "center" }}><Box data-testid="pipeline-stage" sx={{ minWidth: 180, border: "1px solid", borderColor: "divider", borderRadius: 1.5, px: 1.75, py: 1.5 }}><Typography variant="caption" color="text.secondary">{formatMessage(t[RSC.PIPELINES_STAGE_TEXT], { index: index + 1 })}</Typography><Typography variant="body2" sx={{ fontWeight: 600, mt: .5 }}>{node?.name}</Typography><Typography variant="caption" color="text.secondary">{formatMessage(t[RSC.PIPELINES_STAGE_META_TEXT], { agent: agent?.name ?? "", start: stage.layerStart, end: stage.layerEnd })}</Typography></Box>{index < pipeline.stages.length - 1 && <Icon className="directional-icon" name="arrow" sx={{ mx: 1, color: "text.disabled" }} />}</Box>; })}</Box></Paper>; })}</Box>;
+};

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Docker Compose Module Design"
+  short_description: "Enforce compose ownership, socket passthrough, and dist-only Dockerfiles."
+  default_prompt: "Use $docker-compose-module-design to review or design this repository Docker orchestration, Docker socket volume, and runtime image rules."
