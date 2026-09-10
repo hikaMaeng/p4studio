@@ -28,8 +28,6 @@ export enum RSC {
   AGENTS_LAST_INSPECTION_TEXT = "agents.lastInspection.text",
   AGENTS_INSPECTION_PENDING_STATUS = "agents.inspection.pending.status",
   AGENTS_INSPECTION_FAILURE_ALERT = "agents.inspection.failure.alert",
-  AGENTS_REGISTRATION_TITLE_TEXT = "agents.registration.title.text",
-  AGENTS_REGISTRATION_EDIT_BUTTON = "agents.registration.edit.button",
   AGENTS_REGISTRATION_EDIT_LABEL = "agents.registration.edit.label",
   AGENTS_REGISTRATION_NAME_LABEL = "agents.registration.name.label",
   AGENTS_REGISTRATION_SAVE_BUTTON = "agents.registration.save.button",

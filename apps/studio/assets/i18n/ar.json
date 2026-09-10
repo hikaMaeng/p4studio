@@ -98,8 +98,6 @@
   "agents.lastInspection.text": "آخر فحص",
   "agents.inspection.pending.status": "جارٍ فحص معلومات جهاز P4 وعقده.",
   "agents.inspection.failure.alert": "فشل فحص P4",
-  "agents.registration.title.text": "تسجيل SQLite",
-  "agents.registration.edit.button": "تعديل التسجيل",
   "agents.registration.edit.label": "تعديل تسجيل {name}",
   "agents.registration.name.label": "اسم العرض",
   "agents.registration.save.button": "حفظ",

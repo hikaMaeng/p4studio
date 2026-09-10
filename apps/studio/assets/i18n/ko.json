@@ -98,8 +98,6 @@
   "agents.lastInspection.text": "마지막 조회",
   "agents.inspection.pending.status": "P4 머신·노드 정보를 조회하는 중입니다.",
   "agents.inspection.failure.alert": "P4 조회 실패",
-  "agents.registration.title.text": "SQLite 등록정보",
-  "agents.registration.edit.button": "등록정보 편집",
   "agents.registration.edit.label": "{name} 등록정보 편집",
   "agents.registration.name.label": "관리 이름",
   "agents.registration.save.button": "저장",

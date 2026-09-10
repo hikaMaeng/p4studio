@@ -98,8 +98,6 @@
   "agents.lastInspection.text": "Last inspection",
   "agents.inspection.pending.status": "Inspecting P4 machine and node information.",
   "agents.inspection.failure.alert": "P4 inspection failed",
-  "agents.registration.title.text": "SQLite registration",
-  "agents.registration.edit.button": "Edit registration",
   "agents.registration.edit.label": "Edit registration for {name}",
   "agents.registration.name.label": "Display name",
   "agents.registration.save.button": "Save",

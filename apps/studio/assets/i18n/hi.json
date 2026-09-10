@@ -98,8 +98,6 @@
   "agents.lastInspection.text": "अंतिम निरीक्षण",
   "agents.inspection.pending.status": "P4 मशीन और नोड जानकारी की जाँच हो रही है।",
   "agents.inspection.failure.alert": "P4 निरीक्षण विफल",
-  "agents.registration.title.text": "SQLite पंजीकरण",
-  "agents.registration.edit.button": "पंजीकरण संपादित करें",
   "agents.registration.edit.label": "{name} का पंजीकरण संपादित करें",
   "agents.registration.name.label": "प्रदर्शन नाम",
   "agents.registration.save.button": "सहेजें",

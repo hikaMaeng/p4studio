@@ -98,8 +98,6 @@
   "agents.lastInspection.text": "上次检查",
   "agents.inspection.pending.status": "正在检查 P4 机器和节点信息。",
   "agents.inspection.failure.alert": "P4 检查失败",
-  "agents.registration.title.text": "SQLite 注册信息",
-  "agents.registration.edit.button": "编辑注册信息",
   "agents.registration.edit.label": "编辑 {name} 的注册信息",
   "agents.registration.name.label": "显示名称",
   "agents.registration.save.button": "保存",
