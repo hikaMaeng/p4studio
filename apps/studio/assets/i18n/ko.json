@@ -82,6 +82,8 @@
   "agents.list.count.text": "총 {count}대",
   "agents.list.label": "에이전트 목록",
   "agents.detail.button": "{name} 상세 보기",
+  "agents.rename.button": "{name} 이름 수정",
+  "agents.rename.failure.alert": "이름을 수정하지 못했습니다.",
   "agents.gpu.text": "GPU",
   "agents.ram.text": "RAM",
   "agents.p4Nodes.text": "P4 노드",

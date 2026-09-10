@@ -82,6 +82,8 @@
   "agents.list.count.text": "{count} total",
   "agents.list.label": "Agent list",
   "agents.detail.button": "View details for {name}",
+  "agents.rename.button": "Edit name for {name}",
+  "agents.rename.failure.alert": "Could not update the agent name.",
   "agents.gpu.text": "GPU",
   "agents.ram.text": "RAM",
   "agents.p4Nodes.text": "P4 nodes",

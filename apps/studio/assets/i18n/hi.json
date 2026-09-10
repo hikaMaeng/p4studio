@@ -82,6 +82,8 @@
   "agents.list.count.text": "कुल {count}",
   "agents.list.label": "एजेंट सूची",
   "agents.detail.button": "{name} का विवरण देखें",
+  "agents.rename.button": "{name} का नाम संपादित करें",
+  "agents.rename.failure.alert": "एजेंट का नाम अपडेट नहीं किया जा सका।",
   "agents.gpu.text": "GPU",
   "agents.ram.text": "RAM",
   "agents.p4Nodes.text": "P4 नोड",

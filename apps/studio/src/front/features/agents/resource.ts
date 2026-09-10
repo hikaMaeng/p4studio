@@ -12,6 +12,8 @@ export enum RSC {
   AGENTS_LIST_COUNT_TEXT = "agents.list.count.text",
   AGENTS_LIST_LABEL = "agents.list.label",
   AGENTS_DETAIL_BUTTON = "agents.detail.button",
+  AGENTS_RENAME_BUTTON = "agents.rename.button",
+  AGENTS_RENAME_FAILURE_ALERT = "agents.rename.failure.alert",
   AGENTS_GPU_TEXT = "agents.gpu.text",
   AGENTS_RAM_TEXT = "agents.ram.text",
   AGENTS_P4_NODES_TEXT = "agents.p4Nodes.text",

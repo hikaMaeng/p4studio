@@ -82,6 +82,8 @@
   "agents.list.count.text": "共 {count} 个",
   "agents.list.label": "代理列表",
   "agents.detail.button": "查看 {name} 的详细信息",
+  "agents.rename.button": "编辑 {name} 的名称",
+  "agents.rename.failure.alert": "无法更新代理名称。",
   "agents.gpu.text": "GPU",
   "agents.ram.text": "RAM",
   "agents.p4Nodes.text": "P4 节点",
