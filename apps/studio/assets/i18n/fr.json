@@ -85,6 +85,8 @@
   "agents.detail.tabs.label": "Onglets des détails de l’agent",
   "agents.detail.information.button": "Informations",
   "agents.detail.nodes.button": "Nœuds",
+  "agents.detail.information.refresh.button": "Actualiser les informations",
+  "agents.detail.nodes.refresh.button": "Actualiser la liste des nœuds",
   "agents.rename.button": "Modifier le nom de {name}",
   "agents.rename.failure.alert": "Impossible de mettre à jour le nom de l’agent.",
   "agents.gpu.text": "GPU",

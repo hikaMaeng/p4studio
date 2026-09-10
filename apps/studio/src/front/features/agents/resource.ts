@@ -15,6 +15,8 @@ export enum RSC {
   AGENTS_DETAIL_TABS_LABEL = "agents.detail.tabs.label",
   AGENTS_DETAIL_INFORMATION_BUTTON = "agents.detail.information.button",
   AGENTS_DETAIL_NODES_BUTTON = "agents.detail.nodes.button",
+  AGENTS_DETAIL_INFORMATION_REFRESH_BUTTON = "agents.detail.information.refresh.button",
+  AGENTS_DETAIL_NODES_REFRESH_BUTTON = "agents.detail.nodes.refresh.button",
   AGENTS_RENAME_BUTTON = "agents.rename.button",
   AGENTS_RENAME_FAILURE_ALERT = "agents.rename.failure.alert",
   AGENTS_GPU_TEXT = "agents.gpu.text",

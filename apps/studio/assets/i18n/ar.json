@@ -85,6 +85,8 @@
   "agents.detail.tabs.label": "علامات تبويب تفاصيل الوكيل",
   "agents.detail.information.button": "المعلومات",
   "agents.detail.nodes.button": "العقد",
+  "agents.detail.information.refresh.button": "تحديث المعلومات",
+  "agents.detail.nodes.refresh.button": "تحديث قائمة العُقد",
   "agents.rename.button": "تعديل اسم {name}",
   "agents.rename.failure.alert": "تعذر تحديث اسم الوكيل.",
   "agents.gpu.text": "GPU",

@@ -85,6 +85,8 @@
   "agents.detail.tabs.label": "에이전트 상세 탭",
   "agents.detail.information.button": "정보",
   "agents.detail.nodes.button": "노드",
+  "agents.detail.information.refresh.button": "정보 새로고침",
+  "agents.detail.nodes.refresh.button": "노드 목록 새로고침",
   "agents.rename.button": "{name} 이름 수정",
   "agents.rename.failure.alert": "이름을 수정하지 못했습니다.",
   "agents.gpu.text": "GPU",

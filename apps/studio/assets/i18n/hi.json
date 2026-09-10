@@ -85,6 +85,8 @@
   "agents.detail.tabs.label": "एजेंट विवरण टैब",
   "agents.detail.information.button": "जानकारी",
   "agents.detail.nodes.button": "नोड",
+  "agents.detail.information.refresh.button": "जानकारी रीफ़्रेश करें",
+  "agents.detail.nodes.refresh.button": "नोड सूची रीफ़्रेश करें",
   "agents.rename.button": "{name} का नाम संपादित करें",
   "agents.rename.failure.alert": "एजेंट का नाम अपडेट नहीं किया जा सका।",
   "agents.gpu.text": "GPU",

@@ -85,6 +85,8 @@
   "agents.detail.tabs.label": "Abas de detalhes do agente",
   "agents.detail.information.button": "Informações",
   "agents.detail.nodes.button": "Nós",
+  "agents.detail.information.refresh.button": "Atualizar informações",
+  "agents.detail.nodes.refresh.button": "Atualizar lista de nós",
   "agents.rename.button": "Editar o nome de {name}",
   "agents.rename.failure.alert": "Não foi possível atualizar o nome do agente.",
   "agents.gpu.text": "GPU",
