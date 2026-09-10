@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "No se pudo actualizar el registro.",
   "agents.cancel.button": "Cancelar",
   "agents.machine.label": "Información de máquina de {name}",
-  "agents.machine.title.text": "Máquina",
   "agents.cpu.summary.text": "CPU: {physical} núcleos físicos · {logical} lógicos",
   "agents.memory.label": "Información de memoria de {name}",
   "agents.memory.usage.label": "Uso de RAM de {name}",

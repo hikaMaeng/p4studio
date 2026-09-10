@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "पंजीकरण अपडेट नहीं हो सका।",
   "agents.cancel.button": "रद्द करें",
   "agents.machine.label": "{name} की मशीन जानकारी",
-  "agents.machine.title.text": "मशीन",
   "agents.cpu.summary.text": "CPU: {physical} भौतिक कोर · {logical} तार्किक कोर",
   "agents.memory.label": "{name} की मेमोरी जानकारी",
   "agents.memory.usage.label": "{name} का RAM उपयोग",

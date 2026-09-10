@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "Impossible de mettre à jour l’enregistrement.",
   "agents.cancel.button": "Annuler",
   "agents.machine.label": "Informations machine de {name}",
-  "agents.machine.title.text": "Machine",
   "agents.cpu.summary.text": "CPU : {physical} cœurs physiques · {logical} logiques",
   "agents.memory.label": "Informations mémoire de {name}",
   "agents.memory.usage.label": "Utilisation de la RAM de {name}",

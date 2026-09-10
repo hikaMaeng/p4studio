@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "无法更新注册信息。",
   "agents.cancel.button": "取消",
   "agents.machine.label": "{name} 的机器信息",
-  "agents.machine.title.text": "机器",
   "agents.cpu.summary.text": "CPU：{physical} 个物理核心 · {logical} 个逻辑核心",
   "agents.memory.label": "{name} 的内存信息",
   "agents.memory.usage.label": "{name} 的 RAM 使用率",

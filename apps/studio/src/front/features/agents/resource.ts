@@ -35,7 +35,6 @@ export enum RSC {
   AGENTS_REGISTRATION_FAILURE_ALERT = "agents.registration.failure.alert",
   AGENTS_CANCEL_BUTTON = "agents.cancel.button",
   AGENTS_MACHINE_LABEL = "agents.machine.label",
-  AGENTS_MACHINE_TITLE_TEXT = "agents.machine.title.text",
   AGENTS_CPU_SUMMARY_TEXT = "agents.cpu.summary.text",
   AGENTS_MEMORY_LABEL = "agents.memory.label",
   AGENTS_MEMORY_USAGE_LABEL = "agents.memory.usage.label",

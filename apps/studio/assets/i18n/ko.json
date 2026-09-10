@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "등록정보를 수정하지 못했습니다.",
   "agents.cancel.button": "취소",
   "agents.machine.label": "{name} 머신 정보",
-  "agents.machine.title.text": "머신",
   "agents.cpu.summary.text": "CPU 물리 {physical}코어 · 논리 {logical}코어",
   "agents.memory.label": "{name} 메모리 정보",
   "agents.memory.usage.label": "{name} RAM 사용률",

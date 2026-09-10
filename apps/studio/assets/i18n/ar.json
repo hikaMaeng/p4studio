@@ -105,7 +105,6 @@
   "agents.registration.failure.alert": "تعذر تحديث التسجيل.",
   "agents.cancel.button": "إلغاء",
   "agents.machine.label": "معلومات جهاز {name}",
-  "agents.machine.title.text": "الجهاز",
   "agents.cpu.summary.text": "CPU: ‏{physical} نواة فعلية · {logical} منطقية",
   "agents.memory.label": "معلومات ذاكرة {name}",
   "agents.memory.usage.label": "استخدام RAM لـ {name}",
