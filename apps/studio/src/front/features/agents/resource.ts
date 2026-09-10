@@ -60,6 +60,7 @@ export enum RSC {
   AGENTS_STUDIO_DECLARED_LABEL = "agents.studioDeclared.label",
   AGENTS_STUDIO_DECLARED_TITLE_TEXT = "agents.studioDeclared.title.text",
   AGENTS_STUDIO_DECLARED_EMPTY_MESSAGE = "agents.studioDeclared.empty.message",
+  AGENTS_NODES_EMPTY_TEXT = "agents.nodes.empty.text",
   AGENTS_NODE_DECLARE_BUTTON = "agents.node.declare.button",
   AGENTS_NODE_DECLARE_TITLE_TEXT = "agents.node.declare.title.text",
   AGENTS_NODE_DECLARING_STATUS = "agents.node.declaring.status",
