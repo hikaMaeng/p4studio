@@ -6,6 +6,8 @@
   "main": "dist/front/index.js",
   "types": "dist/front/index.d.ts",
   "exports": {
+    "./common": { "types": "./dist/common/index.d.ts", "import": "./dist/common/index.js" },
+    "./server": { "types": "./dist/server/index.d.ts", "import": "./dist/server/index.js" },
     "./front": {
       "types": "./dist/front/index.d.ts",
       "import": "./dist/front/index.js"
@@ -16,6 +18,7 @@
     "test": "vitest run src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": { "zod": "4.6.1", "@p4studio/p4-protocol": "*" },
   "devDependencies": {
     "typescript": "7.0.2",
     "vitest": "5.0.0"

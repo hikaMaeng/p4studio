@@ -12,7 +12,7 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 43121,
     proxy: {
-      "/api": "http://127.0.0.1:43120",
+      "/api": { target: "http://127.0.0.1:43120", ws: true },
       "/health": "http://127.0.0.1:43120",
     },
   },

@@ -11,7 +11,7 @@ import { RSC } from "./resource.js";
 
 const gpuSummary = (agent: AgentViewRecord, missing: string, empty: string) => {
   const gpus = agent.inspection.snapshot?.machine.capability.gpus;
-  if (!gpus) return missing;
+  if (!gpus || agent.inspection.snapshot?.machine.probes.gpus.state !== "available") return missing;
   if (gpus.length === 0) return empty;
   return gpus.map((gpu) => gpu.name.replace("NVIDIA GeForce ", "")).join(" · ");
 };

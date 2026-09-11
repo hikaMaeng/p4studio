@@ -5,12 +5,12 @@ import { useTranslation } from "../i18n/useTranslation.js";
 import { Icon } from "../shared/components/Icon.js";
 import { RSC } from "./resource.js";
 
-export type View = "overview" | "agents" | "models" | "pipelines";
+export type View = "overview" | "agents" | "models" | "inference";
 const items: Array<{ id: View; key: RSC; icon: React.ReactNode }> = [
   { id: "overview", key: RSC.SHELL_NAVIGATION_OVERVIEW_BUTTON, icon: <Icon name="grid" fontSize="small" /> },
   { id: "agents", key: RSC.SHELL_NAVIGATION_AGENTS_BUTTON, icon: <Icon name="dns" fontSize="small" /> },
   { id: "models", key: RSC.SHELL_NAVIGATION_MODELS_BUTTON, icon: <Icon name="memory" fontSize="small" /> },
-  { id: "pipelines", key: RSC.SHELL_NAVIGATION_PIPELINES_BUTTON, icon: <Icon name="pipeline" fontSize="small" /> }
+  { id: "inference", key: RSC.SHELL_NAVIGATION_INFERENCE_BUTTON, icon: <Icon name="bolt" fontSize="small" /> }
 ];
 const languageKeys: Record<LanguageCode, RSC> = {
   en: RSC.SHELL_LANGUAGE_EN_TEXT, ko: RSC.SHELL_LANGUAGE_KO_TEXT, zh: RSC.SHELL_LANGUAGE_ZH_TEXT,

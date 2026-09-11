@@ -67,6 +67,5 @@ export enum RSC {
   AGENTS_NODE_DECLARE_TITLE_TEXT = "agents.node.declare.title.text",
   AGENTS_NODE_DECLARING_STATUS = "agents.node.declaring.status",
   AGENTS_NODE_FAILURE_ALERT = "agents.node.failure.alert",
-  AGENTS_NODE_NAME_LABEL = "agents.node.name.label",
-  AGENTS_ADAPTER_LABEL = "agents.adapter.label"
+  AGENTS_NODE_NAME_LABEL = "agents.node.name.label"
 }

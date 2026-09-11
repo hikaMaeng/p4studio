@@ -1,4 +1,5 @@
 FROM node:24-alpine
+RUN apk add --no-cache openssh-client
 WORKDIR /app
 COPY dist ./dist
 EXPOSE 43120

@@ -28,7 +28,6 @@ export type NodeRecord = {
   id: string;
   agentId: string;
   name: string;
-  adapter: string;
   lifecycle: "declared" | "loading" | "ready" | "error";
   createdAt: string;
 };

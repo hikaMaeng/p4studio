@@ -8,7 +8,6 @@ export const agentInput = z.object({
 
 export const nodeInput = z.object({
   name: z.string().trim().min(1).max(80),
-  adapter: z.string().trim().min(1).max(80),
 });
 
 export const modelInput = z.object({

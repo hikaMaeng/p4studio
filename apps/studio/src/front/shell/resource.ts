@@ -7,7 +7,7 @@ export enum RSC {
   SHELL_NAVIGATION_OVERVIEW_BUTTON = "shell.navigation.overview.button",
   SHELL_NAVIGATION_AGENTS_BUTTON = "shell.navigation.agents.button",
   SHELL_NAVIGATION_MODELS_BUTTON = "shell.navigation.models.button",
-  SHELL_NAVIGATION_PIPELINES_BUTTON = "shell.navigation.pipelines.button",
+  SHELL_NAVIGATION_INFERENCE_BUTTON = "shell.navigation.inference.button",
   SHELL_NAVIGATION_SETTINGS_BUTTON = "shell.navigation.settings.button",
   SHELL_LANGUAGE_OPEN_BUTTON = "shell.language.open.button",
   SHELL_LANGUAGE_MENU_LABEL = "shell.language.menu.label",
@@ -22,10 +22,8 @@ export enum RSC {
   SHELL_PAGE_OVERVIEW_DESCRIPTION_MESSAGE = "shell.page.overview.description.message",
   SHELL_PAGE_AGENTS_DESCRIPTION_MESSAGE = "shell.page.agents.description.message",
   SHELL_PAGE_MODELS_DESCRIPTION_MESSAGE = "shell.page.models.description.message",
-  SHELL_PAGE_PIPELINES_DESCRIPTION_MESSAGE = "shell.page.pipelines.description.message",
   SHELL_ACTION_REGISTER_AGENT_BUTTON = "shell.action.registerAgent.button",
   SHELL_ACTION_REGISTER_MODEL_BUTTON = "shell.action.registerModel.button",
-  SHELL_ACTION_CREATE_PIPELINE_BUTTON = "shell.action.createPipeline.button",
   SHELL_ACTION_REFRESH_BUTTON = "shell.action.refresh.button",
   SHELL_DATA_LOAD_ALERT = "shell.data.load.alert"
 }

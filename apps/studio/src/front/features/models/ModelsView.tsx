@@ -1,13 +1,57 @@
-import { Box, Paper, Typography } from "@mui/material";
-import type { ModelRecord } from "../../../common/domain.js";
-import { formatMessage, formatNumber } from "../../i18n/format.js";
+import { Alert, Box, Button, Chip, LinearProgress, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { deployments } from "@p4studio/studio_domain/front";
+import type { DeploymentRecord, StageState } from "@p4studio/studio_domain/common";
+import type { StudioSnapshot } from "../../../common/domain.js";
+import { useModel } from "../../model/useModel.js";
 import { useTranslation } from "../../i18n/useTranslation.js";
-import { EmptyState } from "../../shared/components/EmptyState.js";
-import { Icon } from "../../shared/components/Icon.js";
+import { formatMessage } from "../../i18n/format.js";
+import { ModelEditorPage } from "./ModelEditorPage.js";
+import { startModels } from "./api.js";
 import { RSC } from "./resource.js";
+import { studioApi } from "../../shared/api/client.js";
 
-export const ModelsView = ({ models, onRegister }: { models: ModelRecord[]; onRegister: () => void }) => {
-  const { language, t } = useTranslation();
-  if (models.length === 0) return <EmptyState title={t[RSC.MODELS_EMPTY_TITLE_TEXT]} detail={t[RSC.MODELS_EMPTY_DETAIL_MESSAGE]} action={t[RSC.MODELS_REGISTER_BUTTON]} onAction={onRegister} />;
-  return <Box component="section" aria-label={t[RSC.MODELS_LIST_LABEL]} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "repeat(2, 1fr)", xxl: "repeat(3, 1fr)" }, gap: 1.5 }}>{models.map((model) => <Paper component="article" variant="outlined" key={model.id} sx={{ p: 1.25, bgcolor: "background.paper" }}><Box sx={{ display: "flex", gap: 1.5 }}><Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: "action.hover", display: "grid", placeItems: "center" }}><Icon name="memory" fontSize="small" /></Box><Box sx={{ minWidth: 0 }}><Typography component="h2" sx={{ fontWeight: 620 }}>{model.name}</Typography><Typography variant="body2" color="text.secondary">{model.architecture} · {model.adapter}</Typography></Box></Box><Box sx={{ mt: 3, pt: 2, borderTop: "1px solid", borderColor: "divider" }}><Typography variant="caption" color="text.secondary">{t[RSC.MODELS_ARTIFACT_TEXT]}</Typography><Typography component="code" variant="body2" title={model.artifact} sx={{ mt: .5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "text.primary" }}>{model.artifact}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>{t[RSC.MODELS_CONTEXT_TEXT]}</Typography><Typography variant="body2">{model.contextLength == null ? t[RSC.MODELS_UNSPECIFIED_TEXT] : formatMessage(t[RSC.MODELS_CONTEXT_VALUE_TEXT], { count: formatNumber(model.contextLength, language) })}</Typography>{model.notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{model.notes}</Typography>}</Box></Paper>)}</Box>;
+const stateKeys: Record<DeploymentRecord["status"] | StageState, RSC> = {
+  draft: RSC.MODELS_DRAFT_STATUS, pending: RSC.MODELS_PENDING_STATUS, creating: RSC.MODELS_CREATING_STATUS,
+  loading: RSC.MODELS_LOADING_STATUS, ready: RSC.MODELS_READY_STATUS, unloading: RSC.MODELS_UNLOADING_STATUS,
+  unloaded: RSC.MODELS_UNLOADED_STATUS, failed: RSC.MODELS_FAILED_STATUS, unknown: RSC.MODELS_UNKNOWN_STATUS,
 };
+export function ModelsView({ snapshot, selectedModelId, editor, onOpenModel, onCreate, onEdit, onCloseEditor, onSaved }: { snapshot: StudioSnapshot; selectedModelId?: string; editor?: "new" | "edit"; onOpenModel: (id: string) => void; onCreate: () => void; onEdit: (id: string) => void; onCloseEditor: () => void; onSaved: (id: string) => void }) {
+  const { t } = useTranslation(); const records = useModel(deployments.records).value; const activity = useModel(deployments.activity).value;
+  const [inventory, setInventory] = useState(snapshot);
+  useEffect(startModels, []);
+  useEffect(() => { setInventory(snapshot); }, [snapshot]);
+  const refresh = async () => { await deployments.refresh(); try { setInventory(await studioApi.snapshot()); } catch (error) { deployments.activity.mutate(v => { v.error = String(error); }); } };
+  const visibleRecords = selectedModelId ? records.filter((record) => record.id === selectedModelId) : records;
+  if (editor) return <ModelEditorPage snapshot={inventory} recordId={editor === "edit" ? selectedModelId : undefined} onClose={onCloseEditor} onSaved={onSaved} />;
+  return <Box component="section" aria-label={t[RSC.MODELS_LIST_LABEL]}>
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
+      <Box><Typography component="h1" variant="h1">{t[RSC.MODELS_TITLE_TEXT]}</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>{t[RSC.MODELS_PURPOSE_MESSAGE]}</Typography></Box>
+      <Box sx={{ display: "flex", gap: 1 }}><Button onClick={() => void refresh()}>{t[RSC.MODELS_REFRESH_BUTTON]}</Button><Button variant="contained" onClick={onCreate}>{t[RSC.MODELS_CREATE_BUTTON]}</Button></Box>
+    </Box>
+    {activity.error && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{activity.error}</Alert>}
+    {records.length === 0 && <Paper variant="outlined" sx={{ p: 4 }}><Typography variant="h2">{t[RSC.MODELS_EMPTY_TITLE_TEXT]}</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>{t[RSC.MODELS_EMPTY_DETAIL_MESSAGE]}</Typography><Button sx={{ mt: 2 }} variant="outlined" onClick={onCreate}>{t[RSC.MODELS_CREATE_BUTTON]}</Button></Paper>}
+    <Box sx={{ display: "grid", gap: 2 }}>{visibleRecords.map(record => <Paper component="article" variant="outlined" key={record.id} sx={{ overflow: "hidden" }}>
+      <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+        <Box><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><Button onClick={() => onOpenModel(record.id)} sx={{ typography: "h2", minWidth: 0, p: 0, color: "text.primary", textTransform: "none", "&:hover": { bgcolor: "transparent", textDecoration: "underline" } }}>{record.name}</Button><Chip size="small" label={t[stateKeys[record.status]]} color={record.status === "ready" ? "success" : ["failed", "unknown"].includes(record.status) ? "warning" : "default"} /></Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: .7 }}>{formatMessage(t[RSC.MODELS_SUMMARY_MESSAGE], { adapter: record.adapter, agents: new Set(record.stages.map(s => s.agentId)).size, nodes: record.stages.length, layers: record.totalLayers })}</Typography>
+          <Typography variant="caption" color="text.secondary">{t[RSC.MODELS_INGRESS_LABEL]}: {snapshot.agents.find(a => a.id === record.ingressAgentId)?.name ?? record.ingressAgentId}</Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button disabled={activity.busy || !["draft", "unloaded"].includes(record.status)} onClick={() => onEdit(record.id)}>{t[RSC.MODELS_EDIT_BUTTON]}</Button>
+          {["draft", "unloaded"].includes(record.status) ? <Button variant="contained" disabled={activity.busy || !record.stages.length} onClick={() => void deployments.operate(record.id, "load")}>{t[RSC.MODELS_LOAD_BUTTON]}</Button> : <Button variant="outlined" disabled={activity.busy || ["loading", "unloading"].includes(record.status)} onClick={() => void deployments.operate(record.id, "unload")}>{t[RSC.MODELS_UNLOAD_BUTTON]}</Button>}
+        </Box>
+      </Box>
+      {["loading", "unloading"].includes(record.status) && <LinearProgress aria-label={t[stateKeys[record.status]]} />}
+      {record.error && <Alert severity="warning">{record.error}</Alert>}
+      <Box sx={{ overflowX: "auto" }}><Table size="small" aria-label={record.name} sx={{ minWidth: 780 }}><TableHead><TableRow>
+        <TableCell>{t[RSC.MODELS_AGENT_LABEL]}</TableCell><TableCell>{t[RSC.MODELS_NODE_LABEL]}</TableCell><TableCell>{t[RSC.MODELS_LAYERS_LABEL]}</TableCell><TableCell>{t[RSC.MODELS_ARTIFACT_LABEL]}</TableCell><TableCell>{t[RSC.MODELS_REPORT_LABEL]}</TableCell>
+      </TableRow></TableHead><TableBody>{record.stages.map(stage => {
+        const report = record.reports.find(r => r.stageId === stage.id);
+        return <TableRow key={stage.id}><TableCell>{snapshot.agents.find(a => a.id === stage.agentId)?.name ?? stage.agentId}</TableCell><TableCell><Typography variant="body2">{stage.nodeId}</Typography><Typography variant="caption" color="text.secondary">{t[RSC.MODELS_GENERATION_LABEL]} {stage.nodeGeneration}</Typography></TableCell><TableCell sx={{ whiteSpace: "nowrap" }}>{`[${stage.layerStart}, ${stage.layerEnd})`}</TableCell><TableCell sx={{ maxWidth: 360, overflowWrap: "anywhere" }}>{stage.artifact}</TableCell><TableCell><Typography variant="body2">{t[stateKeys[report?.state ?? "pending"]]}</Typography>{(report?.detail || report?.failureDetail) && <Typography variant="caption" color="warning.main">{[report.failureDetail, report.detail].filter((v, i, values) => v && values.indexOf(v) === i).join(" · ")}</Typography>}{report?.telemetry != null && <Box component="details"><Box component="summary" sx={{ cursor: "pointer", color: "text.secondary" }}>{t[RSC.MODELS_TELEMETRY_TEXT]}</Box><Box component="pre" sx={{ maxWidth: 360, whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 11 }}>{JSON.stringify(report.telemetry, null, 2)}</Box></Box>}</TableCell></TableRow>;
+      })}</TableBody></Table></Box>
+      <Box sx={{ px: 2, py: 1.25, color: "text.secondary" }}><Typography variant="caption">{formatMessage(t[RSC.MODELS_COMPLETION_MESSAGE], { ready: record.reports.filter(r => r.state === "ready").length, total: record.stages.length })}</Typography>{record.loadGeneration > 0 && <Typography variant="caption" sx={{ display: "block" }}>{t[RSC.MODELS_LOAD_GENERATION_LABEL]}: {record.loadGeneration}</Typography>}</Box>
+    </Paper>)}</Box>
+
+  </Box>;
+}

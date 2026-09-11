@@ -1,3 +1,5 @@
+@import "@xyflow/react/dist/style.css";
+
 :root { color-scheme: dark; font-synthesis: none; --direction: 1; }
 [dir="rtl"] { --direction: -1; }
 * { box-sizing: border-box; }

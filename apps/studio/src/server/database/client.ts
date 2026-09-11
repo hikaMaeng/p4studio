@@ -24,12 +24,20 @@ export class StudioDatabase {
     }
     this.connection.exec(schema);
     this.dropLegacyAgentAdapter();
+    this.dropLegacyNodeAdapter();
   }
 
   private dropLegacyAgentAdapter() {
     const columns = this.connection.prepare("SELECT name FROM pragma_table_info('agents')").all() as Row[];
     if (columns.some((column) => text(column, "name") === "adapter")) {
       this.connection.exec("ALTER TABLE agents DROP COLUMN adapter");
+    }
+  }
+
+  private dropLegacyNodeAdapter() {
+    const columns = this.connection.prepare("SELECT name FROM pragma_table_info('nodes')").all() as Row[];
+    if (columns.some((column) => text(column, "name") === "adapter")) {
+      this.connection.exec("ALTER TABLE nodes DROP COLUMN adapter");
     }
   }
 
@@ -87,15 +95,15 @@ export class StudioDatabase {
 
   nodes(): NodeRecord[] {
     return (this.connection.prepare("SELECT * FROM nodes ORDER BY agent_id,name").all() as Row[]).map((row) => ({
-      id: text(row, "id"), agentId: text(row, "agent_id"), name: text(row, "name"), adapter: text(row, "adapter"),
+      id: text(row, "id"), agentId: text(row, "agent_id"), name: text(row, "name"),
       lifecycle: text(row, "lifecycle") as NodeRecord["lifecycle"], createdAt: text(row, "created_at"),
     }));
   }
 
-  createNode(input: { agentId: string; name: string; adapter: string }): NodeRecord {
+  createNode(input: { agentId: string; name: string }): NodeRecord {
     const id = crypto.randomUUID(); const now = new Date().toISOString();
-    this.connection.prepare("INSERT INTO nodes (id,agent_id,name,adapter,created_at) VALUES (?,?,?,?,?)")
-      .run(id, input.agentId, input.name, input.adapter, now);
+    this.connection.prepare("INSERT INTO nodes (id,agent_id,name,created_at) VALUES (?,?,?,?)")
+      .run(id, input.agentId, input.name, now);
     return this.nodes().find((node) => node.id === id)!;
   }
 

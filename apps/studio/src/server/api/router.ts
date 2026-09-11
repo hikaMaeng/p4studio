@@ -1,9 +1,7 @@
 import { Router } from "express";
 import { P4_PROTOCOL } from "@p4studio/p4-protocol";
 import type { StudioDatabase } from "../database/client.js";
-import { inspectRegisteredAgent } from "../agent-socket/inspection/coordinator.js";
 import type { AgentObservationStore } from "../agent-socket/inspection/store.js";
-import type { AgentInspector } from "../agent-socket/inspection/types.js";
 import { agentInput, modelInput, nodeInput, pipelineInput } from "./validation.js";
 
 const apiError = (code: string, message: string, issues?: unknown) => ({ error: { code, message, ...(issues ? { issues } : {}) } });
@@ -11,8 +9,6 @@ const apiError = (code: string, message: string, issues?: unknown) => ({ error: 
 export const createApiRouter = (
   database: StudioDatabase,
   observations: AgentObservationStore,
-  inspector: AgentInspector,
-  probeTimeoutMs: number,
 ) => {
   const router = Router();
 
@@ -21,17 +17,16 @@ export const createApiRouter = (
     protocol: P4_PROTOCOL, generatedAt: new Date().toISOString(),
   }));
 
-  router.post("/agents", async (request, response) => {
+  router.post("/agents", (request, response) => {
     const parsed = agentInput.safeParse(request.body);
     if (!parsed.success) return response.status(400).json(apiError("invalid_agent", "에이전트 입력을 확인하세요.", parsed.error.issues));
     let agent;
     try { agent = database.createAgent(parsed.data); }
     catch { return response.status(409).json(apiError("agent_conflict", "같은 이름 또는 주소의 에이전트가 이미 있습니다.")); }
-    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
-    return response.status(201).json(inspected);
+    return response.status(201).json(observations.view(agent));
   });
 
-  router.patch("/agents/:id", async (request, response) => {
+  router.patch("/agents/:id", (request, response) => {
     if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
     const parsed = agentInput.safeParse(request.body);
     if (!parsed.success) return response.status(400).json(apiError("invalid_agent", "에이전트 입력을 확인하세요.", parsed.error.issues));
@@ -39,15 +34,13 @@ export const createApiRouter = (
     try { agent = database.updateAgent(request.params.id, parsed.data); }
     catch { return response.status(409).json(apiError("agent_conflict", "같은 이름 또는 주소의 에이전트가 이미 있습니다.")); }
     if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
-    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
-    return response.json(inspected);
+    return response.json(observations.view(agent));
   });
 
-  router.post("/agents/:id/probe", async (request, response) => {
+  router.post("/agents/:id/probe", (request, response) => {
     const agent = database.agent(request.params.id);
     if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
-    const inspected = await inspectRegisteredAgent(database, observations, inspector, agent, probeTimeoutMs);
-    return response.json(inspected);
+    return response.status(409).json(apiError("browser_owned_transport", "P4 관측은 브라우저 WebSocket 세션에서 실행됩니다."));
   });
 
   router.post("/agents/:id/nodes", (request, response) => {

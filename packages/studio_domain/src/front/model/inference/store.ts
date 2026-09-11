@@ -1,0 +1,44 @@
+import { SliceModel } from "../SliceModel.js";
+import type { InferenceMonitoring, InferenceRun, InferenceRunInput } from "../../../common/protocol/inference/index.js";
+
+export interface InferenceGateway {
+  list(): Promise<InferenceRun[]>;
+  create(input: InferenceRunInput): Promise<InferenceRun>;
+  subscribe(runId: string, onRun: (run: InferenceRun) => void, onError: (error: Error) => void): () => void;
+  monitoring(modelId: string): Promise<InferenceMonitoring>;
+}
+
+class InferenceStore {
+  readonly runs = new SliceModel<InferenceRun[]>([]);
+  readonly monitoring = new SliceModel<InferenceMonitoring | null>(null);
+  readonly activity = new SliceModel({ busy: false, error: "" });
+  private gateway?: InferenceGateway;
+  private subscriptions = new Map<string, () => void>();
+
+  start(gateway: InferenceGateway) { if (!this.gateway) { this.gateway = gateway; void this.refresh(); } }
+  async refresh() {
+    if (!this.gateway) return;
+    try { const runs = await this.gateway.list(); this.runs.set(runs); runs.filter(run => ["preparing", "running"].includes(run.state)).forEach(run => this.listen(run)); }
+    catch (error) { this.activity.mutate(value => { value.error = String(error); }); }
+  }
+  async create(input: InferenceRunInput) {
+    if (!this.gateway || this.activity.value.busy) return;
+    this.activity.mutate(value => { value.busy = true; value.error = ""; });
+    try { const run = await this.gateway.create(input); this.upsert(run); this.listen(run); }
+    catch (error) { this.activity.mutate(value => { value.error = error instanceof Error ? error.message : String(error); }); }
+    finally { this.activity.mutate(value => { value.busy = false; }); }
+  }
+  async refreshMonitoring(modelId: string) {
+    if (!this.gateway) return;
+    try { this.monitoring.set(await this.gateway.monitoring(modelId)); }
+    catch (error) { this.activity.mutate(value => { value.error = error instanceof Error ? error.message : String(error); }); }
+  }
+  private listen(run: InferenceRun) {
+    if (!this.gateway || this.subscriptions.has(run.id)) return;
+    this.subscriptions.set(run.id, this.gateway.subscribe(run.id, value => { this.upsert(value); if (!["preparing", "running"].includes(value.state)) this.stop(value.id); }, error => this.activity.mutate(value => { value.error = error.message; })));
+  }
+  private stop(id: string) { this.subscriptions.get(id)?.(); this.subscriptions.delete(id); }
+  private upsert(run: InferenceRun) { this.runs.mutate(values => { const index = values.findIndex(value => value.id === run.id); if (index < 0) values.unshift(run); else values[index] = run; }); }
+}
+
+export const inference = new InferenceStore();

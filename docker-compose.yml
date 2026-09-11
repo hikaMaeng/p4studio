@@ -12,16 +12,20 @@ services:
       - "${P4STUDIO_PORT:?P4STUDIO_PORT is required}:${P4STUDIO_PORT:?P4STUDIO_PORT is required}"
     volumes:
       - studio-data:/app/data
+      - ./apps/studio/docker/volumes/ssh:/run/studio-ssh:ro
+    init: true
     networks:
-      - studio-internal
-      - studio-edge
+      - studio-control
     restart: unless-stopped
 
 volumes:
   studio-data:
 
 networks:
-  studio-internal:
-    internal: true
-  studio-edge:
+  # P4 control traffic must leave Docker for LAN/VPN agents. Docker's automatic
+  # pool previously chose 192.168.0.0/20, shadowing the physical agent LAN.
+  studio-control:
     driver: bridge
+    ipam:
+      config:
+        - subnet: "${P4STUDIO_DOCKER_SUBNET:-10.253.240.0/24}"

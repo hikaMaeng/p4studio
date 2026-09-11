@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { connect } from "node:net";
+import { agentDialAddress } from "../routes.js";
 import {
   MAX_P4_AGENT_SNAPSHOT_BYTES,
   decodeAgentInspectionResponse,
@@ -32,7 +33,7 @@ export const inspectAgent = (
     request.writeUInt32LE(event.byteLength, 0);
     request.set(event, 4);
 
-    const socket = connect({ host, port });
+    const socket = connect(agentDialAddress(host, port));
     let connectedAt: number | null = null;
     let settled = false;
     let received = Buffer.alloc(0);

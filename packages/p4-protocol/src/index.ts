@@ -1,4 +1,5 @@
 /** Public protocol identities mirrored from the P4 wire contract. */
+export * from "./event/wire.js";
 export const P4_PROTOCOL = Object.freeze({
   frameVersion: 8,
   eventVersion: 3,

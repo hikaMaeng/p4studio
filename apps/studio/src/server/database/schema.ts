@@ -31,7 +31,6 @@ export const schema = `
     id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
     name TEXT NOT NULL,
-    adapter TEXT NOT NULL,
     lifecycle TEXT NOT NULL DEFAULT 'declared' CHECK (lifecycle IN ('declared', 'loading', 'ready', 'error')),
     created_at TEXT NOT NULL,
     UNIQUE(agent_id, name)

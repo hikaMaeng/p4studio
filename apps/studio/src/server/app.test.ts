@@ -41,7 +41,8 @@ const setup = (inspector: AgentInspector = failedInspector) => {
   const database = new StudioDatabase(":memory:");
   databases.push(database);
   const observations = new AgentObservationStore();
-  return { database, observations, app: createApp(database, 100, observations, inspector) };
+  void inspector;
+  return { database, observations, app: createApp(database, observations) };
 };
 
 afterEach(() => {
@@ -54,33 +55,19 @@ describe("Studio integration API", () => {
     const { app } = setup();
     const created = await request(app).post("/api/agents").send({ name: "test-agent", host: "127.0.0.1", port: 59998 }).expect(201);
     expect(created.body).not.toHaveProperty("adapter");
-    expect(created.body.inspection).toMatchObject({ state: "error", error: "test endpoint offline" });
+    expect(created.body.inspection).toMatchObject({ state: "pending", error: null });
     const snapshot = await request(app).get("/api/snapshot").expect(200);
     expect(snapshot.body.agents).toHaveLength(1);
     expect(snapshot.body.protocol).toEqual({ frameVersion: 8, eventVersion: 3, statusSchemaVersion: 6 });
   });
 
-  it("returns standard P4 machine and registered-node observations on registration", async () => {
+  it("does not start a P4 inspection while registering an agent", async () => {
     const { app } = setup(availableInspector);
     const created = await request(app).post("/api/agents").send({ name: "local-agent", host: "192.168.0.6", port: 51055 }).expect(201);
-    expect(created.body).toMatchObject({
-      reachability: "reachable",
-      inspection: {
-        state: "available",
-        snapshot: {
-          protocolVersion: 3,
-          machine: {
-            capability: { os: "windows", arch: "x86_64", cpu: { physicalCores: 8, logicalCores: 16 }, memory: { totalBytes: 32_000 }, gpus: [], adapters: ["llamacpp"] },
-            occupancy: { memory: { availableBytes: 16_000, usedBytes: 16_000 }, gpus: [] },
-            probes: { memory: { source: "os", state: "available", detail: null }, gpus: { source: "nvidia-smi", state: "available", detail: null } },
-          },
-          nodes: [{ nodeId: "live-node", adapterKind: "llamacpp", generation: 2 }],
-        },
-      },
-    });
+    expect(created.body).toMatchObject({ reachability: "unknown", inspection: { state: "pending", snapshot: null } });
   });
 
-  it("edits the SQLite-owned agent registration and probes the updated endpoint", async () => {
+  it("edits the SQLite-owned agent registration without opening a P4 connection", async () => {
     const calls: Array<{ host: string; port: number }> = [];
     const inspector: AgentInspector = async (host, port) => {
       calls.push({ host, port });
@@ -89,9 +76,9 @@ describe("Studio integration API", () => {
     const { app, database } = setup(inspector);
     const created = await request(app).post("/api/agents").send({ name: "before", host: "127.0.0.1", port: 59993 }).expect(201);
     const updated = await request(app).patch(`/api/agents/${created.body.id}`).send({ name: "managed-agent", host: "192.168.0.42", port: 51055 }).expect(200);
-    expect(updated.body).toMatchObject({ name: "managed-agent", host: "192.168.0.42", port: 51055, inspection: { state: "available" } });
+    expect(updated.body).toMatchObject({ name: "managed-agent", host: "192.168.0.42", port: 51055, inspection: { state: "pending" } });
     expect(database.agent(created.body.id)).toMatchObject({ name: "managed-agent", host: "192.168.0.42", port: 51055 });
-    expect(calls.at(-1)).toEqual({ host: "192.168.0.42", port: 51055 });
+    expect(calls).toEqual([]);
   });
 
   it("rejects an agent registration edit that conflicts with another SQLite record", async () => {
@@ -125,13 +112,22 @@ describe("Studio integration API", () => {
     const { app, database } = setup();
     const agent = database.createAgent({ name: "a", host: "127.0.0.1", port: 59997 });
     const model = database.createModel({ name: "m", artifact: "model.gguf", architecture: "mock", adapter: "mock", contextLength: null, notes: "" });
-    const second = database.createNode({ agentId: agent.id, name: "second", adapter: "mock" });
-    const first = database.createNode({ agentId: agent.id, name: "first", adapter: "mock" });
+    const second = database.createNode({ agentId: agent.id, name: "second" });
+    const first = database.createNode({ agentId: agent.id, name: "first" });
     const response = await request(app).post("/api/pipelines").send({ name: "p", modelId: model.id, stages: [
       { nodeId: second.id, stageIndex: 1, layerStart: 8, layerEnd: 16, launchArgs: "{}" },
       { nodeId: first.id, stageIndex: 0, layerStart: 0, layerEnd: 8, launchArgs: "{}" },
     ] }).expect(201);
     expect(response.body.stages.map((stage: { stageIndex: number }) => stage.stageIndex)).toEqual([0, 1]);
+  });
+
+  it("stores a Studio node declaration without an adapter or P4 node claim", async () => {
+    const { app, database } = setup();
+    const agent = database.createAgent({ name: "a", host: "127.0.0.1", port: 59990 });
+    const response = await request(app).post(`/api/agents/${agent.id}/nodes`).send({ name: "planned-node" }).expect(201);
+    expect(response.body).toMatchObject({ agentId: agent.id, name: "planned-node", lifecycle: "declared" });
+    expect(response.body).not.toHaveProperty("adapter");
+    expect(database.nodes()).toEqual([expect.objectContaining({ id: response.body.id, name: "planned-node" })]);
   });
 
   it("rejects duplicate agent endpoints", async () => {
@@ -173,5 +169,26 @@ describe("Studio integration API", () => {
     const columns = database.connection.prepare("SELECT name FROM pragma_table_info('agents')").all() as Array<{ name: string }>;
     expect(columns.map((column) => column.name)).not.toContain("adapter");
     expect(database.createAgent({ name: "new", host: "127.0.0.1", port: 59994 })).toMatchObject({ name: "new" });
+  });
+
+  it("removes the legacy Studio-node adapter without treating it as P4 state", () => {
+    const directory = mkdtempSync(join(tmpdir(), "p4studio-node-migration-"));
+    temporaryDirectories.push(directory);
+    const path = join(directory, "legacy.db");
+    const legacy = new DatabaseSync(path);
+    legacy.exec(`
+      CREATE TABLE agents (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, host TEXT NOT NULL, port INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(host, port));
+      CREATE TABLE nodes (id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, name TEXT NOT NULL, adapter TEXT NOT NULL, lifecycle TEXT NOT NULL DEFAULT 'declared', created_at TEXT NOT NULL, UNIQUE(agent_id, name));
+      INSERT INTO agents (id,name,host,port,created_at,updated_at) VALUES ('legacy-agent','legacy','127.0.0.1',59989,'2026-09-10T00:00:00.000Z','2026-09-10T00:00:00.000Z');
+      INSERT INTO nodes (id,agent_id,name,adapter,created_at) VALUES ('legacy-node','legacy-agent','planned','llamacpp','2026-09-10T00:00:00.000Z');
+    `);
+    legacy.close();
+
+    const database = new StudioDatabase(path);
+    databases.push(database);
+    expect(database.nodes()).toEqual([expect.objectContaining({ id: "legacy-node", name: "planned" })]);
+    expect(database.nodes()[0]).not.toHaveProperty("adapter");
+    const columns = database.connection.prepare("SELECT name FROM pragma_table_info('nodes')").all() as Array<{ name: string }>;
+    expect(columns.map((column) => column.name)).not.toContain("adapter");
   });
 });

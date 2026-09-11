@@ -1,23 +1,22 @@
 import express from "express";
+import { hostname } from "node:os";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { StudioDatabase } from "./database/client.js";
 import { createApiRouter } from "./api/router.js";
-import { inspectAgent } from "./agent-socket/inspection/client.js";
 import { AgentObservationStore } from "./agent-socket/inspection/store.js";
-import type { AgentInspector } from "./agent-socket/inspection/types.js";
+import { createDeploymentRouter } from "./api/deployments.js";
 
 export const createApp = (
   database: StudioDatabase,
-  probeTimeoutMs: number,
   observations = new AgentObservationStore(),
-  inspector: AgentInspector = inspectAgent,
 ) => {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "1mb" }));
-  app.get("/health", (_request, response) => response.json({ status: "ok", database: "ready" }));
-  app.use("/api", createApiRouter(database, observations, inspector, probeTimeoutMs));
+  app.get("/health", (_request, response) => response.json({ status: "ok", database: "ready", instance: hostname() }));
+  app.use(createDeploymentRouter(database));
+  app.use("/api", createApiRouter(database, observations));
 
   const front = join(dirname(resolve(process.argv[1] ?? ".")), "..", "front");
   if (existsSync(front)) {

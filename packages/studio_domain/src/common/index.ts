@@ -1,1 +1,7 @@
 export const STUDIO_DOMAIN_VERSION = 1;
+export * from "./protocol/deployments/index.js";
+export * from "./protocol/deployments/payload.js";
+export * from "./protocol/deployments/presets.js";
+export * from "./protocol/deployments/runtime.js";
+export * from "./protocol/inference/index.js";
+export * from "./protocol/p4-tunnel/index.js";

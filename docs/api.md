@@ -14,6 +14,6 @@
 
 모든 오류는 `{ "error": { "code", "message", "issues?" } }` 형태다.
 
-에이전트 등록과 수정 입력은 `name`, `host`, `port`만 받는다. `name`은 SQLite가 소유하는 관리 이름이며 P4 에이전트 identity가 아니다. 실행 어댑터는 노드 선언에서 선택한다.
+에이전트 등록과 수정 입력은 `name`, `host`, `port`만 받는다. Studio 노드 선언도 `name`만 받는 SQLite 관리 데이터이며 P4 에이전트 identity나 원격 CREATE가 아니다. 실행 어댑터는 모델 배치가 실제 P4 CREATE와 LOAD를 보낼 때 선택한다.
 
 에이전트 응답에는 `inspection.state`, `inspection.inspectedAt`, `inspection.error`, `inspection.snapshot`이 추가된다. snapshot은 P4 event version, 생성 시각, 머신의 OS·아키텍처·가용 코어·지원 어댑터와 에이전트에 실제 등록된 노드의 ID·generation·adapter kind·opaque state를 포함한다. 등록은 조회 실패와 독립적으로 유지된다.
