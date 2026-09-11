@@ -39,21 +39,21 @@ export class BrowserP4Connection {
   static open(agentId: string, ingressAddress: string): Promise<BrowserP4Connection> {
     const connection = new BrowserP4Connection(agentId, ingressAddress);
     return new Promise((resolve, reject) => {
-      const timer = window.setTimeout(() => reject(new UncertainDelivery("Timed out opening browser P4 bridge")), 10_000);
+      const timer = window.setTimeout(() => { connection.close(); reject(new UncertainDelivery("Timed out opening browser P4 bridge")); }, 10_000);
       const listener = (event: MessageEvent) => {
         if (typeof event.data !== "string") return;
         try {
           const control = parseP4TunnelServerControl(JSON.parse(event.data));
           if (control.connectionId !== connection.operationId && control.connectionId !== null) return;
           if (control.type === "opened") { window.clearTimeout(timer); connection.opened = true; connection.socket.removeEventListener("message", listener); resolve(connection); }
-          if (control.type === "error" || control.type === "closed") { window.clearTimeout(timer); connection.socket.removeEventListener("message", listener); reject(new UncertainDelivery(control.detail)); }
+          if (control.type === "error" || control.type === "closed") { window.clearTimeout(timer); connection.socket.removeEventListener("message", listener); connection.close(); reject(new UncertainDelivery(control.detail)); }
         } catch { /* Regular P4 binary traffic is handled by receive. */ }
       };
       connection.socket.addEventListener("message", listener);
     });
   }
 
-  exchange(target: P4Endpoint, adapter: string, contentType: string, payload: unknown, terminalTypes: string[], timeoutMs: number): Promise<P4Event> {
+  exchange(target: P4Endpoint, adapter: string | null, contentType: string, payload: unknown, terminalTypes: string[], timeoutMs: number): Promise<P4Event> {
     if (!this.opened || this.stopped) return Promise.reject(new UncertainDelivery("P4 bridge is not open"));
     if (this.pending) return Promise.reject(new Error("An exchange is already active"));
     const event = this.event(target, adapter, contentType, payload, 0, Date.now() + timeoutMs);
@@ -103,7 +103,7 @@ export class BrowserP4Connection {
     window.clearTimeout(pending.timer); this.pending = undefined; pending.resolve(event);
   }
 
-  private event(target: P4Endpoint, adapter: string, contentType: string, payload: unknown, eventClass: number, deadline: number | null): P4Event {
+  private event(target: P4Endpoint, adapter: string | null, contentType: string, payload: unknown, eventClass: number, deadline: number | null): P4Event {
     return { eventId: crypto.randomUUID(), correlationId: this.operationId, causationId: null, source: this.outer, target, returnRoute: this.outer,
       class: eventClass, sequence: ++this.sequence, deadline, adapterKind: adapter, contentType, payload: new TextEncoder().encode(JSON.stringify(payload)) };
   }

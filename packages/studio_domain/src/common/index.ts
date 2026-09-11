@@ -1,4 +1,5 @@
 export const STUDIO_DOMAIN_VERSION = 1;
+export * from "./protocol/graph-inventory/index.js";
 export * from "./protocol/deployments/index.js";
 export * from "./protocol/deployments/payload.js";
 export * from "./protocol/deployments/presets.js";

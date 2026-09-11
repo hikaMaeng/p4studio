@@ -9,3 +9,5 @@
 패키지는 `apps/`나 `F:/dev/p4` 구현을 import하지 않는다. llama.cpp plan 문법은 common의 adapter payload 모듈에서 UI/서버가 함께 사용하며 backend 중립 wire 패키지로 옮기지 않는다. 관측된 하드웨어 수치를 제품 배치 성공으로 해석하지 않는다. [원문 인자와 실기 예제 계약](model-configurations.md)을 따른다.
 
 이 패키지는 DOM을 렌더하지 않는다. 화면 locator는 [앱 constraints](../../../apps/studio/docs/constraints.md)와 [Studio testing](../../../docs/testing.md)이 소유한다.
+
+`/common` graph-inventory의 소비자는 Studio HTTP router/SQL/frontend gateway, `/front` GraphInventoryStore의 소비자는 모델 그래프·이름 편집·노드 inspector다. 관리 이름 변경은 P4 nodeId/generation·배치 연결을 바꾸지 않는다. 관측 갱신은 Studio 이름을 덮어쓰지 않으며 실패는 기존 관측을 삭제하지 않는다. [관리 메타데이터](../../../apps/studio/docs/usage.md#managed-metadata)의 저장·확장 경계를 유지한다.

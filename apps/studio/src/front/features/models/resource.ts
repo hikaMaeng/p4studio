@@ -113,5 +113,16 @@ export enum RSC {
   MODELS_CANVAS_INPUT_LABEL = "models.canvas.input.label",
   MODELS_CANVAS_OUTPUT_LABEL = "models.canvas.output.label",
   MODELS_PROTOCOL_TITLE_TEXT = "models.protocol.title.text",
-  MODELS_PROTOCOL_MESSAGE = "models.protocol.message"
+  MODELS_PROTOCOL_MESSAGE = "models.protocol.message",
+  MODELS_GRAPH_AGENT_NAME_LABEL = "models.graph.agent.name.label",
+  MODELS_GRAPH_NODE_NAME_LABEL = "models.graph.node.name.label",
+  MODELS_GRAPH_RELOAD_BUTTON = "models.graph.reload.button",
+  MODELS_GRAPH_RELOADING_STATUS = "models.graph.reloading.status",
+  MODELS_GRAPH_RELOAD_ERROR_ALERT = "models.graph.reload.error.alert",
+  MODELS_GRAPH_RENAME_ERROR_ALERT = "models.graph.rename.error.alert",
+  MODELS_GRAPH_SAVE_BUTTON = "models.graph.save.button",
+  MODELS_GRAPH_RENAME_BUTTON = "models.graph.rename.button",
+  MODELS_GRAPH_NODE_NAME_MESSAGE = "models.graph.node.name.message",
+  MODELS_GRAPH_LABELS_ERROR_ALERT = "models.graph.labels.error.alert",
+  MODELS_GRAPH_LOAD_MESSAGE = "models.graph.load.message"
 }

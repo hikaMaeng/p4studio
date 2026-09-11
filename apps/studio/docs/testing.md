@@ -8,6 +8,10 @@
 
 그래프 locator: `flow-agent-{agentId}` 그룹, `flow-agent-header-{agentId}` 이동 헤더, `flow-node-{agentId}:{nodeId}:{generation}` 노드, `flow-input-…`/`flow-output-…` 포트. 상세는 `노드 ID` 번역명으로 이름 붙인 `aside`와 `section`이다. React Flow 소유 edge에만 `.react-flow__edge` CSS 예외를 사용한다.
 
+새로고침 버튼은 `{agent name} 노드 목록 새로고침`, 연필은 `{name} 편집`, textbox는 `에이전트 이름`/`노드 이름` 번역명으로 찾는다. 헤더의 주소/여백을 드래그하며 입력·버튼은 드래그하지 않는다. 조회/저장 실패는 `alert`, 조회 중은 `progressbar`다.
+
+[graph-inventory.test.ts](../src/server/api/graph-inventory.test.ts)는 실제 Express/SQLite로 이름 변경·ID 보존·agent별 node ID 분리·다른 JSON 필드 보존·revision 증가를 검사한다. [store.test.ts](../../../packages/studio_domain/src/front/model/graph-inventory/store.test.ts)는 조회 중복 차단·실패 후 이전 관측 유지·이름 저장 재시도를 검사한다. `test/20260911/152000_graph-metadata/` 로컬 시나리오 증거는 임시 SQLite의 실제 HTTP 이름 저장, 모의 P4 WebSocket 조회, 내부/외부 노드 연결, 조회 실패 후 연결 유지, 페이지 reload 뒤 SQL 이름 복원을 포함한다. 실제 P4 적재·추론 증거가 아니다.
+
 [grouped-node-connections.mjs](../../../test/20260911/grouped-node-connections.mjs)는 HTTP fixture(에이전트 2개 × 노드 4개)로 동일 node ID의 에이전트 간 분리, 내부/외부 포트 연결, 그룹 이동 후 자식 포함·edge 유지, 정확한 노드 상세 선택을 검사한다. `P4STUDIO_TEST_URL`로 실행 중인 Vite URL을 지정한다. 증거는 `test/20260911/130000_grouped-node-connections/`; 실제 P4 적재 시험이 아니다. 이전 페이지/제어 증거는 `test/20260911/model-editor/`, `test/20260911/model-menu/`다.
 
 인퍼런스 화면은 `/inference/query`에서 1·5·10·20·30·40 동시 요청, 반복·간격·프롬프트를 설정하고 stream 결과 표의 토큰/TTFT/TPS를 확인한다. `/inference/monitoring`에서는 선택 모델의 stage별 inspection 결과를 확인한다. 실제 수용에는 P4 agent가 반환한 SESSION_READY, OUTPUT, BatchObservation와 정상 출력이 필요하며, 프런트 unit/typecheck만으로 이를 주장하지 않는다.

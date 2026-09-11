@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AgentRecord, ModelRecord, NodeRecord, PipelineRecord, PipelineStageRecord } from "../../common/domain.js";
 import { schema } from "./schema.js";
+import type { NodeLabel, NodeLabelInput } from "@p4studio/studio_domain/common";
 
 type Row = Record<string, unknown>;
 
@@ -74,6 +75,24 @@ export class StudioDatabase {
     this.connection.prepare("UPDATE agents SET reachability=?, latency_ms=?, probe_error=?, last_probe_at=?, updated_at=? WHERE id=?")
       .run(result.reachability, result.latencyMs, result.probeError, now, now, id);
     return this.agent(id)!;
+  }
+
+  renameAgent(id: string, name: string) {
+    this.connection.prepare("UPDATE agents SET name=?, updated_at=? WHERE id=?").run(name, new Date().toISOString(), id);
+    return this.agent(id);
+  }
+
+  nodeLabels(): NodeLabel[] {
+    return (this.connection.prepare("SELECT agent_id,node_id,json_extract(metadata_json,'$.name') AS name,updated_at FROM node_metadata WHERE json_type(metadata_json,'$.name')='text' ORDER BY agent_id,node_id").all() as Row[])
+      .map(row => ({ agentId: text(row, "agent_id"), nodeId: text(row, "node_id"), name: text(row, "name"), updatedAt: text(row, "updated_at") }));
+  }
+
+  renameNode(agentId: string, input: NodeLabelInput): NodeLabel {
+    const result = { agentId, ...input, updatedAt: new Date().toISOString() };
+    // Name updates patch one managed field; unrelated Studio metadata survives.
+    this.connection.prepare("INSERT INTO node_metadata (agent_id,node_id,metadata_json,updated_at) VALUES (?,?,?,?) ON CONFLICT(agent_id,node_id) DO UPDATE SET metadata_json=json_set(node_metadata.metadata_json,'$.name',json_extract(excluded.metadata_json,'$.name')),revision=node_metadata.revision+1,updated_at=excluded.updated_at")
+      .run(agentId, input.nodeId, JSON.stringify({ name: input.name }), result.updatedAt);
+    return result;
   }
 
   deleteAgent(id: string) { return this.connection.prepare("DELETE FROM agents WHERE id=?").run(id).changes > 0; }

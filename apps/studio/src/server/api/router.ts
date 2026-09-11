@@ -3,6 +3,7 @@ import { P4_PROTOCOL } from "@p4studio/p4-protocol";
 import type { StudioDatabase } from "../database/client.js";
 import type { AgentObservationStore } from "../agent-socket/inspection/store.js";
 import { agentInput, modelInput, nodeInput, pipelineInput } from "./validation.js";
+import { graphInventoryRoutes, graphNameSchema, nodeLabelInputSchema, type GraphAgent, type NodeLabelList } from "@p4studio/studio_domain/common";
 
 const apiError = (code: string, message: string, issues?: unknown) => ({ error: { code, message, ...(issues ? { issues } : {}) } });
 
@@ -11,6 +12,21 @@ export const createApiRouter = (
   observations: AgentObservationStore,
 ) => {
   const router = Router();
+
+  router.get(graphInventoryRoutes.labels.path.slice(4), (_request, response) => response.json({ labels: database.nodeLabels() } satisfies NodeLabelList));
+  router.patch<{ id: string }>(graphInventoryRoutes.renameAgent.path.slice(4), (request, response) => {
+    if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "Agent not found"));
+    const parsed = graphNameSchema.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_name", "Invalid name"));
+    try { return response.json(database.renameAgent(request.params.id, parsed.data.name)! satisfies GraphAgent); }
+    catch { return response.status(409).json(apiError("agent_conflict", "Agent name already exists")); }
+  });
+  router.put<{ id: string }>(graphInventoryRoutes.renameNode.path.slice(4), (request, response) => {
+    if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "Agent not found"));
+    const parsed = nodeLabelInputSchema.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_name", "Invalid node name"));
+    return response.json(database.renameNode(request.params.id, parsed.data));
+  });
 
   router.get("/snapshot", (_request, response) => response.json({
     agents: database.agents().map((agent) => observations.view(agent)), nodes: database.nodes(), models: database.models(), pipelines: database.pipelines(),

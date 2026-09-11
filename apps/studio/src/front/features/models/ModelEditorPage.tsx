@@ -9,8 +9,11 @@ import { NodeInspector } from "./NodeInspector.js";
 import { PlacementCanvas } from "./PlacementCanvas.js";
 import { PlacementEditor } from "./PlacementEditor.js";
 import { RSC } from "./resource.js";
+import { useGraphInventory } from "./inventory.js";
+import { GraphFeedback } from "./GraphNameEditor.js";
 
-export function ModelEditorPage({ snapshot, recordId, onClose, onSaved }: { snapshot: StudioSnapshot; recordId?: string; onClose: () => void; onSaved: (id: string) => void }) {
+export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, onSaved }: { snapshot: StudioSnapshot; recordId?: string; onClose: () => void; onSaved: (id: string) => void }) {
+  const snapshot = useGraphInventory(initialSnapshot);
   const { t } = useTranslation();
   const editor = useModel(deployments.editor).value, activity = useModel(deployments.activity).value, records = useModel(deployments.records).value;
   const selectedId = useModel(deployments.selection).value, value = editor.input;
@@ -29,6 +32,7 @@ export function ModelEditorPage({ snapshot, recordId, onClose, onSaved }: { snap
       <PlacementCanvas snapshot={snapshot} />
       <Box component="aside" aria-label={t[RSC.MODELS_NODE_LABEL]} sx={{ display: "grid", alignContent: "start", gap: 2, minWidth: 0, minHeight: 0, overflowY: "auto" }}>
         {activity.error && <Alert severity="error" role="alert">{activity.error}</Alert>}
+        <GraphFeedback />
         <NodeInspector snapshot={snapshot} />
         {selected >= 0 && <PlacementEditor key={selectedId} id={selectedId} index={selected} snapshot={snapshot} />}
         <Paper component="details" variant="outlined" open sx={{ overflow: "hidden" }}>

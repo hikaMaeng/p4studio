@@ -1,3 +1,4 @@
+// Managed metadata ownership and extension rules: apps/studio/docs/usage.md#managed-metadata.
 export const schema = `
   PRAGMA foreign_keys = ON;
 
@@ -13,6 +14,16 @@ export const schema = `
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     UNIQUE(host, port)
+  );
+
+  CREATE TABLE IF NOT EXISTS node_metadata (
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    schema_version INTEGER NOT NULL DEFAULT 1,
+    revision INTEGER NOT NULL DEFAULT 1,
+    metadata_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadata_json)),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (agent_id, node_id)
   );
 
   CREATE TABLE IF NOT EXISTS models (
