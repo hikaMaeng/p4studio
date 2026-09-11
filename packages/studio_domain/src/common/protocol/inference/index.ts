@@ -30,22 +30,6 @@ export const inferenceRequestSchema = z.object({
 });
 export type InferenceRequest = z.infer<typeof inferenceRequestSchema>;
 
-export const inferenceRunSchema = z.object({
-  id: identifier,
-  modelId: identifier,
-  modelName: identifier,
-  state: z.enum(["preparing", "running", "completed", "failed", "unknown"]),
-  submitted: nonNegative,
-  completed: nonNegative,
-  createdAt: z.string(),
-  error: z.string().nullable(),
-  requests: z.array(inferenceRequestSchema),
-});
-export type InferenceRun = z.infer<typeof inferenceRunSchema>;
-
-export const inferenceRunsSchema = z.object({ runs: z.array(inferenceRunSchema) });
-export type InferenceRunsResponse = z.infer<typeof inferenceRunsSchema>;
-
 export const inferenceGpuSchema = z.object({
   index: nonNegative, name: z.string(), vramUsedBytes: nonNegative, vramFreeBytes: nonNegative,
   utilizationGpuPercent: nonNegative.nullable(), temperatureC: nonNegative.nullable(), powerDrawW: finite.nullable(),
@@ -68,6 +52,23 @@ export type InferenceNode = z.infer<typeof inferenceNodeSchema>;
 
 export const inferenceMonitoringSchema = z.object({ modelId: identifier, generatedAt: z.string(), nodes: z.array(inferenceNodeSchema) });
 export type InferenceMonitoring = z.infer<typeof inferenceMonitoringSchema>;
+
+export const inferenceRunSchema = z.object({
+  id: identifier,
+  modelId: identifier,
+  modelName: identifier,
+  state: z.enum(["preparing", "running", "completed", "failed", "unknown"]),
+  submitted: nonNegative,
+  completed: nonNegative,
+  createdAt: z.string(),
+  error: z.string().nullable(),
+  monitoring: z.array(inferenceMonitoringSchema).default([]),
+  requests: z.array(inferenceRequestSchema),
+});
+export type InferenceRun = z.infer<typeof inferenceRunSchema>;
+
+export const inferenceRunsSchema = z.object({ runs: z.array(inferenceRunSchema) });
+export type InferenceRunsResponse = z.infer<typeof inferenceRunsSchema>;
 
 export const inferenceRoutes = {
   runs: { path: "/api/inference/runs", method: "GET" },

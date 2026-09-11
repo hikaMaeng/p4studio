@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 export type AgentTab = "information" | "nodes";
-export type InferenceTab = "query" | "monitoring";
+export type InferenceTab = "query" | "monitoring" | "history";
 export type StudioRoute =
   | { kind: "overview" }
   | { kind: "agents" }
@@ -40,7 +40,7 @@ export const parseRoute = (pathname: string): StudioRoute => {
   if (segments[0] === "pipelines" && segments[1] === "new" && segments.length === 2) return { kind: "pipeline-new" };
   if (segments[0] === "pipelines" && segments.length === 2) return { kind: "pipeline-detail", pipelineId: segments[1]! };
   if (segments.length === 1 && segments[0] === "inference") return { kind: "inference", tab: "query" };
-  if (segments[0] === "inference" && (segments[1] === "query" || segments[1] === "monitoring") && segments.length === 2) return { kind: "inference", tab: segments[1] };
+  if (segments[0] === "inference" && (["query", "monitoring", "history"] as const).includes(segments[1] as InferenceTab) && segments.length === 2) return { kind: "inference", tab: segments[1] as InferenceTab };
   return { kind: "overview" };
 };
 

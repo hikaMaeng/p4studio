@@ -1,4 +1,4 @@
-import { deploymentRoutes, type DeploymentRecord, type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput } from "@p4studio/studio_domain/common";
+import { deploymentRoutes, parseInferenceRuns, type DeploymentRecord, type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput } from "@p4studio/studio_domain/common";
 import { inference, type InferenceGateway } from "@p4studio/studio_domain/front";
 import { BrowserP4Connection } from "../../p4/connection.js";
 
@@ -9,13 +9,18 @@ const OUTPUT = "application/vnd.p4.llamacpp.output-v5+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
 const runs = new Map<string, InferenceRun>();
 const listeners = new Map<string, Set<(run: InferenceRun) => void>>();
+const HISTORY_KEY = "p4studio.inference.history.v1";
+
+const persist = () => { try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify({ runs: [...runs.values()] })); } catch { /* storage is optional */ } };
+const restore = () => { try { const raw = window.localStorage.getItem(HISTORY_KEY); if (!raw) return; for (const run of parseInferenceRuns(JSON.parse(raw)).runs) runs.set(run.id, run); } catch { /* ignore stale or unavailable history */ } };
+restore();
 
 async function request<T>(path: string, method = "GET"): Promise<T> {
   const response = await fetch(path, { method }); const value: unknown = await response.json();
   if (!response.ok) throw new Error(value && typeof value === "object" && "error" in value ? String((value as { error?: { message?: string } }).error?.message) : String(response.status));
   return value as T;
 }
-const publish = (run: InferenceRun) => listeners.get(run.id)?.forEach(listener => listener(structuredClone(run)));
+const publish = (run: InferenceRun) => { persist(); listeners.get(run.id)?.forEach(listener => listener(structuredClone(run))); };
 const now = () => new Date().toISOString();
 
 const gateway: InferenceGateway = {
@@ -24,8 +29,8 @@ const gateway: InferenceGateway = {
     const models = await request<{ deployments: DeploymentRecord[] }>(deploymentRoutes.list.path);
     const model = models.deployments.find(value => value.id === input.modelId);
     if (!model || model.status !== "ready" || model.adapter !== "llamacpp" || !model.loadGeneration || model.stages.length < 2) throw new Error("The selected distributed llama.cpp deployment is not ready");
-    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, requests: [] };
-    runs.set(run.id, run); void execute(run, model, input); return run;
+    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, monitoring: [], requests: [] };
+    runs.set(run.id, run); publish(run); void execute(run, model, input); return run;
   },
   subscribe: (id, onRun, onError) => {
     const set = listeners.get(id) ?? new Set(); set.add(onRun); listeners.set(id, set); const run = runs.get(id); if (run) onRun(structuredClone(run));

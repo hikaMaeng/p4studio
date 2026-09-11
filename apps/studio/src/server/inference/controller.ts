@@ -46,7 +46,7 @@ export class InferenceController {
   }
   create(model: DeploymentRecord, input: InferenceRunInput) {
     if (model.status !== "ready" || model.adapter !== "llamacpp" || !model.loadGeneration || model.stages.length < 2) throw new Error("The selected llama.cpp distributed model is not ready for inference");
-    const run: InferenceRun = { id: randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, requests: [] };
+    const run: InferenceRun = { id: randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, monitoring: [], requests: [] };
     this.runs.set(run.id, run); this.timings.set(run.id, new Map()); this.expected.set(run.id, input.concurrency * input.repetitions); this.publish(run);
     void this.execute(run, model, input);
     return run;

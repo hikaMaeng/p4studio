@@ -330,5 +330,15 @@
   "inference.gpu.label": "GPU",
   "inference.vram.label": "VRAM",
   "inference.utilization.label": "GPU utilization",
-  "inference.error.alert": "Inference error"
+  "inference.error.alert": "Inference error",
+  "inference.history.button": "History",
+  "inference.history.purpose.message": "Review past requests, responses, and monitoring observations captured during each inference run.",
+  "inference.history.empty.message": "No inference history is available yet.",
+  "inference.history.list.label": "Inference history",
+  "inference.history.detail.label": "Run details",
+  "inference.history.created.label": "Started",
+  "inference.history.requests.label": "Requests completed",
+  "inference.history.monitoring.label": "Monitoring timeline",
+  "inference.history.monitoring.empty.message": "No monitoring observations were captured for this run.",
+  "inference.history.snapshot.text": "{available} of {nodes} nodes reported available"
 }

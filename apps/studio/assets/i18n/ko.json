@@ -330,5 +330,15 @@
   "inference.gpu.label": "GPU",
   "inference.vram.label": "VRAM",
   "inference.utilization.label": "GPU 활성률",
-  "inference.error.alert": "인퍼런스 오류"
+  "inference.error.alert": "인퍼런스 오류",
+  "inference.history.button": "기록",
+  "inference.history.purpose.message": "각 인퍼런스 실행 중 수집한 과거 질의·응답과 모니터링 관측 기록을 확인합니다.",
+  "inference.history.empty.message": "아직 인퍼런스 기록이 없습니다.",
+  "inference.history.list.label": "인퍼런스 기록",
+  "inference.history.detail.label": "실행 상세",
+  "inference.history.created.label": "시작 시각",
+  "inference.history.requests.label": "질의 완료",
+  "inference.history.monitoring.label": "모니터링 타임라인",
+  "inference.history.monitoring.empty.message": "이 실행에서 수집된 모니터링 관측이 없습니다.",
+  "inference.history.snapshot.text": "{nodes}개 노드 중 {available}개가 사용 가능 상태를 보고함"
 }

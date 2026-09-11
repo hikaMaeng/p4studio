@@ -7,11 +7,13 @@ describe("Studio page routes", () => {
     expect(parseRoute("/agents/a/nodes/new")).toEqual({ kind: "agent-node-new", agentId: "a" });
     expect(parseRoute("/models/deployment-1/edit")).toEqual({ kind: "model-edit", modelId: "deployment-1" });
     expect(parseRoute("/inference/monitoring")).toEqual({ kind: "inference", tab: "monitoring" });
+    expect(parseRoute("/inference/history")).toEqual({ kind: "inference", tab: "history" });
   });
 
   it("encodes detail identifiers when constructing bookmark URLs", () => {
     expect(routePath({ kind: "agent-detail", agentId: "a one", tab: "information" })).toBe("/agents/a%20one/information");
     expect(routePath({ kind: "model-new" })).toBe("/models/new");
     expect(routePath({ kind: "inference", tab: "query" })).toBe("/inference/query");
+    expect(routePath({ kind: "inference", tab: "history" })).toBe("/inference/history");
   });
 });
