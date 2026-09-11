@@ -17,7 +17,6 @@ export const studioApi = {
   createAgent: (value: { name: string; host: string; port: number }) => request<AgentViewRecord>("/api/agents", { method: "POST", body: JSON.stringify(value) }),
   updateAgent: (agentId: string, value: { name: string; host: string; port: number }) => request<AgentViewRecord>(`/api/agents/${agentId}`, { method: "PATCH", body: JSON.stringify(value) }),
   createNode: (agentId: string, value: { name: string }) => request(`/api/agents/${agentId}/nodes`, { method: "POST", body: JSON.stringify(value) }),
-  inspectAgent: (agentId: string) => request<AgentViewRecord>(`/api/agents/${agentId}/probe`, { method: "POST" }),
   createModel: (value: Omit<ModelRecord, "id" | "createdAt" | "updatedAt">) => request<ModelRecord>("/api/models", { method: "POST", body: JSON.stringify(value) }),
   createPipeline: (value: { name: string; modelId: string; stages: Array<{ nodeId: string; stageIndex: number; layerStart: number; layerEnd: number; launchArgs: string }> }) => request<PipelineRecord>("/api/pipelines", { method: "POST", body: JSON.stringify(value) }),
 };

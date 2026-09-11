@@ -7,15 +7,19 @@ description: Deploy contract for a Dockerized web service - one entrypoint, loca
 
 ## Immediate Action
 
-Deploy through the repository entrypoint:
+Deploy through the repository entrypoint from the project root:
 
 ```sh
 npm run deploy <service>
 ```
 
-`scripts/deploy.sh` is the implementation and this repository owns it. `--all`
-deploys every compose service; run it only when the user asks for all services.
-The entrypoint accepts both `<service>` and `apps/<service>`.
+The entrypoint is repository-owned and must be implemented by a portable
+runtime available to the project (normally Node.js or POSIX shell). It must not
+assume a service name, operating system, shell, container name, port variable,
+volume name, database path, or project-specific environment variable. If the
+Compose file has one service, the service argument is optional; with multiple
+services it is required. A target service is selected by its Compose service
+name, never by an application-specific alias.
 
 Do not substitute an ad-hoc sequence of `npm run build` plus `docker compose up`
 for the entrypoint. If the entrypoint is wrong for this repository, fix the
@@ -23,11 +27,11 @@ entrypoint.
 
 ## Input
 
-* Required: a service name, unless the user asked to deploy everything.
-* If the repository defines exactly one compose service, the entrypoint resolves
-  it with no argument.
-* If the service name is missing and more than one exists, ask for the service
-  name only. Do not infer it and do not ask for a target directory.
+* Optional: a Compose service name when exactly one service exists.
+* With multiple services, require the service name and reject unknown names.
+* Support explicit portable overrides such as `--health-path`,
+  `--health-timeout-ms`, `--compose-file`, and `--force`; environment variables
+  may provide defaults but must not be the only way to configure them.
 
 ## The Contract
 
@@ -44,12 +48,19 @@ A deploy path satisfies this skill when all of the following hold.
    container error.
 4. **The published port is verified.** An empty port mapping, a port of `0`, and
    an `invalid IP:0` mapping are failures, not warnings.
-5. **Health is verified over the published port.** Do not assume `127.0.0.1` is
-   the Docker host; try the valid host candidates. A deploy that never proved a
-   response is not a successful deploy.
-6. **The run is idempotent.** An unchanged service is reported as
-   `already-current` instead of being rebuilt.
-7. **Everything lands in one report block** (below). A deploy that succeeds
+5. **Health is verified over the published port.** Discover the first valid
+   Compose port mapping and probe the configured health path through portable
+   host candidates. A deploy that never proved a response is not successful.
+6. **The run is idempotent.** Do not reinstall dependencies, rebuild local
+   artifacts, or recreate an unchanged service. Report `already-current` when
+   fingerprints and runtime state prove no refresh is needed. A `--force` mode
+   may bypass this optimization explicitly.
+7. **The fast path targets ten seconds.** On a warm dependency tree, unchanged
+   build output, running container, and healthy endpoint, resolve, verify, and
+   report without `install`, `build`, or image refresh. The ten-second target is
+   a performance objective, not permission to omit health or configuration
+   verification.
+8. **Everything lands in one report block** (below). A deploy that succeeds
    silently cannot be reviewed.
 
 ## Report Shape

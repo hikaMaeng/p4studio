@@ -9,7 +9,7 @@ import { NodeInspector } from "./NodeInspector.js";
 import { PlacementCanvas } from "./PlacementCanvas.js";
 import { PlacementEditor } from "./PlacementEditor.js";
 import { RSC } from "./resource.js";
-import { useGraphInventory } from "./inventory.js";
+import { useGraphInventory } from "../../p4/inventory.js";
 import { GraphFeedback } from "./GraphNameEditor.js";
 
 export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, onSaved }: { snapshot: StudioSnapshot; recordId?: string; onClose: () => void; onSaved: (id: string) => void }) {
