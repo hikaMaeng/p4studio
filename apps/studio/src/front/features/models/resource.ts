@@ -122,6 +122,7 @@ export enum RSC {
   MODELS_GRAPH_RENAME_ERROR_ALERT = "models.graph.rename.error.alert",
   MODELS_GRAPH_SAVE_BUTTON = "models.graph.save.button",
   MODELS_GRAPH_RENAME_BUTTON = "models.graph.rename.button",
+  MODELS_GRAPH_EMPTY_MESSAGE = "models.graph.empty.message",
   MODELS_GRAPH_NODE_NAME_MESSAGE = "models.graph.node.name.message",
   MODELS_GRAPH_LABELS_ERROR_ALERT = "models.graph.labels.error.alert",
   MODELS_GRAPH_LOAD_MESSAGE = "models.graph.load.message"

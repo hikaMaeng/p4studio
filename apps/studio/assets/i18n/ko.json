@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "이름을 저장하지 못했습니다. 입력을 확인하고 다시 시도하세요.",
   "models.graph.save.button": "저장",
   "models.graph.rename.button": "편집",
+  "models.graph.empty.message": "조회 결과: 이 에이전트에 등록된 P4 노드가 없습니다.",
   "models.graph.node.name.message": "이름은 Studio 관리 정보입니다. 노드 ID와 연결은 유지됩니다.",
   "models.graph.labels.error.alert": "저장된 노드 이름을 불러오지 못했습니다.",
   "models.graph.load.message": "새로고침 버튼으로 이 에이전트의 노드를 조회하세요.",

@@ -9,7 +9,7 @@ import { RSC } from "./resource.js";
 import { Icon } from "../../shared/components/Icon.js";
 import { GraphNameEditor } from "./GraphNameEditor.js";
 
-type AgentGroupNode = Node<{ agent: GraphAgent; endpoint: string; empty: boolean }, "agent-group">;
+type AgentGroupNode = Node<{ agent: GraphAgent; endpoint: string; empty: boolean; observed: boolean }, "agent-group">;
 type ExecutionNode = Node<{ target: ObservedNodeTarget; name: string }, "p4-node">;
 type PlacementNode = AgentGroupNode | ExecutionNode;
 const groupId = (agentId: string) => `agent:${encodeURIComponent(agentId)}`;
@@ -30,9 +30,9 @@ function AgentGroup({ data }: NodeProps<AgentGroupNode>) {
         </IconButton></span></Tooltip>
       </Box>
       <Typography variant="caption" color="text.secondary" dir="ltr">{data.endpoint}</Typography>
-      {state?.error && <Typography role="alert" variant="caption" color="error.main" title={state.error}>{t[RSC.MODELS_GRAPH_RELOAD_ERROR_ALERT]}</Typography>}
+      {state?.error && <Typography role="alert" variant="caption" color="error.main" title={state.error} sx={{ display: "block", mt: .5 }}>{t[RSC.MODELS_GRAPH_RELOAD_ERROR_ALERT]}</Typography>}
     </Box>
-    {data.empty && <Typography sx={{ p: 2, display: "block" }} variant="caption" color="text.secondary">{t[RSC.MODELS_GRAPH_LOAD_MESSAGE]}</Typography>}
+    {data.empty && <Typography role="status" sx={{ p: 2, display: "block" }} variant="caption" color="text.secondary">{t[data.observed ? RSC.MODELS_GRAPH_EMPTY_MESSAGE : RSC.MODELS_GRAPH_LOAD_MESSAGE]}</Typography>}
   </Paper>;
 }
 
@@ -61,7 +61,7 @@ export function PlacementCanvas({ snapshot }: { snapshot: StudioSnapshot }) {
   snapshot.agents.forEach((agent, agentIndex) => {
     const observed = agent.inspection.snapshot?.nodes ?? [];
     const errorHeight = refreshStates.get(agent.id)?.error ? 48 : 0;
-    nodes.push({ id: groupId(agent.id), type: "agent-group", data: { agent, endpoint: `${agent.host}:${agent.port}`, empty: observed.length === 0 },
+    nodes.push({ id: groupId(agent.id), type: "agent-group", data: { agent, endpoint: `${agent.host}:${agent.port}`, empty: observed.length === 0, observed: agent.inspection.state === "available" },
       position: positions.get(agent.id) ?? { x: (agentIndex % 3) * 400, y: Math.floor(agentIndex / 3) * 420 + (agentIndex % 3) * 60 },
       style: { width: 320, height: Math.max(180, 112 + observed.length * 64) + errorHeight },
       dragHandle: ".agent-drag-handle", connectable: false, selectable: false, deletable: false, ariaLabel: `${t[RSC.MODELS_AGENT_LABEL]} ${agent.name}` });

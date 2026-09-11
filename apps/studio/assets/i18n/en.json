@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "Could not save the name. Check the input and try again.",
   "models.graph.save.button": "Save",
   "models.graph.rename.button": "Edit",
+  "models.graph.empty.message": "Inspection result: no P4 nodes are registered on this agent.",
   "models.graph.node.name.message": "Names are Studio metadata. Node IDs and connections stay unchanged.",
   "models.graph.labels.error.alert": "Could not load saved node names.",
   "models.graph.load.message": "Use refresh to inspect this agent's nodes.",

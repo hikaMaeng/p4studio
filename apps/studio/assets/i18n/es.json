@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "No se pudo guardar el nombre. Revisa los datos e inténtalo de nuevo.",
   "models.graph.save.button": "Guardar",
   "models.graph.rename.button": "Editar",
+  "models.graph.empty.message": "Resultado: no hay nodos P4 registrados en este agente.",
   "models.graph.node.name.message": "Los nombres son metadatos de Studio. Los ID y conexiones no cambian.",
   "models.graph.labels.error.alert": "No se pudieron cargar los nombres guardados.",
   "models.graph.load.message": "Actualiza para consultar los nodos de este agente.",

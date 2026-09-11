@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "无法保存名称。请检查输入后重试。",
   "models.graph.save.button": "保存",
   "models.graph.rename.button": "编辑",
+  "models.graph.empty.message": "查询结果：此代理上没有已注册的 P4 节点。",
   "models.graph.node.name.message": "名称属于 Studio 管理元数据。节点 ID 和连接保持不变。",
   "models.graph.labels.error.alert": "无法加载已保存的节点名称。",
   "models.graph.load.message": "使用刷新按钮查询此代理的节点。",

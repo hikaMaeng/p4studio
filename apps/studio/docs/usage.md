@@ -12,6 +12,7 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 - 연결 identity는 `agentId + nodeId + generation`; 노드 ID가 다른 에이전트에서 같아도 별도 대상이다. 연결은 [DeploymentStore.connectObservedNodes](../../../packages/studio_domain/src/front/model/deployments/store.ts)의 ordered stages로 반영되며 P4 명령 실행은 아니다.
 - 그룹 이동 시 자식 노드와 선이 따라간다. 노드 클릭은 우측 상세를 선택하고, 배치에 포함된 노드는 적재 인자 편집을 표시한다. 그룹 위치는 세션 내 프런트 모델에만 보존한다.
 - 에이전트 헤더의 새로고침은 [inspectGraphAgent](../src/front/p4/inspection.ts)가 browser-owned INSPECT를 보내 해당 에이전트만 갱신한다. 중복 클릭은 차단하고 실패하면 이전 관측·배치 연결을 보존하면서 오류를 표시한다. 조회는 CREATE/LOAD가 아니다.
+- 미조회 안내와 성공한 조회의 0개 결과는 별도 문구로 표시한다. P4 snapshot이 없는 상태를 노드 0개로 단정하지 않는다.
 - [GraphNameEditor](../src/front/features/models/GraphNameEditor.tsx)의 연필은 에이전트/노드 이름을 인라인 편집한다. Enter/저장으로 SQL 반영, Escape/취소로 폐기한다. 에이전트의 관리 ID·접속 주소와 노드의 P4 ID·generation·연결은 변경하지 않는다.
 
 ## Managed metadata

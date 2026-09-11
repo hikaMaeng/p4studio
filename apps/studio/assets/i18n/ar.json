@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "تعذر حفظ الاسم. تحقق من الإدخال وحاول مجدداً.",
   "models.graph.save.button": "حفظ",
   "models.graph.rename.button": "تحرير",
+  "models.graph.empty.message": "نتيجة الفحص: لا توجد عقد P4 مسجلة على هذا الوكيل.",
   "models.graph.node.name.message": "الأسماء بيانات وصفية في Studio. تبقى معرفات العقد والاتصالات دون تغيير.",
   "models.graph.labels.error.alert": "تعذر تحميل أسماء العقد المحفوظة.",
   "models.graph.load.message": "استخدم التحديث للاستعلام عن عقد هذا الوكيل.",

@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "नाम सहेजा नहीं जा सका। इनपुट जाँचकर फिर कोशिश करें।",
   "models.graph.save.button": "सहेजें",
   "models.graph.rename.button": "संपादित करें",
+  "models.graph.empty.message": "जाँच परिणाम: इस एजेंट पर कोई P4 नोड पंजीकृत नहीं है।",
   "models.graph.node.name.message": "नाम Studio मेटाडेटा हैं। नोड ID और कनेक्शन नहीं बदलते।",
   "models.graph.labels.error.alert": "सहेजे गए नोड नाम लोड नहीं हो सके।",
   "models.graph.load.message": "इस एजेंट के नोड देखने के लिए रीफ़्रेश करें।",

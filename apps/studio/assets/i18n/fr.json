@@ -7,6 +7,7 @@
   "models.graph.rename.error.alert": "Impossible d’enregistrer le nom. Vérifiez la saisie et réessayez.",
   "models.graph.save.button": "Enregistrer",
   "models.graph.rename.button": "Modifier",
+  "models.graph.empty.message": "Résultat : aucun nœud P4 n’est enregistré sur cet agent.",
   "models.graph.node.name.message": "Les noms sont des métadonnées Studio. Les identifiants et connexions restent inchangés.",
   "models.graph.labels.error.alert": "Impossible de charger les noms enregistrés.",
   "models.graph.load.message": "Actualisez pour consulter les nœuds de cet agent.",
