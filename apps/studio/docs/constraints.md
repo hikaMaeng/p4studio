@@ -1,5 +1,7 @@
 # Constraints
 
+- Docker 영구 저장소는 `p4studio_studio-data:/app/data`; SQLite 경로는 `/app/data/p4studio.db`로 고정한다. 상세 수명·백업 경계는 [영구 저장소 계약](usage.md#persistent-storage)을 따른다.
+
 - 한 화면에 하나의 `main` landmark
 - 주 탐색은 이름 있는 `nav`
 - 주요 collection은 이름 있는 `section`; 항목은 `article` 또는 list item

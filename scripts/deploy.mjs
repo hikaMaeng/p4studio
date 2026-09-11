@@ -41,6 +41,13 @@ const published = capture(['compose', 'port', 'studio', String(port)]);
 if (!published.split('\n').some(line => line.endsWith(`:${port}`))) throw new Error('published-port-invalid');
 const containerId = capture(['compose', 'ps', '-q', 'studio']);
 const [container] = JSON.parse(capture(['inspect', containerId]));
+// See apps/studio/docs/usage.md#persistent-storage. Never accept an ephemeral DB.
+const dataMount = container.Mounts.find(mount => mount.Destination === '/app/data');
+if (dataMount?.Type !== 'volume' || dataMount.Name !== 'p4studio_studio-data' || !dataMount.RW) {
+  throw new Error('persistent-volume-missing: expected writable p4studio_studio-data at /app/data');
+}
+const sqlitePath = container.Config.Env.find(value => value.startsWith('P4STUDIO_SQLITE_PATH='))?.slice('P4STUDIO_SQLITE_PATH='.length);
+if (sqlitePath !== '/app/data/p4studio.db') throw new Error('sqlite-path-outside-persistent-volume');
 for (let attempt = 0; attempt < 30; attempt += 1) {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/health`);
@@ -51,4 +58,4 @@ for (let attempt = 0; attempt < 30; attempt += 1) {
 if (health?.status !== "ok") throw new Error("deployed Studio health check failed");
 if (health.instance !== container.Config.Hostname) throw new Error('published-port-instance-mismatch: another server is answering the Docker port');
 console.log(`deploy-total status=ok service=studio port=${port} health=${health.status} database=${health.database}`);
-console.log(`deploy-report-begin\nresult: status=ok services=studio compose=refreshed\ntime: total=${Math.round(performance.now() - started)}ms\nverify: service=studio port=${port} health=ok instance=${health.instance}\nchanged: Docker network, SSH routing, published instance verification\ndeploy-report-end`);
+console.log(`deploy-report-begin\nresult: status=ok services=studio compose=refreshed\ntime: total=${Math.round(performance.now() - started)}ms\nverify: service=studio port=${port} health=ok instance=${health.instance} volume=${dataMount.Name} sqlite=${sqlitePath}\nchanged: Studio image refreshed; persistent data volume retained\ndeploy-report-end`);

@@ -8,6 +8,9 @@ services:
       dockerfile: docker/Dockerfile
     env_file:
       - .env
+    environment:
+      # Keep SQLite and its WAL/SHM siblings on the persistent data volume.
+      P4STUDIO_SQLITE_PATH: /app/data/p4studio.db
     ports:
       - "${P4STUDIO_PORT:?P4STUDIO_PORT is required}:${P4STUDIO_PORT:?P4STUDIO_PORT is required}"
     volumes:
@@ -20,6 +23,7 @@ services:
 
 volumes:
   studio-data:
+    name: p4studio_studio-data
 
 networks:
   # P4 control traffic must leave Docker for LAN/VPN agents. Docker's automatic

@@ -12,6 +12,14 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 - 연결 identity는 `agentId + nodeId + generation`; 노드 ID가 다른 에이전트에서 같아도 별도 대상이다. 연결은 [DeploymentStore.connectObservedNodes](../../../packages/studio_domain/src/front/model/deployments/store.ts)의 ordered stages로 반영되며 P4 명령 실행은 아니다.
 - 그룹 이동 시 자식 노드와 선이 따라간다. 노드 클릭은 우측 상세를 선택하고, 배치에 포함된 노드는 적재 인자 편집을 표시한다. 그룹 위치는 세션 내 프런트 모델에만 보존한다.
 
+## Persistent storage
+
+- [Root Compose](../../../docker-compose.yml) mounts the existing named volume `p4studio_studio-data` read/write at `/app/data`. The fixed name preserves the same storage across checkout/project-name changes; do not point parallel Studio instances at this volume.
+- Compose pins `P4STUDIO_SQLITE_PATH=/app/data/p4studio.db`. SQLite, adjacent WAL/SHM files, and server-owned durable files belong under `/app/data`; future durable files must use a subdirectory here. This overrides host development DB paths in `.env`.
+- Agent registrations, node declarations, model configurations and operation receipts share this database. [Deploy verification](../../../scripts/deploy.mjs) rejects a missing/wrong/read-only volume or a SQLite path outside the pinned location, and reports both volume and DB path.
+- Container recreation/image updates and ordinary Compose shutdown retain the volume. Explicit volume deletion (`docker compose down -v` or `docker volume rm`) removes it. Before migration, use SQLite's online backup API; copying only the live DB file can miss WAL contents. An on-volume backup survives container replacement but is not a backup against volume/disk loss.
+- SSH credentials remain in `apps/studio/docker/volumes/ssh`, mounted read-only at `/run/studio-ssh`. The runtime copy under `/tmp` is ephemeral and recreated from that mount.
+
 ## Agent network
 
 <a id="agent-network"></a>
