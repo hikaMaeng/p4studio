@@ -340,5 +340,14 @@
   "inference.history.requests.label": "질의 완료",
   "inference.history.monitoring.label": "모니터링 타임라인",
   "inference.history.monitoring.empty.message": "이 실행에서 수집된 모니터링 관측이 없습니다.",
-  "inference.history.snapshot.text": "{nodes}개 노드 중 {available}개가 사용 가능 상태를 보고함"
+  "inference.history.snapshot.text": "{nodes}개 노드 중 {available}개가 사용 가능 상태를 보고함",
+  "inference.monitoring.error.alert": "모니터링 오류",
+  "inference.batch.label": "P4 배치 관측",
+  "inference.batch.rows.text": "논리 배치 #{ordinal} · {rows}행 · 물리 배치 {physical}개",
+  "inference.batch.phases.text": "프리필 {prefill} · 디코드 {decode} · 검증 {verify} · 재실행 {replay}",
+  "inference.batch.work.text": "요청 {requests}개 · 시퀀스 {sequences}개 · 준비 {readyRows}행 / {readySequences}시퀀스",
+  "inference.batch.timing.text": "스테이지 {stage}ms · 유휴 {idle}ms · 게이트 {gated}회",
+  "inference.span.label": "P4 스테이지 구간",
+  "inference.span.work.text": "실행 {executions}개 · {rows}행",
+  "inference.span.timing.text": "스테이지 {stage}ms · 유입부터 전달까지 {total}ms"
 }

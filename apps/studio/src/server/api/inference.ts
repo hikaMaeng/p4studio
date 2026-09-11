@@ -27,12 +27,12 @@ export function createInferenceRouter(database: StudioDatabase, inspector: Agent
     const agents = database.agents();
     const nodes = await Promise.all(model.stages.map(async (stage, stageIndex) => {
       const agent = agents.find(value => value.id === stage.agentId);
-      if (!agent) return { stageIndex, agentId: stage.agentId, agentName: stage.agentId, nodeId: stage.nodeId, nodeGeneration: stage.nodeGeneration, reachability: "unreachable" as const, observationState: "error" as const, observedAt: null, adapterState: null, gpus: [], latestBatch: null };
+      if (!agent) return { stageIndex, agentId: stage.agentId, agentName: stage.agentId, nodeId: stage.nodeId, nodeGeneration: stage.nodeGeneration, reachability: "unreachable" as const, observationState: "error" as const, observedAt: null, adapterState: null, gpus: [], latestBatch: null, latestSpan: null, error: "Agent registration was not found" };
       const attempt = await inspector(agent.host, agent.port, probeTimeoutMs);
       const snapshot = attempt.observation.snapshot; const node = snapshot?.nodes.find(value => value.nodeId === stage.nodeId && value.generation === stage.nodeGeneration);
       return { stageIndex, agentId: agent.id, agentName: agent.name, nodeId: stage.nodeId, nodeGeneration: stage.nodeGeneration, reachability: attempt.probe.reachability,
         observationState: attempt.observation.state, observedAt: attempt.observation.inspectedAt, adapterState: node?.state ?? null,
-        gpus: (snapshot?.machine.occupancy.gpus ?? []).map((gpu, index) => ({ index, name: snapshot?.machine.capability.gpus.find(value => value.uuid === gpu.uuid)?.name ?? gpu.uuid, vramUsedBytes: gpu.vramUsedBytes, vramFreeBytes: gpu.vramFreeBytes, utilizationGpuPercent: gpu.utilizationGpuPercent, temperatureC: gpu.temperatureC, powerDrawW: gpu.powerDrawW })), latestBatch: controller.batchFor(model.id, model.resolvedAddresses[stage.agentId] ?? "", stage.nodeId),
+        gpus: (snapshot?.machine.occupancy.gpus ?? []).map((gpu, index) => ({ index, name: snapshot?.machine.capability.gpus.find(value => value.uuid === gpu.uuid)?.name ?? gpu.uuid, vramUsedBytes: gpu.vramUsedBytes, vramFreeBytes: gpu.vramFreeBytes, utilizationGpuPercent: gpu.utilizationGpuPercent, temperatureC: gpu.temperatureC, powerDrawW: gpu.powerDrawW })), latestBatch: controller.batchFor(model.id, model.resolvedAddresses[stage.agentId] ?? "", stage.nodeId), latestSpan: null, error: attempt.observation.error,
       };
     }));
     const payload: InferenceMonitoring = { modelId: model.id, generatedAt: new Date().toISOString(), nodes };

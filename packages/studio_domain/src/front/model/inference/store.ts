@@ -31,12 +31,12 @@ class InferenceStore {
   }
   async refreshMonitoring(modelId: string) {
     if (!this.gateway) return;
-    try { const snapshot = await this.gateway.monitoring(modelId); this.monitoring.set(snapshot); this.runs.mutate(values => values.filter(run => run.modelId === modelId && ["preparing", "running"].includes(run.state)).forEach(run => run.monitoring.push(snapshot))); }
+    try { const snapshot = await this.gateway.monitoring(modelId); this.monitoring.set(snapshot); }
     catch (error) { this.activity.mutate(value => { value.error = error instanceof Error ? error.message : String(error); }); }
   }
   private listen(run: InferenceRun) {
     if (!this.gateway || this.subscriptions.has(run.id)) return;
-    this.subscriptions.set(run.id, this.gateway.subscribe(run.id, value => { this.upsert(value); if (!["preparing", "running"].includes(value.state)) { this.stop(value.id); this.stopMonitoring(value.id); } }, error => this.activity.mutate(value => { value.error = error.message; })));
+    this.subscriptions.set(run.id, this.gateway.subscribe(run.id, value => { this.upsert(value); const latest = value.monitoring.at(-1); if (latest) this.monitoring.set(latest); if (!["preparing", "running"].includes(value.state)) { this.stop(value.id); this.stopMonitoring(value.id); } }, error => this.activity.mutate(value => { value.error = error.message; })));
   }
   private startMonitoring(run: InferenceRun) { if (!this.gateway || this.monitoringTimers.has(run.modelId)) return; const poll = () => void this.refreshMonitoring(run.modelId); void this.refreshMonitoring(run.modelId); this.monitoringTimers.set(run.modelId, globalThis.setInterval(poll, 2000)); }
   private stopMonitoring(id: string) { const run = this.runs.value.find(value => value.id === id); if (!run || this.runs.value.some(value => value.id !== id && value.modelId === run.modelId && ["preparing", "running"].includes(value.state))) return; const timer = this.monitoringTimers.get(run.modelId); if (timer !== undefined) { globalThis.clearInterval(timer); this.monitoringTimers.delete(run.modelId); } }

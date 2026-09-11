@@ -133,7 +133,14 @@ export class InferenceController {
     const payload = record(JSON.parse(new TextDecoder().decode(event.payload))); const physical = payload && Array.isArray(payload.physical_batches) ? payload.physical_batches : [];
     if (event.source.kind === "node" && payload) {
       const total = (key: string) => physical.reduce((sum, value) => sum + (integer(record(value)?.[key]) ?? 0), 0);
-      const batch: InferenceBatch = { rows: total("rows"), prefillRows: total("prefill_rows"), decodeRows: total("decode_rows"), verifyRows: total("verify_rows"), replayRows: total("replay_rows"), requestCount: total("request_count"), sequenceCount: total("sequence_count"), stageMs: integer(payload.stage_ms) ?? 0, idleMs: integer(payload.idle_ms) ?? 0, readyRows: integer(payload.ready_rows) ?? 0, readySequences: integer(payload.ready_sequences) ?? 0 };
+      const batch: InferenceBatch = {
+        observationId: text(payload.observation_id) ?? "", logicalOrdinal: integer(payload.logical_ordinal) ?? 0, logicalRows: integer(payload.logical_rows) ?? 0,
+        physicalBatchCount: physical.length, mixedPhysicalBatches: integer(payload.mixed_physical_batches) ?? 0,
+        rows: total("rows"), prefillRows: total("prefill_rows"), decodeRows: total("decode_rows"), verifyRows: total("verify_rows"), replayRows: total("replay_rows"),
+        requestCount: total("request_count"), sequenceCount: total("sequence_count"), stageMs: integer(payload.stage_ms) ?? 0, idleMs: integer(payload.idle_ms) ?? 0,
+        idleGated: integer(payload.idle_gated) ?? 0, readyRows: integer(payload.ready_rows) ?? 0, readySequences: integer(payload.ready_sequences) ?? 0,
+        scheduling: payload.scheduling ?? null, observedAt: now(),
+      };
       const batches = this.latestBatches.get(run.modelId) ?? new Map<string, InferenceBatch>(); batches.set(`${event.source.address}\0${event.source.nodeId}`, batch); this.latestBatches.set(run.modelId, batches);
     }
     for (const batch of physical) {

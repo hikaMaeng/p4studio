@@ -37,16 +37,26 @@ export const inferenceGpuSchema = z.object({
 export type InferenceGpu = z.infer<typeof inferenceGpuSchema>;
 
 export const inferenceBatchSchema = z.object({
+  observationId: z.string().default(""), logicalOrdinal: nonNegative.default(0), logicalRows: nonNegative.default(0),
+  physicalBatchCount: nonNegative.default(0), mixedPhysicalBatches: nonNegative.default(0),
   rows: nonNegative, prefillRows: nonNegative, decodeRows: nonNegative, verifyRows: nonNegative, replayRows: nonNegative,
-  requestCount: nonNegative, sequenceCount: nonNegative, stageMs: nonNegative, idleMs: nonNegative, readyRows: nonNegative, readySequences: nonNegative,
+  requestCount: nonNegative, sequenceCount: nonNegative, stageMs: nonNegative, idleMs: nonNegative, idleGated: nonNegative.default(0), readyRows: nonNegative, readySequences: nonNegative,
+  scheduling: z.unknown().nullable().default(null), observedAt: z.string().default(""),
 });
 export type InferenceBatch = z.infer<typeof inferenceBatchSchema>;
+
+export const inferenceStageSpanSchema = z.object({
+  executionCount: nonNegative, rows: nonNegative,
+  ingressUnixMs: nonNegative, startUnixMs: nonNegative, endUnixMs: nonNegative, forwardUnixMs: nonNegative,
+  stageDurationMs: nonNegative, totalDurationMs: nonNegative, observedAt: z.string(),
+});
+export type InferenceStageSpan = z.infer<typeof inferenceStageSpanSchema>;
 
 export const inferenceNodeSchema = z.object({
   stageIndex: nonNegative, agentId: identifier, agentName: z.string(), nodeId: identifier, nodeGeneration: nonNegative,
   reachability: z.enum(["unknown", "reachable", "unreachable"]), observationState: z.enum(["pending", "available", "error"]),
   observedAt: z.string().nullable(), adapterState: z.unknown().nullable(), gpus: z.array(inferenceGpuSchema),
-  latestBatch: inferenceBatchSchema.nullable(),
+  latestBatch: inferenceBatchSchema.nullable(), latestSpan: inferenceStageSpanSchema.nullable().default(null), error: z.string().nullable().default(null),
 });
 export type InferenceNode = z.infer<typeof inferenceNodeSchema>;
 
@@ -80,3 +90,4 @@ export const inferenceRoutes = {
 export const parseInferenceRuns = (value: unknown): InferenceRunsResponse => inferenceRunsSchema.parse(value);
 export const parseInferenceRun = (value: unknown): InferenceRun => inferenceRunSchema.parse(value);
 export const parseInferenceMonitoring = (value: unknown): InferenceMonitoring => inferenceMonitoringSchema.parse(value);
+export * from "./telemetry.js";

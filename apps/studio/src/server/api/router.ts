@@ -3,7 +3,7 @@ import { P4_PROTOCOL } from "@p4studio/p4-protocol";
 import type { StudioDatabase } from "../database/client.js";
 import type { AgentObservationStore } from "../agent-socket/inspection/store.js";
 import { agentInput, modelInput, nodeInput, pipelineInput } from "./validation.js";
-import { graphInventoryRoutes, graphNameSchema, nodeLabelInputSchema, type GraphAgent, type NodeLabelList } from "@p4studio/studio_domain/common";
+import { graphInventoryRoutes, graphNameSchema, nodeLabelInputSchema, type GraphAgent, type GraphAgentList, type NodeLabelList } from "@p4studio/studio_domain/common";
 
 const apiError = (code: string, message: string, issues?: unknown) => ({ error: { code, message, ...(issues ? { issues } : {}) } });
 
@@ -13,6 +13,9 @@ export const createApiRouter = (
 ) => {
   const router = Router();
 
+  router.get(graphInventoryRoutes.agents.path.slice(4), (_request, response) => response.json({
+    agents: database.agents().map(({ id, name, host, port }) => ({ id, name, host, port })),
+  } satisfies GraphAgentList));
   router.get(graphInventoryRoutes.labels.path.slice(4), (_request, response) => response.json({ labels: database.nodeLabels() } satisfies NodeLabelList));
   router.patch<{ id: string }>(graphInventoryRoutes.renameAgent.path.slice(4), (request, response) => {
     if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "Agent not found"));

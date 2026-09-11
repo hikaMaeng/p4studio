@@ -4,3 +4,4 @@ export * from "./language/model/index.js";
 export * from "./model/deployments/store.js";
 export * from "./model/graph-inventory/store.js";
 export * from "./model/inference/store.js";
+export * from "./model/inference/telemetry.js";

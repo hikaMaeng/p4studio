@@ -340,5 +340,14 @@
   "inference.history.requests.label": "Requests completed",
   "inference.history.monitoring.label": "Monitoring timeline",
   "inference.history.monitoring.empty.message": "No monitoring observations were captured for this run.",
-  "inference.history.snapshot.text": "{available} of {nodes} nodes reported available"
+  "inference.history.snapshot.text": "{available} of {nodes} nodes reported available",
+  "inference.monitoring.error.alert": "Monitoring error",
+  "inference.batch.label": "P4 batch observation",
+  "inference.batch.rows.text": "Logical batch #{ordinal} · {rows} rows · {physical} physical batches",
+  "inference.batch.phases.text": "Prefill {prefill} · decode {decode} · verify {verify} · replay {replay}",
+  "inference.batch.work.text": "Requests {requests} · sequences {sequences} · ready {readyRows} rows / {readySequences} sequences",
+  "inference.batch.timing.text": "Stage {stage} ms · idle {idle} ms · gated {gated} times",
+  "inference.span.label": "P4 stage span",
+  "inference.span.work.text": "Executions {executions} · rows {rows}",
+  "inference.span.timing.text": "Stage {stage} ms · ingress-to-forward {total} ms"
 }

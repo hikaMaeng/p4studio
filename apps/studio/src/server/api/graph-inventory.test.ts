@@ -4,6 +4,19 @@ import { StudioDatabase } from "../database/client.js";
 import { createApp } from "../app.js";
 
 describe("Studio graph metadata", () => {
+  it("lists registered agent connection coordinates for browser-owned P4 sessions", async () => {
+    const db = new StudioDatabase(":memory:");
+    try {
+      const first = db.createAgent({ name: "agent-a", host: "10.0.0.1", port: 1232 });
+      const second = db.createAgent({ name: "agent-b", host: "10.0.0.2", port: 2232 });
+      const app = createApp(db);
+      const result = await request(app).get("/api/graph-agents").expect(200);
+      expect(result.body).toEqual({ agents: [
+        { id: first.id, name: first.name, host: first.host, port: first.port },
+        { id: second.id, name: second.name, host: second.host, port: second.port },
+      ] });
+    } finally { db.close(); }
+  });
   it("renames the agent without changing its identity or connection address", async () => {
     const db = new StudioDatabase(":memory:");
     try {
