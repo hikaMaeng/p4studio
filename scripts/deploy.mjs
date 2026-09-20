@@ -99,11 +99,16 @@ try {
   const cached = readCache();
   const existingId = compose("ps", "-q", service);
   const imageState = existingId ? commandJson("docker", ["inspect", existingId])[0] : null;
-  const expectedInstance = imageState?.Config?.Hostname;
-  if (!expectedInstance) throw new Error("container-identity-missing");
   if (!force && cached[service] === fingerprint && imageState?.State?.Running) { refresh = "already-current"; report.compose = "already-current"; }
   else { compose("up", "-d", "--build", "--remove-orphans"); writeCache({ ...cached, [service]: fingerprint }); report.compose = "refreshed"; }
   measure("compose", mark); phase("compose", "ok", { refresh });
+
+  // A refresh can replace the container, so obtain the identity to verify only
+  // after Compose has reached its final runtime state.
+  const verifiedId = compose("ps", "-q", service);
+  const verifiedState = verifiedId ? commandJson("docker", ["inspect", verifiedId])[0] : null;
+  const expectedInstance = verifiedState?.Config?.Hostname;
+  if (!expectedInstance) throw new Error("container-identity-missing");
 
   mark = performance.now();
   const mapping = (serviceConfig.ports ?? []).find(value => typeof value === "object" && value.published && value.target);
