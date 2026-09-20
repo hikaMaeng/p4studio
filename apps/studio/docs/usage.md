@@ -2,7 +2,7 @@
 
 - 모델 카드의 `상태 새로고침`은 현재 게이트웨이 그룹을 통해 대상 에이전트별 INSPECT를 보내고 노드의 실제 상태·확인 시각을 DB에 저장한다. 상단 새로고침은 저장된 목록만 갱신한다. 노드 부재는 현재 관측으로 기록하며 미해결 LOAD는 계속 불명이다. 빈 adapter 문자열은 node 제거가 아니다. 접속 실패·세대 불일치는 미확인으로 표시한다. 현재 P4의 `loaded` 조회에는 로딩 세대가 없어 이 배치의 로딩 완료로 확정하지 않는다. 조회 중 중복 클릭을 차단하고 다른 작업이 기록을 바꾸면 오래된 결과의 저장을 거부한다. [상태 판정 계약](../../../packages/studio_domain/docs/api.md#model-refresh).
 
-- 개발: `npm run dev --workspace @p4studio/studio`
+- 개발: `npm run dev --workspace @p4studio/studio` (Vite `43121`, API `43122`; `P4STUDIO_DEV_PORT`로 API 포트만 변경)
 - 빌드: `npm run build --workspace @p4studio/studio`
 - 배포: 루트 `npm run deploy`
 
@@ -44,7 +44,7 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 
 <a id="agent-network"></a>
 
-- `npm run deploy -- studio`가 Docker 서비스와 게시 포트의 동일 instance를 확인한다. 같은 포트의 로컬 개발 서버가 응답하면 배포 성공으로 처리하지 않는다.
+- `npm run deploy -- studio`가 Docker 서비스와 게시 포트의 동일 instance를 확인한다. 개발 API는 기본 `43122`를 쓰며, production Compose의 `43120`을 열지 않는다. 같은 게시 포트에서 다른 instance가 응답하면 배포는 실패한다.
 - `P4STUDIO_DOCKER_SUBNET`은 LAN/VPN과 겹치지 않는 CIDR; 기본 `10.253.240.0/24`. 예전 `studio-internal`/`studio-edge`는 이 Compose 프로젝트 소유이며 사용 컨테이너가 없는 경우에만 배포 시 제거한다.
 - `P4STUDIO_AGENT_TUNNELS` 기본 `[]`. 항목은 `{agentHost, agentPort, sshHost, sshPort, sshUser, localPort}`. 등록 주소는 P4의 실제 advertise 주소를 유지하며 localPort는 컨테이너 loopback 전용이다.
 - SSH 키와 검증된 known_hosts를 `apps/studio/docker/volumes/ssh/{id_ed25519,known_hosts}`에 둔다. Git 제외·읽기 전용 mount이며 runtime이 키를 임시 0600 파일로 복사한다. SSH host key 검증을 생략하지 않는다. 터널은 연결 종료 5초 후 재시도하고 Studio 종료 시 정리한다.

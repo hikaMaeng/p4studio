@@ -99,6 +99,8 @@ try {
   const cached = readCache();
   const existingId = compose("ps", "-q", service);
   const imageState = existingId ? commandJson("docker", ["inspect", existingId])[0] : null;
+  const expectedInstance = imageState?.Config?.Hostname;
+  if (!expectedInstance) throw new Error("container-identity-missing");
   if (!force && cached[service] === fingerprint && imageState?.State?.Running) { refresh = "already-current"; report.compose = "already-current"; }
   else { compose("up", "-d", "--build", "--remove-orphans"); writeCache({ ...cached, [service]: fingerprint }); report.compose = "refreshed"; }
   measure("compose", mark); phase("compose", "ok", { refresh });
@@ -111,17 +113,25 @@ try {
   if (!match || Number(match[1]) <= 0) { published = { reason: "published-port-invalid" }; throw new Error("published-port-invalid"); }
   published = { port: Number(match[1]), reason: "mapped" };
   const deadline = Date.now() + healthTimeoutMs;
-  let health;
+  let health, verifiedHost;
   while (Date.now() < deadline) {
     for (const host of ["127.0.0.1", "localhost"]) {
-      try { const response = await fetch(`http://${host}:${published.port}${healthPath}`); if (response.ok) { health = await response.json().catch(() => ({})); break; } } catch { /* retry while the container starts */ }
+      try {
+        const response = await fetch(`http://${host}:${published.port}${healthPath}`);
+        if (!response.ok) continue;
+        const candidate = await response.json().catch(() => ({}));
+        if (candidate.instance !== expectedInstance) throw new Error(`published-port-owned-by-other-instance:${host}`);
+        health = candidate; verifiedHost = host; break;
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("published-port-owned-by-other-instance:")) throw error;
+      }
     }
     if (health) break;
     await new Promise(resolveDelay => setTimeout(resolveDelay, 250));
   }
   if (!health) throw new Error("health-check-failed");
-  report.status = "ok"; report.verify = "ok"; report.verifyDetail = `service=${service} port=${published.port} health=ok`;
-  console.log(`deploy-total status=ok service=${service} port=${published.port} health=ok refresh=${refresh}`);
+  report.status = "ok"; report.verify = "ok"; report.verifyDetail = `service=${service} host=${verifiedHost} port=${published.port} health=ok`;
+  console.log(`deploy-total status=ok service=${service} host=${verifiedHost} port=${published.port} health=ok refresh=${refresh}`);
   measure("verify", mark); phase("verify", "ok", { port: published.port });
 } catch (error) {
   report.verifyDetail = error instanceof Error ? error.message.replaceAll("\n", " ") : String(error);
