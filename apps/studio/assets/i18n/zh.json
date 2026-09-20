@@ -333,7 +333,7 @@
   "inference.results.empty.message": "No query has been sent yet.",
   "inference.request.label": "Request",
   "inference.request.detail.label": "请求详情",
-  "inference.request.back.button": "返回结果列表",
+  "inference.request.back.button": "← 返回结果列表",
   "inference.request.notFound.message": "找不到该请求。",
   "inference.question.label": "问题",
   "inference.question.expand.button": "展开问题",

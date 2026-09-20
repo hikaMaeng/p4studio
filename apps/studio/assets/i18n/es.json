@@ -333,7 +333,7 @@
   "inference.results.empty.message": "No query has been sent yet.",
   "inference.request.label": "Request",
   "inference.request.detail.label": "Detalles de la solicitud",
-  "inference.request.back.button": "Volver a los resultados",
+  "inference.request.back.button": "← Volver a los resultados",
   "inference.request.notFound.message": "No se encontró esta solicitud.",
   "inference.question.label": "Pregunta",
   "inference.question.expand.button": "Ampliar pregunta",

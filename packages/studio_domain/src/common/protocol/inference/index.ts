@@ -10,7 +10,10 @@ export const inferenceRunInputSchema = z.object({
   concurrency: z.number().int().min(1).max(65536),
   repetitions: z.number().int().min(1).max(1000),
   intervalMs: z.number().int().min(0).max(86400000),
-  maxTokens: z.number().int().min(1).max(32768),
+  // Zero is the user-facing sentinel for no Studio-imposed generation cap.
+  // The concrete adapter remains the authority for its finite context and
+  // resource-profile limits.
+  maxTokens: z.number().int().min(0).max(0xffff_ffff),
 });
 export type InferenceRunInput = z.infer<typeof inferenceRunInputSchema>;
 

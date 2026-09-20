@@ -333,7 +333,7 @@
   "inference.results.empty.message": "No query has been sent yet.",
   "inference.request.label": "Request",
   "inference.request.detail.label": "تفاصيل الطلب",
-  "inference.request.back.button": "العودة إلى النتائج",
+  "inference.request.back.button": "← العودة إلى النتائج",
   "inference.request.notFound.message": "تعذر العثور على هذا الطلب.",
   "inference.question.label": "السؤال",
   "inference.question.expand.button": "توسيع السؤال",

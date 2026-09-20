@@ -333,7 +333,7 @@
   "inference.results.empty.message": "No query has been sent yet.",
   "inference.request.label": "Request",
   "inference.request.detail.label": "अनुरोध विवरण",
-  "inference.request.back.button": "परिणामों पर वापस जाएँ",
+  "inference.request.back.button": "← परिणामों पर वापस जाएँ",
   "inference.request.notFound.message": "यह अनुरोध नहीं मिला।",
   "inference.question.label": "प्रश्न",
   "inference.question.expand.button": "प्रश्न बड़ा करें",

@@ -333,7 +333,7 @@
   "inference.results.empty.message": "아직 전송한 질의가 없습니다.",
   "inference.request.label": "질의",
   "inference.request.detail.label": "질의 상세",
-  "inference.request.back.button": "결과 목록",
+  "inference.request.back.button": "← 결과 목록",
   "inference.request.notFound.message": "해당 질의를 찾을 수 없습니다.",
   "inference.question.label": "질문",
   "inference.question.expand.button": "질문 확대",
