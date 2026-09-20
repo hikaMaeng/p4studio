@@ -81,5 +81,10 @@ export enum RSC {
   AGENTS_NODE_DECLARE_TITLE_TEXT = "agents.node.declare.title.text",
   AGENTS_NODE_DECLARING_STATUS = "agents.node.declaring.status",
   AGENTS_NODE_FAILURE_ALERT = "agents.node.failure.alert",
-  AGENTS_NODE_NAME_LABEL = "agents.node.name.label"
+  AGENTS_NODE_NAME_LABEL = "agents.node.name.label",
+  AGENTS_NODE_UNLOAD_BUTTON = "agents.node.unload.button",
+  AGENTS_NODE_UNLOADING_STATUS = "agents.node.unloading.status",
+  AGENTS_NODE_UNLOAD_TITLE_TEXT = "agents.node.unload.title.text",
+  AGENTS_NODE_UNLOAD_CONFIRM_MESSAGE = "agents.node.unload.confirm.message",
+  AGENTS_NODE_UNLOAD_RECEIPT_MESSAGE = "agents.node.unload.receipt.message"
 }

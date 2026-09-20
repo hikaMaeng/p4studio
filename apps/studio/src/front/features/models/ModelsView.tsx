@@ -42,9 +42,9 @@ export function ModelsView({ snapshot, selectedModelId, editor, onOpenModel, onC
           <Typography variant="caption" color="text.secondary">{t[RSC.MODELS_RECEPTION_MESSAGE]}</Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
+          {canStartDeployment(record) ? <Button variant="contained" disabled={activity.busy || !record.stages.length} onClick={() => void deployments.operate(record.id, "load")}>{t[RSC.MODELS_LOAD_BUTTON]}</Button> : <Button variant="outlined" disabled={activity.busy || ["loading", "unloading"].includes(record.status)} onClick={() => void deployments.operate(record.id, "unload")}>{t[RSC.MODELS_UNLOAD_BUTTON]}</Button>}
           <Tooltip title={t[inspection.modelId === record.id ? RSC.MODELS_INSPECTING_STATUS : RSC.MODELS_INSPECT_BUTTON]}><span><IconButton aria-label={t[inspection.modelId === record.id ? RSC.MODELS_INSPECTING_STATUS : RSC.MODELS_INSPECT_BUTTON]} disabled={activity.busy || !record.stages.length} onClick={() => void deployments.reconcile(record.id)}><Icon name="refresh" fontSize="small" /></IconButton></span></Tooltip>
           <Tooltip title={t[RSC.MODELS_EDIT_BUTTON]}><span><IconButton aria-label={t[RSC.MODELS_EDIT_BUTTON]} disabled={activity.busy || !canStartDeployment(record)} onClick={() => onEdit(record.id)}><Icon name="edit" fontSize="small" /></IconButton></span></Tooltip>
-          {canStartDeployment(record) ? <Button variant="contained" disabled={activity.busy || !record.stages.length} onClick={() => void deployments.operate(record.id, "load")}>{t[RSC.MODELS_LOAD_BUTTON]}</Button> : <Button variant="outlined" disabled={activity.busy || ["loading", "unloading"].includes(record.status)} onClick={() => void deployments.operate(record.id, "unload")}>{t[RSC.MODELS_UNLOAD_BUTTON]}</Button>}
           <Tooltip title={t[RSC.MODELS_DELETE_BUTTON]}><span><IconButton aria-label={t[RSC.MODELS_DELETE_BUTTON]} color="secondary" disabled={activity.busy} onClick={() => void deployments.remove(record.id, true)}><Icon name="delete" fontSize="small" /></IconButton></span></Tooltip>
         </Box>
       </Box>

@@ -1,5 +1,6 @@
 export { Emitter, type Unsubscribe } from "./model/Emitter.js";
 export * from "./model/agents/removal.js";
+export * from "./model/agents/node-unload.js";
 export { SliceModel, type ModelUpdate } from "./model/SliceModel.js";
 export * from "./language/model/index.js";
 export * from "./model/deployments/store.js";
