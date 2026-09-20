@@ -44,7 +44,7 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 
 <a id="agent-network"></a>
 
-- `npm run deploy -- studio`가 Docker 서비스와 게시 포트의 동일 instance를 확인한다. 개발 API는 기본 `43122`를 쓰며, production Compose의 `43120`을 열지 않는다. 같은 게시 포트에서 다른 instance가 응답하면 배포는 실패한다.
+- `npm run deploy -- studio`는 production Compose를 IPv4 loopback `127.0.0.1:43120`에만 게시하고 동일 instance를 확인한다. 개발 API는 기본 `43122`를 쓰며 production port를 열지 않는다. 같은 게시 포트에서 다른 instance가 응답하면 배포는 실패한다. MI250 같은 사설망 agent의 SSH tunnel은 컨테이너 loopback `45111`·`45112`에서만 종료되므로 공개 Studio 포트와 독립적이다.
 - `P4STUDIO_DOCKER_SUBNET`은 LAN/VPN과 겹치지 않는 CIDR; 기본 `10.253.240.0/24`. 예전 `studio-internal`/`studio-edge`는 이 Compose 프로젝트 소유이며 사용 컨테이너가 없는 경우에만 배포 시 제거한다.
 - `P4STUDIO_AGENT_TUNNELS` 기본 `[]`. 항목은 `{agentHost, agentPort, sshHost, sshPort, sshUser, localPort}`. 등록 주소는 P4의 실제 advertise 주소를 유지하며 localPort는 컨테이너 loopback 전용이다.
 - SSH 키와 검증된 known_hosts를 `apps/studio/docker/volumes/ssh/{id_ed25519,known_hosts}`에 둔다. Git 제외·읽기 전용 mount이며 runtime이 키를 임시 0600 파일로 복사한다. SSH host key 검증을 생략하지 않는다. 터널은 연결 종료 5초 후 재시도하고 Studio 종료 시 정리한다.

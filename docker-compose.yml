@@ -12,7 +12,7 @@ services:
       # Keep SQLite and its WAL/SHM siblings on the persistent data volume.
       P4STUDIO_SQLITE_PATH: /app/data/p4studio.db
     ports:
-      - "${P4STUDIO_PORT:?P4STUDIO_PORT is required}:${P4STUDIO_PORT:?P4STUDIO_PORT is required}"
+      - "127.0.0.1:${P4STUDIO_PORT:?P4STUDIO_PORT is required}:${P4STUDIO_PORT:?P4STUDIO_PORT is required}"
     volumes:
       - studio-data:/app/data
       - ./apps/studio/docker/volumes/ssh:/run/studio-ssh:ro

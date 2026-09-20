@@ -115,7 +115,7 @@ try {
   const deadline = Date.now() + healthTimeoutMs;
   let health, verifiedHost;
   while (Date.now() < deadline) {
-    for (const host of ["127.0.0.1", "localhost"]) {
+    for (const host of ["127.0.0.1"]) {
       try {
         const response = await fetch(`http://${host}:${published.port}${healthPath}`);
         if (!response.ok) continue;
