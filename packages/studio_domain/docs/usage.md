@@ -4,4 +4,4 @@
 
 프런트 연결 예시는 [useModel.ts](../../../apps/studio/src/front/model/useModel.ts), 언어 적용은 [runtime.ts](../../../apps/studio/src/front/i18n/runtime.ts)다. `SliceModel.value`가 데이터이며 `getVersion()`은 렌더 갱신 신호다.
 
-모델 배치 기능에서는 common schema로 입력을 검증하고 server 규칙에 전달한다. socket과 영속화는 앱에서 [DeploymentTransport](../src/server/deployments/runner.ts)·persist callback으로 연결한다. P4 payload 원본은 [참조표](../../../docs/p4-reference.md#source-map)를 따라 확인한다.
+모델 배치 기능에서는 common schema로 입력을 검증하고 browser runtime에 전달한다. WebSocket과 영속화는 앱에서 [BrowserOwnedDeploymentTransport](../src/common/protocol/deployments/runtime.ts)·persist callback으로 연결한다. P4 payload 원본은 [참조표](../../../docs/p4-reference.md#source-map)를 따라 확인한다.

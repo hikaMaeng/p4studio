@@ -6,7 +6,9 @@ import type { DeploymentPreset } from "../../../common/protocol/deployments/pres
 export interface DeploymentGateway {
   list(): Promise<DeploymentRecord[]>;
   save(input: DeploymentInput, id?: string): Promise<DeploymentRecord>;
+  remove(id: string, discard: boolean): Promise<void>;
   operate(id: string, action: "load" | "unload"): Promise<DeploymentRecord>;
+  reconcile(id: string): Promise<DeploymentRecord>;
 }
 export type ObservedNodeTarget = { agentId: string; nodeId: string; nodeGeneration: number; adapterKind: string };
 export function emptyDeployment(): DeploymentInput {
@@ -14,12 +16,13 @@ export function emptyDeployment(): DeploymentInput {
     loadContentType: "", loadedContentType: "", unloadContentType: "", unloadedContentType: "", errorContentType: "", stages: [] };
 }
 export function emptyStage(): PlacementStage {
-  return { id: crypto.randomUUID(), agentId: "", nodeId: "", nodeGeneration: 1, createNode: true, artifact: "", layerStart: 0, layerEnd: 1, binary: "", endpoint: "", device: "", options: "--kv-unified", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
+  return { id: crypto.randomUUID(), agentId: "", nodeId: "", nodeGeneration: 1, artifact: "", layerStart: 0, layerEnd: 1, binary: "", endpoint: "", device: "", options: "--kv-unified", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
 }
 class DeploymentStore {
   readonly records = new SliceModel<DeploymentRecord[]>([]);
   readonly editor = new SliceModel<{ open: boolean; id?: string; input: DeploymentInput }>({ open: false, input: emptyDeployment() });
   readonly activity = new SliceModel({ busy: false, error: "" });
+  readonly inspection = new SliceModel({ modelId: "" });
   readonly selection = new SliceModel("");
   readonly nodeSelection = new SliceModel<ObservedNodeTarget | null>(null);
   readonly agentPositions = new SliceModel(new Map<string, { x: number; y: number }>());
@@ -31,7 +34,8 @@ class DeploymentStore {
   async refresh() {
     if (!this.gateway || this.refreshing) return; this.refreshing = true;
     if (this.timer) clearTimeout(this.timer);
-    try { this.records.set(await this.gateway.list()); }
+    const version = this.records.getVersion();
+    try { const records = await this.gateway.list(); if (this.records.getVersion() === version) this.records.set(records); }
     catch (e) { this.activity.mutate(v => { v.error = String(e); }); }
     finally { this.refreshing = false; this.timer = setTimeout(() => void this.refresh(), 2000); }
   }
@@ -39,7 +43,7 @@ class DeploymentStore {
     const input = record ? structuredClone(record) : emptyDeployment();
     try { for (const stage of input.stages) editAsText(input, stage); }
     catch (e) { this.activity.mutate(v => { v.error = String(e); }); return; }
-    this.editor.set({ open: true, id: record?.id, input }); this.selection.set(input.stages[0]?.id ?? ""); this.nodeSelection.set(null);
+    this.editor.set({ open: true, id: record?.id, input }); this.selection.set(""); this.nodeSelection.set(null);
     this.libraryOpen.set(!record);
     this.activity.mutate(v => { v.error = ""; });
   }
@@ -69,31 +73,13 @@ class DeploymentStore {
     const stage = this.editor.value.input.stages.find(value => value.agentId === node.agentId && value.nodeId === node.nodeId && value.nodeGeneration === node.nodeGeneration);
     this.selection.set(stage?.id ?? "");
   }
-  connectObservedNodes(source: ObservedNodeTarget, target: ObservedNodeTarget) {
-    if (source.agentId === target.agentId && source.nodeId === target.nodeId && source.nodeGeneration === target.nodeGeneration) return;
-    this.editor.mutate(value => {
-      value.input.adapter = source.adapterKind;
-      const matches = (stage: PlacementStage, node: ObservedNodeTarget) => stage.agentId === node.agentId && stage.nodeId === node.nodeId && stage.nodeGeneration === node.nodeGeneration;
-      const create = (node: ObservedNodeTarget) => {
-        const stage = emptyStage();
-        Object.assign(stage, { agentId: node.agentId, nodeId: node.nodeId, nodeGeneration: node.nodeGeneration, createNode: false });
-        editAsText(value.input, stage);
-        return stage;
-      };
-      const sourceStage = value.input.stages.find(stage => matches(stage, source)) ?? create(source);
-      if (!value.input.stages.includes(sourceStage)) value.input.stages.push(sourceStage);
-      let targetStage = value.input.stages.find(stage => matches(stage, target));
-      if (targetStage) value.input.stages.splice(value.input.stages.indexOf(targetStage), 1);
-      else {
-        targetStage = create(target);
-        targetStage.layerStart = sourceStage.layerEnd;
-        targetStage.layerEnd = Math.max(targetStage.layerStart + 1, value.input.totalLayers);
-      }
-      const sourceIndex = value.input.stages.indexOf(sourceStage);
-      value.input.stages.splice(sourceIndex + 1, 0, targetStage);
-      this.selection.set(targetStage.id);
-    });
-    this.nodeSelection.set(target);
+  connectPlannedStages(source: ObservedNodeTarget, target: ObservedNodeTarget) {
+    const stages = this.editor.value.input.stages;
+    const matches = (stage: PlacementStage, node: ObservedNodeTarget) => stage.agentId === node.agentId && stage.nodeId === node.nodeId && stage.nodeGeneration === node.nodeGeneration;
+    const from = stages.find(stage => matches(stage, source)), to = stages.find(stage => matches(stage, target));
+    if (!from || !to || from === to) return;
+    this.editor.mutate(() => { stages.splice(stages.indexOf(to), 1); stages.splice(stages.indexOf(from) + 1, 0, to); });
+    this.selection.set(to.id); this.nodeSelection.set(null);
   }
   updateStage<K extends keyof PlacementStage>(id: string, key: K, value: PlacementStage[K]) {
     this.editor.mutate(v => {
@@ -127,12 +113,29 @@ class DeploymentStore {
     catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); return null; }
     finally { this.activity.mutate(v => { v.busy = false; }); }
   }
+  async remove(id: string, discard: boolean) {
+    if (!this.gateway || this.activity.value.busy) return false;
+    this.activity.mutate(v => { v.busy = true; v.error = ""; });
+    try { await this.gateway.remove(id, discard); this.records.mutate(values => { const index = values.findIndex(value => value.id === id); if (index >= 0) values.splice(index, 1); }); return true; }
+    catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); return false; }
+    finally { this.activity.mutate(v => { v.busy = false; }); }
+  }
   async operate(id: string, action: "load" | "unload") {
     if (!this.gateway || this.activity.value.busy) return;
     this.activity.mutate(v => { v.busy = true; v.error = ""; });
     try { const record = await this.gateway.operate(id, action); this.records.mutate(values => { const index = values.findIndex(v => v.id === id); if (index >= 0) values[index] = record; }); await this.refresh(); }
     catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); }
     finally { this.activity.mutate(v => { v.busy = false; }); }
+  }
+  async reconcile(id: string) {
+    if (!this.gateway || this.activity.value.busy) return;
+    this.activity.mutate(v => { v.busy = true; v.error = ""; });
+    this.inspection.mutate(v => { v.modelId = id; });
+    try {
+      const record = await this.gateway.reconcile(id);
+      this.records.mutate(values => { const index = values.findIndex(value => value.id === id); if (index >= 0) values[index] = record; });
+    } catch (error) { this.activity.mutate(v => { v.error = error instanceof Error ? error.message : String(error); }); }
+    finally { this.inspection.mutate(v => { v.modelId = ""; }); this.activity.mutate(v => { v.busy = false; }); }
   }
 }
 export const deployments = new DeploymentStore();

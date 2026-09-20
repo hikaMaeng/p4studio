@@ -21,4 +21,5 @@ export class DeploymentRepository {
     this.db.prepare("INSERT INTO model_deployments (id,name,document) VALUES (?,?,?)").run(record.id, record.name, JSON.stringify(record)); return record;
   }
   save(record: DeploymentRecord) { this.db.prepare("UPDATE model_deployments SET name=?,document=? WHERE id=?").run(record.name, JSON.stringify(record), record.id); }
+  remove(id: string) { return this.db.prepare("DELETE FROM model_deployments WHERE id=?").run(id).changes > 0; }
 }

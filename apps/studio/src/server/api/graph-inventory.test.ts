@@ -14,7 +14,7 @@ describe("Studio graph metadata", () => {
       expect(result.body).toEqual({ agents: [
         { id: first.id, name: first.name, host: first.host, port: first.port },
         { id: second.id, name: second.name, host: second.host, port: second.port },
-      ] });
+      ], groups: [] });
     } finally { db.close(); }
   });
   it("renames the agent without changing its identity or connection address", async () => {

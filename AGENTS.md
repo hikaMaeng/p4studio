@@ -32,11 +32,11 @@ rg -n 'LoadCommand|SessionCommand|CONTENT_TYPE' F:/dev/p4/layers/adapters/llamac
 ## 모델·에이전트·노드의 의미
 
 - 에이전트 등록은 관리 이름과 접속 주소의 등록이다. 에이전트 자체에 구상 어댑터나 모델을 귀속시키지 않는다. 한 머신에 한 에이전트로 여러 노드를 운영할 수 있으며, GPU 수를 노드 수의 고정 제한으로 삼지 않는다.
-- 노드는 모델을 아직 적재하지 않은 실행 단위일 수 있다. 현재 P4 Create는 ID·generation·큐·adapter 객체를 만든다. **노드 생성 성공은 모델 적재 성공이 아니다.** 어댑터 선택은 노드 생성/배치 명령의 책임이다.
+- 노드는 모델 또는 담당 구간의 적재 인스턴스다. Agent-target LOAD가 ID 점유·adapter 생성·적재를 수행하고 UNLOAD 성공이 자원과 node를 제거한다. 빈 노드의 사전 CREATE/사후 DELETE는 사용하지 않는다. 사용 중인 ID의 LOAD 거부는 기존 노드에 대한 회수 권한이 아니다.
 - 모델 파일 카탈로그와 실행 중인 모델 배치를 구분한다. 실행 모델은 여러 에이전트에 걸친 노드별 stage 적재로 실체화한다. 모델 화면을 파일 경로 한 개의 CRUD로만 취급하지 않는다.
 - Studio가 각 stage의 대상 agent/node/generation, 모델 경로, 레이어 구간, 장치·offload·context·batch 인자를 구성한다. 파일·실행 바이너리 경로는 **대상 에이전트 머신의 경로**이며 Studio 서버에서 파일 존재를 확인했다고 원격 사용 가능성을 주장하지 않는다.
 - entry agent는 target에 따라 로컬로 전달하거나 다른 agent로 forwarding한다. 전체 계획을 보고 P4가 자동으로 분할·모델 선택·장치 배치를 한다고 가정하지 않는다.
-- CREATE, LOAD, SESSION, 추론, UNLOAD, DELETE를 구분한다. 모든 필수 stage의 현재 load generation에 대한 완료를 확인해야 전체 적재 성공이다. 추론 가능 여부는 별도의 SESSION 준비까지 확인한다.
+- LOAD, SESSION, 추론, UNLOAD를 구분한다. 다중 stage의 전체 성공 판정과 부분 실패 회수·결과 불명 추적은 Studio OUTER가 소유한다. 모든 필수 stage의 현재 load generation에 대한 완료를 확인해야 전체 적재 성공이다. 추론 가능 여부는 별도의 SESSION 준비까지 확인한다.
 - Studio의 배치 정책과 입력 검증은 OUTER가 소유하되, 모델별 합법적 cut·실제 메모리·KV·physical batching·sampling 검증과 실행은 adapter가 소유한다. 레이어 수를 균등 분할했다는 이유만으로 적재 가능성을 확정하지 않는다.
 
 ## 구현 경계
@@ -44,7 +44,7 @@ rg -n 'LoadCommand|SessionCommand|CONTENT_TYPE' F:/dev/p4/layers/adapters/llamac
 | 수정 종류 | Studio 수정 위치 | 확인할 P4 원본 |
 | --- | --- | --- |
 | 공통 envelope, endpoint, 버전, wire codec | `packages/p4-protocol/src/` | `layers/protocol/src/event/{mod,wire}.rs`, `entrypoints/agent/src/event_runtime/transport.rs` |
-| 조회 및 node CREATE/DELETE | `apps/studio/src/server/agent-socket/`와 별도 도메인 규칙 | `entrypoints/agent/src/event_runtime/control.rs`, `control/inspection/` |
+| 조회 및 node LOAD/UNLOAD | `apps/studio/src/server/agent-socket/`와 별도 도메인 규칙 | `entrypoints/agent/src/event_runtime/control.rs`, `control/inspection/` |
 | 모델 배치·adapter별 payload·작업 상태 | `packages/studio_domain/src/common/`, `src/server/`; 앱은 I/O 연결 | `tools/event-drive/src/run/{config,load,mod,replies}.rs`, concrete adapter의 공개 command |
 | SQLite·HTTP·프로세스 자원 | `apps/studio/src/server/` | P4는 참조 계약만; Studio 저장구조는 독립 |
 | 화면·프런트 모델 | `apps/studio/src/front/`, `packages/studio_domain/src/front/` | P4 응답 의미를 도메인 계약으로 변환한 뒤 사용 |

@@ -13,6 +13,10 @@ async function request(path: string, method: string, body?: unknown): Promise<un
 
 const gateway: GraphInventoryGateway = {
   inspect: inspectGraphAgent,
+  saveObservation: async (id, observation) => {
+    const route = graphInventoryRoutes.recordObservation;
+    await request(route.path.replace(":id", encodeURIComponent(id)), route.method, { observedAt: observation.inspectedAt, snapshot: observation.snapshot });
+  },
   labels: async () => nodeLabelListSchema.parse(await request(graphInventoryRoutes.labels.path, graphInventoryRoutes.labels.method)).labels,
   renameAgent: async (id, name) => graphAgentSchema.parse(await request(graphInventoryRoutes.renameAgent.path.replace(":id", encodeURIComponent(id)), graphInventoryRoutes.renameAgent.method, { name })),
   renameNode: async (id, input) => nodeLabelSchema.parse(await request(graphInventoryRoutes.renameNode.path.replace(":id", encodeURIComponent(id)), graphInventoryRoutes.renameNode.method, input)),

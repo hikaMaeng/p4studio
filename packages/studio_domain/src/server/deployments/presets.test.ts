@@ -11,7 +11,7 @@ it("imports the six HY3 and sixteen Step placements with original per-node optio
     deployments.open(); deployments.applyPreset(preset, []);
     const input = deploymentInputSchema.parse(deployments.editor.value.input);
     expect(input.stages).toHaveLength(preset.id.startsWith("hy3") ? 6 : 16);
-    expect(() => validatePlacement(input)).toThrow(/ingress/);
+    expect(() => validatePlacement(input)).toThrow(/registered agent/);
     input.ingressAgentId = "ingress";
     input.stages.forEach((s, i) => { s.agentId = s.referenceAgent!; const recorded = preset.stages[i]!;
       const payload = buildLoadPayload(input, s, 987);
@@ -46,17 +46,15 @@ it("migrates legacy inputs without replacing their Windows paths or load configu
   input.stages.push(stage); const before = buildLoadPayload(input, stage, 23); editAsText(input, stage);
   expect(buildLoadPayload(input, stage, 23)).toEqual(before);
 });
-it("creates an ordered placement edge from two observed P4 node ports", () => {
+it("does not turn occupied observed nodes into planned LOAD targets", () => {
   deployments.open();
-  deployments.connectObservedNodes(
-    { agentId: "agent-a", nodeId: "node-a", nodeGeneration: 7, adapterKind: "example-adapter" },
-    { agentId: "agent-b", nodeId: "node-b", nodeGeneration: 9, adapterKind: "example-adapter" },
-  );
-  expect(deployments.editor.value.input.stages).toMatchObject([
-    { agentId: "agent-a", nodeId: "node-a", nodeGeneration: 7, createNode: false },
-    { agentId: "agent-b", nodeId: "node-b", nodeGeneration: 9, createNode: false },
-  ]);
-  expect(deployments.editor.value.input.adapter).toBe("example-adapter");
+  const source = { agentId: "a", nodeId: "occupied-a", nodeGeneration: 7, adapterKind: "llamacpp" };
+  const target = { agentId: "b", nodeId: "occupied-b", nodeGeneration: 9, adapterKind: "llamacpp" };
+  deployments.connectPlannedStages(source, target);
+  expect(deployments.editor.value.input.stages).toEqual([]);
+  deployments.addStage("a"); deployments.addStage("b");
+  expect(deployments.editor.value.input.stages.map(s => s.agentId)).toEqual(["a", "b"]);
+  expect(deployments.editor.value.input.stages.every(s => !s.nodeId.startsWith("occupied"))).toBe(true);
 });
 it("allows heterogeneous backends only with explicit physical v4 and matching known ABI", () => {
   const wire = `p4pb4le64:${"a".repeat(64)}:types=0/1/4,1/1/2,2/32/18`;

@@ -4,7 +4,7 @@ framework-agnostic 공개 wire 상수, TypeScript 타입, P4 event-v3 agent insp
 
 | Path | Contract | Drill-down |
 | --- | --- | --- |
-| `src/event` | event wire와 inspection payload codec | [agent-inspection.ts](../src/event/agent-inspection.ts): `encodeAgentInspectionRequest`, `decodeAgentInspectionResponse` |
+| `src/event` | event wire·inspection·node lifecycle payload codec | [agent-inspection.ts](../src/event/agent-inspection.ts): `encodeAgentInspectionRequest`, `decodeAgentInspectionResponse`; [lifecycle.ts](../src/event/lifecycle.ts): `encodeLifecycleMetadata`, `decodeLifecycleMetadata`, request/result parser |
 
 공개 export와 프로토콜 identity 진입점은 [index.ts](../src/index.ts)의 `P4_PROTOCOL`이다.
 

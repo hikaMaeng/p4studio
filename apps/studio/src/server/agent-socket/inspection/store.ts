@@ -27,10 +27,10 @@ export class AgentObservationStore {
     this.observations.delete(agentId);
   }
 
-  view(agent: AgentRecord): AgentViewRecord {
+  view(agent: AgentRecord, persisted: AgentProtocolObservation | null = null): AgentViewRecord {
     return {
       ...agent,
-      inspection: this.observations.get(agent.id) ?? pendingObservation(),
+      inspection: this.observations.get(agent.id) ?? persisted ?? pendingObservation(),
     };
   }
 }

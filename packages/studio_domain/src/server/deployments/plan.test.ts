@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { DeploymentInput, PlacementStage } from "../../common/protocol/deployments/index.js";
 import { buildLoadPayload, quotePlan, validatePlacement } from "./plan.js";
-const stage: PlacementStage = { id: "s", agentId: "a", nodeId: "node", nodeGeneration: 1, createNode: true, artifact: "S:\\large models\\a.gguf", binary: "stage", endpoint: "127.0.0.1:50001", device: "", layerStart: 0, layerEnd: 1, options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
+const stage: PlacementStage = { id: "s", agentId: "a", nodeId: "node", nodeGeneration: 1, artifact: "S:\\large models\\a.gguf", binary: "stage", endpoint: "127.0.0.1:50001", device: "", layerStart: 0, layerEnd: 1, options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
 const plan = (): DeploymentInput => ({ name: "test", adapter: "llamacpp", ingressAgentId: "a", totalLayers: 1, contextSize: 4096, sequenceCapacity: 1, nBatch: 512, nUbatch: 128, timeoutMs: 600000, loadContentType: "", loadedContentType: "", unloadContentType: "", unloadedContentType: "", errorContentType: "", stages: [{ ...stage }] });
 it("quotes Windows paths without doubling native backslashes", () => {
   const p = plan(); expect(buildLoadPayload(p, p.stages[0]!, 8).plan).toContain('--model "S:\\large models\\a.gguf"');

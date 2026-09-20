@@ -1,0 +1,29 @@
+P4_EVENT_RETAINED_LIMITS queue=65536 retained=65536 bytes_per_store=268435456 connections=256
+P4_EVENT_CONNECTION_OPENED connection=1 peer=127.0.0.1:63851
+P4_EVENT_CONNECTION_STOPPED connection=1 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=2 peer=127.0.0.1:56710
+P4_EVENT_CONNECTION_OPENED connection=3 peer=127.0.0.1:56712
+P4_EVENT_CONNECTION_STOPPED connection=2 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=4 peer=127.0.0.1:56098
+P4_EVENT_CONNECTION_OPENED connection=5 peer=127.0.0.1:56101
+P4_EVENT_CONNECTION_STOPPED connection=4 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=6 peer=127.0.0.1:50616
+P4_EVENT_CONNECTION_STOPPED connection=6 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=7 peer=127.0.0.1:59845
+P4_EVENT_CONNECTION_STOPPED connection=7 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=8 peer=127.0.0.1:58020
+P4_EVENT_CONNECTION_STOPPED connection=8 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=9 peer=127.0.0.1:62874
+P4_EVENT_CONNECTION_STOPPED connection=9 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=10 peer=127.0.0.1:53176
+P4_EVENT_CONNECTION_STOPPED connection=10 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=11 peer=127.0.0.1:49234
+P4_EVENT_CONNECTION_OPENED connection=12 peer=127.0.0.1:49236
+P4_EVENT_CONNECTION_STOPPED connection=12 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=13 peer=127.0.0.1:59369
+P4_EVENT_CONNECTION_STOPPED connection=13 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=14 peer=127.0.0.1:65111
+P4_EVENT_CONNECTION_STOPPED connection=14 error=unexpected end of file
+P4_EVENT_CONNECTION_OPENED connection=15 peer=127.0.0.1:62513
+P4_EVENT_CONNECTION_STOPPED connection=15 error=unexpected end of file
+P4_EVENT_CONNECTION_STOPPED connection=11 error=unexpected end of file

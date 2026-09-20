@@ -13,3 +13,6 @@
 - 에이전트 목록의 SQLite 등록과 브라우저가 이번 세션에 관측한 P4 상태를 혼동하지 않음
 - 반복 목록 항목은 `agent-row`, 상세 화면은 `agent-detail` test id를 사용하며 상세 진입과 목록 복귀는 이름 있는 버튼으로 노출함
 - 서버 주기 조회 fan-out은 금지함. 브라우저가 명시적으로 시작한 P4 관측의 동시성은 클라이언트가 제한함
+- 게이트웨이는 전체 Studio의 단일 대표가 아니라 그룹별 대표다. 한 agent는 최대 한 그룹에 속하고, 대표는 그 그룹 구성원이어야 한다. 그룹 구성원에 대한 직접 bridge open은 거부하며 접수 장애를 직접 접속으로 우회하지 않는다. 상세는 [그룹 계약](../packages/studio_domain/docs/api.md#agent-groups).
+
+- Agent-target LOAD/UNLOAD와 최종 lifecycle 결과만 노드 생성·제거 계약이다. 중복 ID 거부는 기존 노드를 회수하지 않고, 불명 LOAD는 별도 연결의 순간적인 부재만으로 해소하지 않는다. [회수 계약](node-lifecycle.md).

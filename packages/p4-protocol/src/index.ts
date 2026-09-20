@@ -1,5 +1,6 @@
 /** Public protocol identities mirrored from the P4 wire contract. */
 export * from "./event/wire.js";
+export * from "./event/lifecycle.js";
 export const P4_PROTOCOL = Object.freeze({
   frameVersion: 8,
   eventVersion: 3,
@@ -8,8 +9,8 @@ export const P4_PROTOCOL = Object.freeze({
 
 /** Operations exposed by the P4 agent boundary and understood by Studio. */
 export const P4_AGENT_OPERATIONS = Object.freeze([
-  "create-node",
-  "delete-node",
+  "load-node",
+  "unload-node",
   "inspect-machine",
   "inspect-model",
   "status",
@@ -35,6 +36,12 @@ export {
 export type {
   AgentInspectionRequest,
   P4AgentSnapshot,
+  P4BrokerReceiptSnapshot,
+  P4BrokerSnapshot,
+  P4HopTransferSnapshot,
   P4MachineSnapshot,
+  P4NodeDeliverySnapshot,
+  P4ReceiptStorageSnapshot,
   P4RegisteredNodeSnapshot,
+  P4TransportSnapshot,
 } from "./event/agent-inspection.js";

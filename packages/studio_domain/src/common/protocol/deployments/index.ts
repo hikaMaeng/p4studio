@@ -3,7 +3,8 @@ import { z } from "zod";
 const positive = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const text = z.string().trim().min(1).max(4096).refine(v => !v.includes("\0"));
 export const stageSchema = z.object({
-  id: text, agentId: z.string().max(4096), nodeId: text, nodeGeneration: positive, createNode: z.boolean(),
+  id: text, agentId: z.string().max(4096), nodeId: text, nodeGeneration: positive,
+  allocation: z.object({ queueCapacity: positive, completionCapacity: positive, retainedCapacity: positive, retainedBytes: positive }).optional(),
   artifact: z.string().max(4096), layerStart: z.number().int().min(0), layerEnd: positive,
   binary: z.string().max(4096), endpoint: z.string().max(256), device: z.string().max(128),
   options: z.string().max(32768), argsJson: z.string().max(32768), environmentJson: z.string().max(32768),
@@ -12,7 +13,8 @@ export const stageSchema = z.object({
   referenceAgent: z.string().max(4096).optional(),
 });
 export const deploymentInputSchema = z.object({
-  name: text, adapter: text, ingressAgentId: z.string().max(4096), totalLayers: positive,
+  // ingressAgentId is retained for old documents; reception comes from agent groups.
+  name: text, adapter: text, ingressAgentId: z.string().max(4096).default(""), totalLayers: positive,
   contextSize: positive, sequenceCapacity: positive, nBatch: positive, nUbatch: positive,
   timeoutMs: positive.max(86400000),
   presetId: z.string().max(256).optional(),
@@ -25,7 +27,13 @@ export type DeploymentInput = z.infer<typeof deploymentInputSchema>;
 export type PlacementStage = z.infer<typeof stageSchema>;
 export const stageStateSchema = z.enum(["pending", "creating", "loading", "ready", "unloading", "unloaded", "failed", "unknown"]);
 export type StageState = z.infer<typeof stageStateSchema>;
-export const reportSchema = z.object({ stageId: z.string(), state: stageStateSchema, detail: z.string(), failureDetail: z.string().default(""), loadRequested: z.boolean().default(false), updatedAt: z.string(), telemetry: z.unknown() });
+export const reportSchema = z.object({ stageId: z.string(), state: stageStateSchema, detail: z.string(), failureDetail: z.string().default(""), loadRequested: z.boolean().default(false), updatedAt: z.string(), telemetry: z.unknown(),
+  loadOutcome: z.enum(["succeeded", "rejected", "failed", "unknown"]).optional(),
+  resourceState: z.enum(["absent", "present", "unknown"]).optional(),
+  cleanupError: z.string().optional(),
+  lifecycle: z.object({ operation: z.enum(["load", "unload"]), status: z.enum(["succeeded", "rejected", "failed"]), resourceState: z.enum(["absent", "present", "unknown"]), firstError: z.string().nullable(), cleanupError: z.string().nullable() }).optional(),
+  observation: z.object({ state: z.enum(["loaded", "unloaded", "missing", "unknown", "failed", "loading", "unloading"]), checkedAt: z.string(), agentGeneratedAt: z.number().nullable(), detail: z.string() }).optional(),
+});
 export type StageReport = z.infer<typeof reportSchema>;
 export const deploymentSchema = deploymentInputSchema.extend({
   id: text, status: z.enum(["draft", "loading", "ready", "unloading", "unloaded", "failed", "unknown"]),
@@ -34,6 +42,7 @@ export const deploymentSchema = deploymentInputSchema.extend({
 });
 export type DeploymentRecord = z.infer<typeof deploymentSchema>;
 export const deploymentReceiptSchema = z.object({
+  stageGenerations: z.record(z.string(), positive).optional(),
   status: deploymentSchema.shape.status,
   loadGeneration: deploymentSchema.shape.loadGeneration,
   operationId: deploymentSchema.shape.operationId,
@@ -42,13 +51,16 @@ export const deploymentReceiptSchema = z.object({
   resolvedAddresses: deploymentSchema.shape.resolvedAddresses,
 });
 export type DeploymentReceipt = z.infer<typeof deploymentReceiptSchema>;
+export const deploymentReconciliationSchema = deploymentReceiptSchema.extend({ expectedUpdatedAt: z.string() });
 export const deploymentRoutes = {
   list: { path: "/api/model-deployments", method: "GET" },
   create: { path: "/api/model-deployments", method: "POST" },
+  remove: { path: "/api/model-deployments/:id", method: "DELETE" },
   update: { path: "/api/model-deployments/:id", method: "PUT" },
   load: { path: "/api/model-deployments/:id/load", method: "POST" },
   unload: { path: "/api/model-deployments/:id/unload", method: "POST" },
   receipt: { path: "/api/model-deployments/:id/receipt", method: "PUT" },
+  reconcile: { path: "/api/model-deployments/:id/reconcile", method: "PUT" },
 } as const;
 export type DeploymentListResponse = { deployments: DeploymentRecord[] };
 export const parseDeploymentList = (value: unknown): DeploymentListResponse => z.object({ deployments: z.array(deploymentSchema) }).parse(value);

@@ -12,6 +12,7 @@ import { P4_TUNNEL_PATH, parseP4TunnelServerControl } from "@p4studio/studio_dom
 export class UncertainDelivery extends Error { constructor(message: string) { super(message); this.name = "UncertainP4Delivery"; } }
 
 type Pending = { event: P4Event; terminalTypes: string[]; resolve: (event: P4Event) => void; reject: (error: Error) => void; timer: number };
+export type P4DispatchReceipt = { event: P4Event; sentAtMs: number; sentAt: string };
 
 /** The browser creates P4 events and matches replies; the WebSocket carries bytes only. */
 export class BrowserP4Connection {
@@ -21,23 +22,24 @@ export class BrowserP4Connection {
   private opened = false;
   private stopped = false;
   private sequence = 0;
-  private readonly listeners = new Set<(event: P4Event) => void>();
-  readonly operationId = crypto.randomUUID();
+  private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
+  readonly operationId: string;
   readonly outer: Extract<P4Endpoint, { kind: "outer" }>;
 
-  private constructor(agentId: string, ingressAddress: string) {
-    this.outer = { kind: "outer", address: ingressAddress, channel: `studio-${this.operationId}`, generation: 1 };
+  private constructor(agentId: string, ingressAddress: string, operationId: string) {
+    this.operationId = operationId;
+    this.outer = { kind: "outer", address: ingressAddress, channel: `studio-${crypto.randomUUID()}`, generation: 1 };
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     this.socket = new WebSocket(`${protocol}://${location.host}${P4_TUNNEL_PATH}`);
     this.socket.binaryType = "arraybuffer";
-    this.socket.addEventListener("message", event => this.receive(event.data));
+    this.socket.addEventListener("message", event => this.receive(event.data, performance.now()));
     this.socket.addEventListener("close", () => this.fail(new UncertainDelivery("P4 bridge closed before completion")));
     this.socket.addEventListener("error", () => this.fail(new UncertainDelivery("P4 bridge transport failed")));
     this.socket.addEventListener("open", () => this.socket.send(JSON.stringify({ type: "open", connectionId: this.operationId, agentId })));
   }
 
-  static open(agentId: string, ingressAddress: string): Promise<BrowserP4Connection> {
-    const connection = new BrowserP4Connection(agentId, ingressAddress);
+  static open(agentId: string, ingressAddress: string, operationId: string = crypto.randomUUID()): Promise<BrowserP4Connection> {
+    const connection = new BrowserP4Connection(agentId, ingressAddress, operationId);
     return new Promise((resolve, reject) => {
       const timer = window.setTimeout(() => { connection.close(); reject(new UncertainDelivery("Timed out opening browser P4 bridge")); }, 10_000);
       const listener = (event: MessageEvent) => {
@@ -65,13 +67,13 @@ export class BrowserP4Connection {
     });
   }
 
-  dispatch(target: P4Endpoint, adapter: string, contentType: string, payload: unknown, eventClass = 0, deadline: number | null = null): P4Event {
+  dispatch(target: P4Endpoint, adapter: string, contentType: string, payload: unknown, eventClass = 0, deadline: number | null = null): P4DispatchReceipt {
     if (!this.opened || this.stopped) throw new UncertainDelivery("P4 bridge is not open");
     const event = this.event(target, adapter, contentType, payload, eventClass, deadline);
-    this.send(frameP4Event(encodeP4Event(event))); return event;
+    const timing = this.send(frameP4Event(encodeP4Event(event))); return { event, ...timing };
   }
 
-  onEvent(listener: (event: P4Event) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  onEvent(listener: (event: P4Event, receivedAtMs: number) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
 
   close() {
     this.stopped = true;
@@ -79,7 +81,7 @@ export class BrowserP4Connection {
     this.socket.close();
   }
 
-  private receive(data: unknown) {
+  private receive(data: unknown, receivedAtMs: number) {
     if (typeof data === "string") {
       try { const message = parseP4TunnelServerControl(JSON.parse(data)); if (message.type !== "opened") this.fail(new UncertainDelivery(message.detail)); } catch { /* invalid text does not alter P4 byte state */ }
       return;
@@ -87,12 +89,12 @@ export class BrowserP4Connection {
     try {
       if (!(data instanceof ArrayBuffer)) throw new Error("P4 bridge delivered a non-binary WebSocket message");
       const bytes = new Uint8Array(data);
-      for (const frame of this.reader.push(bytes)) this.match(decodeP4Event(frame));
+      for (const frame of this.reader.push(bytes)) this.match(decodeP4Event(frame), receivedAtMs);
     } catch (error) { this.fail(new UncertainDelivery(error instanceof Error ? error.message : String(error))); }
   }
 
-  private match(event: P4Event) {
-    this.listeners.forEach(listener => listener(event));
+  private match(event: P4Event, receivedAtMs: number) {
+    this.listeners.forEach(listener => listener(event, receivedAtMs));
     const pending = this.pending;
     if (!pending || event.correlationId !== this.operationId || event.causationId !== pending.event.eventId) return;
     const adapterMatches = pending.event.target.kind === "agent" ? event.adapterKind === null : event.adapterKind === pending.event.adapterKind;
@@ -105,11 +107,13 @@ export class BrowserP4Connection {
 
   private event(target: P4Endpoint, adapter: string | null, contentType: string, payload: unknown, eventClass: number, deadline: number | null): P4Event {
     return { eventId: crypto.randomUUID(), correlationId: this.operationId, causationId: null, source: this.outer, target, returnRoute: this.outer,
-      class: eventClass, sequence: ++this.sequence, deadline, adapterKind: adapter, contentType, payload: new TextEncoder().encode(JSON.stringify(payload)) };
+      class: eventClass, sequence: ++this.sequence, deadline, adapterKind: adapter, contentType, payload: payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload)) };
   }
 
   private send(bytes: Uint8Array) {
-    const exact = new Uint8Array(bytes.byteLength); exact.set(bytes); this.socket.send(exact.buffer);
+    const exact = new Uint8Array(bytes.byteLength); exact.set(bytes);
+    const sentAtMs = performance.now(); const sentAt = new Date().toISOString();
+    this.socket.send(exact.buffer); return { sentAtMs, sentAt };
   }
 
   private fail(error: Error) {

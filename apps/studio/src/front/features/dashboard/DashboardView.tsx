@@ -5,17 +5,20 @@ import { useTranslation } from "../../i18n/useTranslation.js";
 import { EmptyState } from "../../shared/components/EmptyState.js";
 import { Icon } from "../../shared/components/Icon.js";
 import { StatusPill } from "../../shared/components/StatusPill.js";
+import { useGraphInventory } from "../../p4/inventory.js";
 import { RSC } from "./resource.js";
 
-const Metric = ({ label, value, detail, icon }: { label: string; value: number; detail: string; icon: React.ReactNode }) => <Paper variant="outlined" sx={{ p: 1.125, bgcolor: "background.paper", minHeight: 132 }}><Box sx={{ display: "flex", justifyContent: "space-between", color: "text.secondary" }}><Typography variant="body2">{label}</Typography>{icon}</Box><Typography className="metric-number" sx={{ fontSize: 30, fontWeight: 560, mt: 1.5 }}>{String(value).padStart(2, "0")}</Typography><Typography variant="caption" color="text.secondary">{detail}</Typography></Paper>;
+const Metric = ({ label, value, detail, icon }: { label: string; value: number | string; detail: string; icon: React.ReactNode }) => <Paper variant="outlined" sx={{ p: 1.125, bgcolor: "background.paper", minHeight: 132 }}><Box sx={{ display: "flex", justifyContent: "space-between", color: "text.secondary" }}><Typography variant="body2">{label}</Typography>{icon}</Box><Typography className="metric-number" sx={{ fontSize: 30, fontWeight: 560, mt: 1.5 }}>{typeof value === "number" ? String(value).padStart(2, "0") : value}</Typography><Typography variant="caption" color="text.secondary">{detail}</Typography></Paper>;
 
-export const DashboardView = ({ snapshot, onRegister }: { snapshot: StudioSnapshot; onRegister: () => void }) => {
+export const DashboardView = ({ snapshot: initialSnapshot, onRegister }: { snapshot: StudioSnapshot; onRegister: () => void }) => {
   const { t } = useTranslation();
+  const snapshot = useGraphInventory(initialSnapshot);
+  const observedNodes = snapshot.agents.every(agent => agent.inspection.snapshot) ? snapshot.agents.reduce((total, agent) => total + agent.inspection.snapshot!.nodes.length, 0) : t[RSC.DASHBOARD_METRIC_NODES_UNKNOWN_TEXT];
   const reachable = snapshot.agents.filter((agent) => agent.reachability === "reachable").length;
   const pipeline = snapshot.pipelines[0];
   return <Box><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 1.5 }}>
     <Metric label={t[RSC.DASHBOARD_METRIC_AGENTS_TEXT]} value={snapshot.agents.length} detail={formatMessage(t[RSC.DASHBOARD_METRIC_AGENTS_DETAIL_MESSAGE], { count: reachable })} icon={<Icon name="dns" fontSize="small" />} />
-    <Metric label={t[RSC.DASHBOARD_METRIC_NODES_TEXT]} value={snapshot.nodes.length} detail={t[RSC.DASHBOARD_METRIC_NODES_DETAIL_MESSAGE]} icon={<Icon name="bolt" fontSize="small" />} />
+    <Metric label={t[RSC.DASHBOARD_METRIC_NODES_TEXT]} value={observedNodes} detail={t[RSC.DASHBOARD_METRIC_NODES_DETAIL_MESSAGE]} icon={<Icon name="bolt" fontSize="small" />} />
     <Metric label={t[RSC.DASHBOARD_METRIC_MODELS_TEXT]} value={snapshot.models.length} detail={t[RSC.DASHBOARD_METRIC_MODELS_DETAIL_MESSAGE]} icon={<Icon name="memory" fontSize="small" />} />
     <Metric label={t[RSC.DASHBOARD_METRIC_PIPELINES_TEXT]} value={snapshot.pipelines.length} detail={formatMessage(t[RSC.DASHBOARD_METRIC_PIPELINES_DETAIL_MESSAGE], { count: snapshot.pipelines.filter((item) => item.status === "ready").length })} icon={<Icon name="pipeline" fontSize="small" />} />
   </Box><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "1.45fr .75fr" }, gap: 1.5, mt: 1.5 }}>

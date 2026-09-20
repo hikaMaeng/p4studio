@@ -1,7 +1,13 @@
 export { Emitter, type Unsubscribe } from "./model/Emitter.js";
+export * from "./model/agents/removal.js";
 export { SliceModel, type ModelUpdate } from "./model/SliceModel.js";
 export * from "./language/model/index.js";
 export * from "./model/deployments/store.js";
 export * from "./model/graph-inventory/store.js";
 export * from "./model/inference/store.js";
 export * from "./model/inference/telemetry.js";
+export * from "./model/inference/monitoring-summary.js";
+export * from "./model/inference/timing.js";
+export * from "./model/inference/observability.js";
+export * from "./model/agent-groups/store.js";
+export { reconcileDeployment } from "./model/deployments/reconcile.js";

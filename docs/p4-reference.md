@@ -2,6 +2,8 @@
 
 이 문서는 P4 Studio가 OUTER로 구현해야 할 책임과 `F:/dev/p4`에서 계약을 찾는 경로를 정리한다. 작업 규칙은 [AGENTS.md](../AGENTS.md), Studio 내부 구조는 [architecture.md](architecture.md)가 소유한다. P4 명세를 복제하는 문서가 아니다.
 
+2026-09-19 현재 계약 대조: P4 HEAD `4df7496b92c9c84efddb4a908ab56ea0b5c6e77f`, clean. event-v3/inspection schema v1은 유지되고, agent inspection의 `transport.transfer`에 누적 `hop_data_writes`·`hop_data_bytes`가 추가됐다. Studio는 이를 agent-wide 관측값으로만 보존·표시하며 request/edge별 bytes나 MB/s로 바꾸지 않는다. `tools/event-drive`의 Release A source-grounded oracle·측정 barrier·증거 봉인은 benchmark driver의 수용 계약이지 P4 agent의 새 browser/Studio API가 아니다. [Studio 적용 계약](node-lifecycle.md). 아래 최초 조사 기록은 역사다.
+
 ## 조사 기준과 권위
 
 2026-09-11 조사 시작: P4 HEAD `11dc7a0ce74460a8b3390d057bb097684cb28c90`, 당시 clean tree. Studio HEAD `b22ed898b1dd0a6e5e79a7fe8b58166427cfec67`; 모델 제어와 에이전트 UI의 다른 작업이 진행 중이었다. P4에도 조사 중 다른 작업의 증거 문서가 추가됐다. 아래 구현 설명은 이때 읽은 소스 범위이며 실행 시험을 새로 수행했다는 뜻이 아니다.
@@ -36,19 +38,19 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 | --- | --- | --- |
 | Studio OUTER | 주소·관리 이름, 모델 파일과 template/옵션, adapter 선택, stage 계획, 전체 topology, 작업/세션 identity | P4가 자동 모델 탐색·분할·배치 계획을 만든다는 가정 |
 | P4 agent | 자기 노드 registry, endpoint 전달, 공통 순서·큐·backpressure | 에이전트 하나 = GPU 하나 = 노드 하나라는 고정 대응 |
-| node | ID/generation, 큐와 adapter 객체를 가진 로컬 실행 단위 | CREATE만으로 모델 메모리가 적재됐다는 가정 |
+| node | 모델 또는 구간의 적재 인스턴스; LOAD에서 ID 점유, UNLOAD 성공에서 제거 | 재사용 가능한 빈 노드 슬롯이라는 가정 |
 | concrete adapter | payload 해석, 실제 모델/컨텍스트 적재, KV·배치·실행·정산 | llama.cpp 전용 의미를 공통 P4 protocol로 승격 |
 | engine/backend | llama.cpp의 모델 실행과 ggml/CUDA/CPU 등의 실제 연산 | llama.cpp adapter와 CUDA backend를 동일한 선택 계층으로 취급 |
 
-현재 [control.rs](../../p4/entrypoints/agent/src/event_runtime/control.rs)의 `create`는 `llamacpp`만 받아 `LlamaNodeAdapter`를 생성한다. 다른 경로의 mock이나 설계상의 vLLM/SGLang 예시가 현재 event runtime의 지원 증거는 아니다.
+현재 [control.rs](../../p4/entrypoints/agent/src/event_runtime/control.rs)의 `begin_load`와 [adapters.rs](../../p4/entrypoints/agent/src/event_runtime/adapters.rs)의 kind/factory가 지원을 결정한다. llama.cpp와 feature-enabled HF의 수명 계약이 구현됐으며 vLLM/SGLang을 지원한다고 추론하지 않는다.
 
 ## 모델 작업의 단계
 
 1. **선언:** Studio가 모델 카탈로그와 실행 배치를 구분해 저장한다. 배치는 ordered stages, 각 agent/node/generation, 모델 파일, `[layer_begin, layer_end)`, device/offload, context/batch, adapter 인자를 가진다.
-2. **생성:** 없는 노드는 Agent endpoint로 CREATE한다. 현재 create payload는 `node_id`, `node_generation`, `adapter_kind`와 선택적 queue/completion capacity를 가진다. 성공 결과는 `node.result`의 `ok`와 node ID로 확인한다.
-3. **적재:** 각 Node endpoint로 독립 LOAD를 보낸다. entry agent가 target agent를 향해 전달하며, adapter가 계획을 검증·실행하고 Loaded 또는 오류를 반환한다. 부분 성공을 stage별로 보존하고 모든 필수 stage의 동일 작업·세대를 확인한 뒤 전체 적재 완료를 만든다.
+2. **수명 요청:** Agent endpoint에 NODE_LOAD를 보낸다. 공통 metadata는 node identity·adapter identity·네 allocation capacity를 포함하고 실제 모델 입력은 opaque bytes다. 별도 CREATE는 없다.
+3. **적재:** agent가 ID 점유·adapter 생성·적재를 수행한다. Agent의 lifecycle-result와 내부 adapter 결과를 결속해 모든 필수 stage의 동일 작업·세대를 확인한다. 실패 시 OUTER가 성공/잔존 stage를 회수하고 미해결 결과를 추적한다.
 4. **추론 구성:** 현재 llama.cpp `SessionCommand`는 `load_generation`, `session_id`, 전체 ordered `stages`, 해당 노드의 `stage_index`를 요구한다. 각 노드의 SESSION_READY를 확인한다. 현재 구현은 구별되는 head/tail, 최소 두 stage를 요구하며 이는 모든 P4 adapter에 강제할 공통 규칙이 아니다.
-5. **실행·종료:** 추론의 승인된 OUTPUT, 종료와 RELEASE receipt를 각 계약대로 소비한다. UNLOAD 완료와 DELETE 결과도 별도로 확인한다. 출력·정산·해제·소켓 종료를 같은 완료로 취급하지 않는다.
+5. **실행·종료:** 추론의 승인된 OUTPUT, 종료와 RELEASE receipt를 각 계약대로 소비한다. Agent-target UNLOAD의 succeeded/absent와 adapter Unloaded를 확인한다. 별도 DELETE는 없다. 출력·정산·해제·소켓 종료를 같은 완료로 취급하지 않는다.
 
 `tools/event-drive`는 위 흐름의 실제 요청 생산자/결과 소비자 예시다. 현재 드라이버는 동일 agent의 LOAD를 직렬화하고 서로 다른 agent의 LOAD를 wave로 구성한다. 이 실험 정책이나 고정 포트·모델·시나리오를 Studio 제품 제약으로 그대로 복사하지 않는다.
 
@@ -63,9 +65,9 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 | 기본 runtime 확인 | [main.rs](../../p4/entrypoints/agent/src/main.rs): `main`, `P4_AGENT_SERVICE_RUNTIME` | event runtime이 기본. service 경로 예제를 선택하지 않음 |
 | envelope·endpoint·identity | [event/mod.rs](../../p4/layers/protocol/src/event/mod.rs): `Envelope`, `Endpoint`, `OuterEndpoint` | [p4-protocol](../packages/p4-protocol/docs/architecture.md); 모든 wire 소비자 영향 |
 | 바이트 codec·framing | [event/wire.rs](../../p4/layers/protocol/src/event/wire.rs): `encode/decode`; [transport.rs](../../p4/entrypoints/agent/src/event_runtime/transport.rs): `read_event/write_event` | TS codec과 socket 수신기. 길이·정수·누적 버퍼 검증 |
-| agent 조회·노드 생성/삭제 | [control.rs](../../p4/entrypoints/agent/src/event_runtime/control.rs): `run/create/remove/reply`; [inspection/mod.rs](../../p4/entrypoints/agent/src/event_runtime/control/inspection/mod.rs): `snapshot` | [inspection client](../apps/studio/src/server/agent-socket/inspection/client.ts): `inspectAgent`; 관리 노드와 live registry 분리 |
-| 머신 사양·점유 정보 | [hardware.rs](../../p4/entrypoints/agent/src/event_runtime/control/inspection/hardware.rs), [inspection tests](../../p4/entrypoints/agent/src/event_runtime/control/inspection/tests.rs), [agent inspection 계약](../../p4/docs/event-protocol-v2.md#agent-inspection) | [agent-inspection.ts](../packages/p4-protocol/src/event/agent-inspection.ts): `decodeAgentInspectionResponse`; capability/occupancy/probes 및 unavailable 보존 |
-| LOAD·SESSION payload | [v2/mod.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/mod.rs): content types; [commands.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs): `LoadCommand`, `SessionCommand`, `UnloadCommand` | [도메인 구조](../packages/studio_domain/docs/architecture.md)의 server 규칙. adapter 전용 payload를 공통 codec에서 분리 |
+| agent 조회·노드 적재/제거 | [control.rs](../../p4/entrypoints/agent/src/event_runtime/control.rs): `run/begin_load/begin_unload/lifecycle_reply`; [inspection/mod.rs](../../p4/entrypoints/agent/src/event_runtime/control/inspection/mod.rs): `snapshot` | [inspection client](../apps/studio/src/server/agent-socket/inspection/client.ts): `inspectAgent`; 관리 노드와 live registry 분리 |
+| 머신·agent 관측 정보 | [hardware.rs](../../p4/entrypoints/agent/src/event_runtime/control/inspection/hardware.rs), [transport.rs](../../p4/entrypoints/agent/src/event_runtime/transport.rs): `Inspector::snapshot`, [agent inspection 계약](../../p4/docs/event-protocol-v2.md#agent-inspection) | [agent-inspection.ts](../packages/p4-protocol/src/event/agent-inspection.ts): `decodeAgentInspectionResponse`; capability/occupancy/probes와 누적 `transport.transfer`를 decode하고 필드 부재는 unavailable로 보존 |
+| LOAD·SESSION payload | [v2/mod.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/mod.rs): content types; [commands.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs): `LoadCommand`, `SessionCommand`, `UnloadCommand`; [resource_profile.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/resource_profile.rs) | [도메인 구조](../packages/studio_domain/docs/architecture.md)의 server 규칙. llama LOAD v4에는 adapter-owned `resource_profile`가 필수이며, `--memory-topology`와 실제 backend device 이름도 plan에 명시한다. adapter 전용 payload를 공통 codec에서 분리 |
 | 전체 명령 순서·응답 귀속 | [run/mod.rs](../../p4/tools/event-drive/src/run/mod.rs): `session_events`, `Sender::event`; [load.rs](../../p4/tools/event-drive/src/run/load.rs): `drive`; [replies.rs](../../p4/tools/event-drive/src/run/replies.rs): `ExpectedReply`, `receive_exact` | stage별 작업 상태, causation/source/generation 검사. HTTP 수락을 완료로 취급하지 않음 |
 | 재연결·timeout·분할 수신 | [run/wire.rs](../../p4/tools/event-drive/src/run/wire.rs): `EventWire`; [wire/tests.rs](../../p4/tools/event-drive/src/run/wire/tests.rs) | 취소/timeout 후 미완성 프레임 보존. 재연결 identity와 부분 응답 관리 |
 | 레이어 cut·메모리·실행 인자 | [llamacpp-stage-memory.md](../../p4/docs/llamacpp-stage-memory.md), [server/plan.cpp](../../p4/layers/adapters/llamacpp/staged/server/src/server/plan.cpp), [run/config.rs](../../p4/tools/event-drive/src/run/config.rs): `NodeConfig` | Studio stage 계획/검증. backend 실제 메모리 계산은 복제하지 않음 |
@@ -79,7 +81,8 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 - 파일명이 `event-protocol-v2.md`이고 Rust 모듈이 `v2`여도 현재 event envelope version은 **3**, magic은 **`P4E3`**다. TCP는 `u32 little-endian length + encoded event`다. event 내부에는 magic, envelope 길이, payload 길이, envelope, payload가 있다.
 - 옛 frame version 8, status schema 6, inspection snapshot schema 1, adapter별 content-type version은 서로 다른 버전 축이다. 모든 명령의 suffix를 일괄 v3로 바꾸지 않는다. 현재 SESSION v4와 OUTPUT v5 같은 값은 adapter의 상수를 확인한다.
 - endpoint의 node generation, adapter load generation, OUTER connection generation과 session/request/event identity는 수명이 다르다. UUID 하나로 합치지 않는다. source/target/return_route와 요청-응답 identity를 검사한다.
-- Node DELETE는 먼저 unloaded 상태여야 한다. DB 행 삭제는 원격 DELETE가 아니다. UNLOAD busy나 전송 단절 뒤에는 원격 상태가 남을 수 있다.
+- inspection `transport.transfer.hop_data_writes`와 `hop_data_bytes`는 agent 전체 수명에서 P4 DATA hop을 성공적으로 write한 누적 counter다. 개별 request·stage·edge 소유, 수신 byte, retry/queue 시간, 측정창 경계가 없으므로 per-run 전송량·대역폭·완료 증거로 사용하지 않는다.
+- UNLOAD 성공은 자원과 노드의 제거 완료다. DB 행 삭제는 UNLOAD가 아니다. busy/단절 뒤 잔존 상태와 별도 연결의 순간적인 부재를 최종 완료로 바꾸지 않는다.
 - inspection의 `capability`는 사양, `occupancy`는 순간 점유, `probes`는 관측 가능 여부다. 값이 없다는 사실을 0으로 바꾸지 않는다. `utilization.gpu`를 SM 포화율로 표시하지 않는다.
 - transport가 source 필드를 운반한다는 것과 발신자를 인증한다는 것은 다르다. 인증·제어 권한 기능을 작성할 때 [격리 계약의 신뢰 경계](../../p4/docs/layer-isolation-contract.md)를 확인하고 endpoint 검사만으로 인증 완료를 주장하지 않는다.
 

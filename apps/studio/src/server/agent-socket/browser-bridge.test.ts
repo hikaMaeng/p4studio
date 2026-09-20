@@ -23,6 +23,24 @@ afterEach(async () => {
 });
 
 describe("browser P4 bridge", () => {
+  it("rejects direct member dialing and permits a gateway with no nodes", async () => {
+    const p4 = createTcpServer((socket: Socket) => socket.on("data", bytes => socket.write(bytes)));
+    tcpServers.push(p4); const p4Port = await listen(p4);
+    const database = new StudioDatabase(":memory:"); databases.push(database);
+    const gateway = database.createAgent({ name: "gateway", host: "127.0.0.1", port: p4Port });
+    const member = database.createAgent({ name: "private", host: "private.invalid", port: p4Port });
+    database.agentGroups.save({ name: "private cluster", gatewayAgentId: gateway.id, memberAgentIds: [gateway.id, member.id] });
+    const server = createServer(express()); servers.push(server);
+    const detach = attachBrowserP4Bridge(server, database); const port = await listen(server);
+    const socket = new WebSocket(`ws://127.0.0.1:${port}${P4_TUNNEL_PATH}`, { headers: { Origin: `http://127.0.0.1:${port}` } });
+    await new Promise<void>((resolve, reject) => { socket.once("open", resolve); socket.once("error", reject); });
+    socket.send(JSON.stringify({ type: "open", connectionId: crypto.randomUUID(), agentId: member.id }));
+    expect(JSON.parse(String((await nextMessage(socket)).data))).toMatchObject({ type: "error", detail: "Connect through the agent group's gateway" });
+    socket.send(JSON.stringify({ type: "open", connectionId: crypto.randomUUID(), agentId: gateway.id }));
+    expect(JSON.parse(String((await nextMessage(socket)).data))).toMatchObject({ type: "opened", agentId: gateway.id });
+    expect(database.nodes()).toEqual([]);
+    socket.close(); detach();
+  });
   it("forwards opaque binary P4 bytes without decoding or reframing them", async () => {
     const p4 = createTcpServer((socket: Socket) => socket.on("data", bytes => socket.write(bytes)));
     tcpServers.push(p4); const p4Port = await listen(p4);

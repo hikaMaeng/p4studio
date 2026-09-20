@@ -20,10 +20,11 @@ describe("InferenceTelemetryCache", () => {
   });
 
   it("deduplicates identical snapshots and bounds retained run history", () => {
-    const run: InferenceRun = { id: "run", modelId: "model", modelName: "model", state: "running", submitted: 1, completed: 0, createdAt: "2026-09-11T00:00:00.000Z", error: null, monitoring: [], requests: [] };
-    const snapshot = (index: number): InferenceMonitoring => ({ modelId: "model", generatedAt: new Date(index).toISOString(), nodes: [{ stageIndex: 0, agentId: "agent", agentName: "agent", nodeId: "node", nodeGeneration: 4, reachability: "reachable", observationState: "available", observedAt: new Date(index).toISOString(), adapterState: null, gpus: [], latestBatch: null, latestSpan: null, error: null }] });
+    const run: InferenceRun = { id: "run", modelId: "model", modelName: "model", state: "running", submitted: 1, completed: 0, createdAt: "2026-09-11T00:00:00.000Z", error: null, nUbatch: 8, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
+    const snapshot = (index: number): InferenceMonitoring => ({ modelId: "model", generatedAt: new Date(index).toISOString(), agents: [], nodes: [{ stageIndex: 0, agentId: "agent", agentName: "agent", nodeId: "node", nodeGeneration: 4, reachability: "reachable", observationState: "available", observedAt: new Date(index).toISOString(), adapterState: null, gpus: [], delivery: null, latestBatch: null, latestSpan: null, error: null }] });
     expect(appendMonitoring(run, snapshot(0))).toBe(true);
     expect(appendMonitoring(run, { ...snapshot(0), generatedAt: new Date(1).toISOString() })).toBe(false);
+    expect(appendMonitoring(run, { ...snapshot(0), agents: [{ agentId: "agent", agentName: "agent", broker: { sampledAtUnixMs: 1, state: "ok", detail: null, duplicateWindow: 8, indexedEvents: 1, allocatedEvents: 2, allocatedEventBytes: 1024, allocatedPayloadCapacityBytes: 512, unmeasuredEvents: 0, peakAllocatedEventBytes: 1024, committedEvents: 2, evictedEvents: 0, freedEvents: 0, eventIndexCapacity: 8, orderCapacity: 8, sequenceEntries: 1, sequenceCapacity: 8 } }] })).toBe(true);
     for (let index = 1; index <= 250; index += 1) appendMonitoring(run, snapshot(index));
     expect(run.monitoring).toHaveLength(240);
     expect(run.monitoring.at(-1)?.generatedAt).toBe(new Date(250).toISOString());

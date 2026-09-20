@@ -26,6 +26,14 @@ export const schema = `
     PRIMARY KEY (agent_id, node_id)
   );
 
+  -- A browser-authored, timestamped P4 INSPECT result.  This is historical
+  -- evidence for the registered endpoint, not a declaration or current state.
+  CREATE TABLE IF NOT EXISTS agent_observations (
+    agent_id TEXT PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE,
+    observed_at TEXT NOT NULL,
+    snapshot_json TEXT NOT NULL CHECK (json_valid(snapshot_json))
+  );
+
   CREATE TABLE IF NOT EXISTS models (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,

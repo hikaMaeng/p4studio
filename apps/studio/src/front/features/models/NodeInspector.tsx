@@ -20,6 +20,6 @@ export function NodeInspector({ snapshot }: { snapshot: StudioSnapshot }) {
     <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.4fr)", gap: .75, m: 0 }}>
       {fields.map(([label, value]) => <Box component="div" key={label} sx={{ display: "contents" }}><Box component="dt" sx={{ color: "text.secondary" }}>{label}</Box><Box component="dd" sx={{ m: 0, overflowWrap: "anywhere" }}>{value}</Box></Box>)}
     </Box>
-    {node && <Box component="details"><Box component="summary" sx={{ cursor: "pointer", color: "text.secondary" }}>{t[RSC.MODELS_PROTOCOL_TITLE_TEXT]}</Box><Box component="pre" dir="ltr" sx={{ m: 0, mt: 1, maxHeight: 240, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12 }}>{JSON.stringify(node.state, null, 2)}</Box></Box>}
+    {node && <Box component="details"><Box component="summary" sx={{ cursor: "pointer", color: "text.secondary" }}>{t[RSC.MODELS_PROTOCOL_TITLE_TEXT]}</Box><Box component="pre" dir="ltr" sx={{ m: 0, mt: 1, maxHeight: 240, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12 }}>{JSON.stringify({ lifecycle: node.lifecycleState ?? null, result: node.lifecycleResult ?? null, adapter: node.state }, null, 2)}</Box></Box>}
   </Paper>;
 }

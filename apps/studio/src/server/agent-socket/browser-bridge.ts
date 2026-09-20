@@ -57,6 +57,8 @@ export function attachBrowserP4Bridge(server: Server, database: StudioDatabase):
       if (bridge) { control(websocket, { type: "error", connectionId: message.connectionId, detail: "One P4 connection is allowed per WebSocket" }); return; }
       const agent = database.agent(message.agentId);
       if (!agent) { control(websocket, { type: "error", connectionId: message.connectionId, detail: "Managed agent was not found" }); return; }
+      const group = database.agentGroups.list().find(value => value.memberAgentIds.includes(agent.id));
+      if (group && group.gatewayAgentId !== agent.id) { control(websocket, { type: "error", connectionId: message.connectionId, detail: "Connect through the agent group's gateway" }); return; }
       const socket = connect(agentDialAddress(agent.host, agent.port));
       bridge = { connectionId: message.connectionId, socket };
       socket.setNoDelay(true);

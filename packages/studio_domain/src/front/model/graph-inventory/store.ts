@@ -6,6 +6,7 @@ import { SliceModel } from "../SliceModel.js";
 export type RenameTarget = { kind: "agent"; agentId: string } | { kind: "node"; agentId: string; nodeId: string };
 export interface GraphInventoryGateway {
   inspect(agent: GraphAgent): Promise<P4AgentSnapshot>;
+  saveObservation(id: string, observation: { snapshot: P4AgentSnapshot; inspectedAt: string }): Promise<void>;
   labels(): Promise<NodeLabel[]>;
   renameAgent(id: string, name: string): Promise<GraphAgent>;
   renameNode(id: string, input: NodeLabelInput): Promise<NodeLabel>;
@@ -39,7 +40,9 @@ export class GraphInventoryStore {
     this.refreshState.mutate(values => values.set(agent.id, { busy: true, error: null }));
     try {
       const snapshot = await this.gateway.inspect(agent);
-      this.observations.mutate(values => values.set(agent.id, { snapshot, inspectedAt: new Date().toISOString() }));
+      const observation = { snapshot, inspectedAt: new Date().toISOString() };
+      this.observations.mutate(values => values.set(agent.id, observation));
+      await this.gateway.saveObservation(agent.id, observation);
       this.refreshState.mutate(values => values.set(agent.id, { busy: false, error: null }));
     } catch (error) {
       // Keep the last observation and the deployment draft on failed refresh.

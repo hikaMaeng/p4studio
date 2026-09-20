@@ -1,5 +1,32 @@
 import type { DeploymentInput, PlacementStage } from "./index.js";
 
+export type LlamaDispatchLimits = { maxRequests: number; maxOutputTokensPerRequest: number; maxOutputTokens: number };
+
+/**
+ * The adapter owns these admission limits.  Studio may only offer or dispatch
+ * a request shape that every stage declared in its LOAD resource_profile.
+ */
+export function llamaDispatchLimits(stages: PlacementStage[]): LlamaDispatchLimits | null {
+  const profiles = stages.map(stage => {
+    try {
+      const options: unknown = JSON.parse(stage.loadOptionsJson ?? "{}");
+      if (!options || typeof options !== "object" || Array.isArray(options)) return null;
+      const profile = (options as Record<string, unknown>).resource_profile;
+      if (!profile || typeof profile !== "object" || Array.isArray(profile)) return null;
+      const value = profile as Record<string, unknown>;
+      const read = (key: string) => Number.isSafeInteger(value[key]) && Number(value[key]) > 0 ? Number(value[key]) : null;
+      const maxRequests = read("max_requests"), maxOutputTokensPerRequest = read("max_output_tokens_per_request"), maxOutputTokens = read("max_output_tokens");
+      return maxRequests === null || maxOutputTokensPerRequest === null || maxOutputTokens === null ? null : { maxRequests, maxOutputTokensPerRequest, maxOutputTokens };
+    } catch { return null; }
+  });
+  if (!profiles.length || profiles.some(profile => profile === null)) return null;
+  return {
+    maxRequests: Math.min(...profiles.map(profile => profile!.maxRequests)),
+    maxOutputTokensPerRequest: Math.min(...profiles.map(profile => profile!.maxOutputTokensPerRequest)),
+    maxOutputTokens: Math.min(...profiles.map(profile => profile!.maxOutputTokens)),
+  };
+}
+
 // Same quoting rule as the native startup-plan tokenizer: backslashes are literal.
 export function planTokens(text: string): string[] {
   const tokens: string[] = []; let token = "", quoted = false;
@@ -55,8 +82,10 @@ export function editAsText(input: DeploymentInput, stage: PlacementStage): void 
 }
 
 export const LLAMA_TYPES = {
-  loadContentType: "application/vnd.p4.llamacpp.load-v3+json",
-  loadedContentType: "application/vnd.p4.llamacpp.loaded-v3+json",
+  // Keep in lockstep with the current public staged adapter contract.
+  // P4 rejects lifecycle envelopes whose adapter content type is stale.
+  loadContentType: "application/vnd.p4.llamacpp.load-v4+json",
+  loadedContentType: "application/vnd.p4.llamacpp.loaded-v4+json",
   unloadContentType: "application/vnd.p4.llamacpp.unload-v3+json",
   unloadedContentType: "application/vnd.p4.llamacpp.unloaded-v3+json",
   errorContentType: "application/vnd.p4.llamacpp.error-v2+json",

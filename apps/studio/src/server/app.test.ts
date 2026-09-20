@@ -32,7 +32,9 @@ const availableInspector: AgentInspector = async () => ({
         occupancy: { memory: { availableBytes: 16_000, usedBytes: 16_000 }, gpus: [] },
         probes: { memory: { source: "os", state: "available", detail: null }, gpus: { source: "nvidia-smi", state: "available", detail: null } },
       },
-      nodes: [{ nodeId: "live-node", generation: 2, adapterKind: "llamacpp", state: { lifecycle: "ready" } }],
+      nodes: [{ nodeId: "live-node", generation: 2, adapterKind: "llamacpp", state: { lifecycle: "ready" }, delivery: null }],
+      broker: null,
+      transport: null,
     },
   },
 });
@@ -65,6 +67,35 @@ describe("Studio integration API", () => {
     const { app } = setup(availableInspector);
     const created = await request(app).post("/api/agents").send({ name: "local-agent", host: "192.168.0.6", port: 51055 }).expect(201);
     expect(created.body).toMatchObject({ reachability: "unknown", inspection: { state: "pending", snapshot: null } });
+  });
+
+  it("restores a browser-authored dated observation after the Studio process restarts", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "p4studio-observation-"));
+    temporaryDirectories.push(directory);
+    const path = join(directory, "studio.db");
+    const first = new StudioDatabase(path);
+    const app = createApp(first);
+    const agent = first.createAgent({ name: "observed", host: "127.0.0.1", port: 59988 });
+    const observedAt = "2026-09-20T12:34:56.000Z";
+    const snapshot = (await availableInspector("127.0.0.1", 59988, 100)).observation.snapshot!;
+    await request(app).put(`/api/agents/${agent.id}/observation`).send({ observedAt, snapshot }).expect(200);
+    first.close();
+
+    const restarted = new StudioDatabase(path);
+    databases.push(restarted);
+    const restored = await request(createApp(restarted)).get("/api/snapshot").expect(200);
+    expect(restored.body.agents).toEqual([expect.objectContaining({
+      id: agent.id,
+      inspection: { state: "available", inspectedAt: observedAt, error: null, snapshot },
+    })]);
+  });
+
+  it("rejects malformed or unregistered persisted observations", async () => {
+    const { app, database } = setup();
+    const agent = database.createAgent({ name: "observed", host: "127.0.0.1", port: 59987 });
+    await request(app).put(`/api/agents/${agent.id}/observation`).send({ observedAt: "not-a-date", snapshot: {} }).expect(400);
+    await request(app).put(`/api/agents/${agent.id}/observation`).send({ observedAt: "2026-09-20T12:34:56.000Z", snapshot: [] }).expect(400);
+    await request(app).put("/api/agents/missing/observation").send({ observedAt: "2026-09-20T12:34:56.000Z", snapshot: {} }).expect(404);
   });
 
   it("edits the SQLite-owned agent registration without opening a P4 connection", async () => {
@@ -121,13 +152,11 @@ describe("Studio integration API", () => {
     expect(response.body.stages.map((stage: { stageIndex: number }) => stage.stageIndex)).toEqual([0, 1]);
   });
 
-  it("stores a Studio node declaration without an adapter or P4 node claim", async () => {
+  it("retires empty-node registration without changing historical declarations", async () => {
     const { app, database } = setup();
     const agent = database.createAgent({ name: "a", host: "127.0.0.1", port: 59990 });
-    const response = await request(app).post(`/api/agents/${agent.id}/nodes`).send({ name: "planned-node" }).expect(201);
-    expect(response.body).toMatchObject({ agentId: agent.id, name: "planned-node", lifecycle: "declared" });
-    expect(response.body).not.toHaveProperty("adapter");
-    expect(database.nodes()).toEqual([expect.objectContaining({ id: response.body.id, name: "planned-node" })]);
+    await request(app).post(`/api/agents/${agent.id}/nodes`).send({ name: "planned-node" }).expect(410);
+    expect(database.nodes()).toEqual([]);
   });
 
   it("rejects duplicate agent endpoints", async () => {

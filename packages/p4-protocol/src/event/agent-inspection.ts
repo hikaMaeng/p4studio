@@ -1,3 +1,4 @@
+import { parseLifecycleResult, type LifecycleResultMetadata } from "./lifecycle.js";
 const EVENT_MAGIC = new Uint8Array([0x50, 0x34, 0x45, 0x33]);
 const EVENT_CLASS_CONTROL = 0;
 const ENDPOINT_AGENT = 0;
@@ -83,6 +84,54 @@ export interface P4RegisteredNodeSnapshot {
   generation: number;
   adapterKind: string;
   state: unknown;
+  lifecycleState?: "loading" | "loaded" | "unloading" | "failed";
+  lifecycleResult?: LifecycleResultMetadata | null;
+  delivery: P4NodeDeliverySnapshot | null;
+}
+
+export interface P4NodeDeliverySnapshot {
+  stopped: boolean;
+  inputRetained: number;
+  completionRetained: number | null;
+}
+
+export interface P4ReceiptStorageSnapshot {
+  events: number;
+  eventBytes: number | null;
+  payloadCapacityBytes: number | null;
+  unmeasuredEvents: number;
+}
+
+export interface P4BrokerReceiptSnapshot {
+  duplicateWindow: number;
+  indexed: P4ReceiptStorageSnapshot;
+  retired: P4ReceiptStorageSnapshot;
+  allocated: P4ReceiptStorageSnapshot;
+  peakAllocatedEventBytes: number | null;
+  committedEvents: number | null;
+  evictedEvents: number | null;
+  freedEvents: number | null;
+  eventIndexCapacity: number;
+  orderCapacity: number;
+  sequenceEntries: number;
+  sequenceCapacity: number;
+}
+
+export interface P4BrokerSnapshot {
+  sampledAtUnixMs: number;
+  state: "ok" | "failed";
+  receipts: P4BrokerReceiptSnapshot | null;
+  detail: string | null;
+}
+
+/** Cumulative agent-wide P4 DATA hop sends observed by the runtime. */
+export interface P4HopTransferSnapshot {
+  hopDataWrites: number;
+  hopDataBytes: number;
+}
+
+export interface P4TransportSnapshot {
+  transfer: P4HopTransferSnapshot | null;
 }
 
 export interface P4AgentSnapshot {
@@ -91,6 +140,8 @@ export interface P4AgentSnapshot {
   generatedAtUnixMs: number;
   machine: P4MachineSnapshot;
   nodes: P4RegisteredNodeSnapshot[];
+  broker: P4BrokerSnapshot | null;
+  transport: P4TransportSnapshot | null;
 }
 
 export interface AgentInspectionRequest {
@@ -402,6 +453,71 @@ function nullableFiniteNumber(value: unknown, label: string): number | null {
   return value === null ? null : finiteNumber(value, label);
 }
 
+function boolean(value: unknown, label: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`${label} must be a boolean`);
+  return value;
+}
+
+function receiptStorage(value: unknown, label: string): P4ReceiptStorageSnapshot {
+  const storage = object(value, label);
+  return {
+    events: integer(storage.events, `${label}.events`),
+    eventBytes: nullableInteger(storage.event_bytes, `${label}.event_bytes`),
+    payloadCapacityBytes: nullableInteger(storage.payload_capacity_bytes, `${label}.payload_capacity_bytes`),
+    unmeasuredEvents: integer(storage.unmeasured_events, `${label}.unmeasured_events`),
+  };
+}
+
+function brokerSnapshot(value: unknown): P4BrokerSnapshot | null {
+  if (value === undefined) return null;
+  const broker = object(value, "snapshot.broker");
+  const state = string(broker.state, "snapshot.broker.state");
+  if (state !== "ok" && state !== "failed") throw new Error("snapshot.broker.state is unsupported");
+  const detail = broker.detail === undefined || broker.detail === null ? null : string(broker.detail, "snapshot.broker.detail");
+  if (broker.receipts === null) return { sampledAtUnixMs: integer(broker.sampled_at_unix_ms, "snapshot.broker.sampled_at_unix_ms"), state, receipts: null, detail };
+  const receipts = object(broker.receipts, "snapshot.broker.receipts");
+  return {
+    sampledAtUnixMs: integer(broker.sampled_at_unix_ms, "snapshot.broker.sampled_at_unix_ms"),
+    state,
+    detail,
+    receipts: {
+      duplicateWindow: integer(receipts.duplicate_window, "snapshot.broker.receipts.duplicate_window"),
+      indexed: receiptStorage(receipts.indexed, "snapshot.broker.receipts.indexed"),
+      retired: receiptStorage(receipts.retired, "snapshot.broker.receipts.retired"),
+      allocated: receiptStorage(receipts.allocated, "snapshot.broker.receipts.allocated"),
+      peakAllocatedEventBytes: nullableInteger(receipts.peak_allocated_event_bytes, "snapshot.broker.receipts.peak_allocated_event_bytes"),
+      committedEvents: nullableInteger(receipts.committed_events, "snapshot.broker.receipts.committed_events"),
+      evictedEvents: nullableInteger(receipts.evicted_events, "snapshot.broker.receipts.evicted_events"),
+      freedEvents: nullableInteger(receipts.freed_events, "snapshot.broker.receipts.freed_events"),
+      eventIndexCapacity: integer(receipts.event_index_capacity, "snapshot.broker.receipts.event_index_capacity"),
+      orderCapacity: integer(receipts.order_capacity, "snapshot.broker.receipts.order_capacity"),
+      sequenceEntries: integer(receipts.sequence_entries, "snapshot.broker.receipts.sequence_entries"),
+      sequenceCapacity: integer(receipts.sequence_capacity, "snapshot.broker.receipts.sequence_capacity"),
+    },
+  };
+}
+
+function transportSnapshot(value: unknown): P4TransportSnapshot | null {
+  if (value === undefined) return null;
+  const transport = object(value, "snapshot.transport");
+  if (transport.transfer === undefined || transport.transfer === null) {
+    return { transfer: null };
+  }
+  const transfer = object(transport.transfer, "snapshot.transport.transfer");
+  return {
+    transfer: {
+      hopDataWrites: integer(
+        transfer.hop_data_writes,
+        "snapshot.transport.transfer.hop_data_writes",
+      ),
+      hopDataBytes: integer(
+        transfer.hop_data_bytes,
+        "snapshot.transport.transfer.hop_data_bytes",
+      ),
+    },
+  };
+}
+
 function probeStatus(value: unknown, label: string): P4ProbeStatus {
   const probe = object(value, label);
   const state = string(probe.state, `${label}.state`);
@@ -566,6 +682,7 @@ export function decodeAgentInspectionResponse(
     },
     nodes: payload.nodes.map((node, index) => {
       const value = object(node, `snapshot.nodes[${index}]`);
+      const deliveryValue = value.delivery === undefined ? null : object(value.delivery, `snapshot.nodes[${index}].delivery`);
       return {
         nodeId: string(value.node_id, `snapshot.nodes[${index}].node_id`),
         generation: integer(
@@ -577,7 +694,21 @@ export function decodeAgentInspectionResponse(
           `snapshot.nodes[${index}].adapter_kind`,
         ),
         state: value.state,
+        ...(value.lifecycle_state === undefined ? {} : { lifecycleState: lifecycleState(value.lifecycle_state) }),
+        ...(value.lifecycle_result === undefined ? {} : { lifecycleResult: value.lifecycle_result === null ? null : parseLifecycleResult(value.lifecycle_result) }),
+        delivery: deliveryValue === null ? null : {
+          stopped: boolean(deliveryValue.stopped, `snapshot.nodes[${index}].delivery.stopped`),
+          inputRetained: integer(deliveryValue.input_retained, `snapshot.nodes[${index}].delivery.input_retained`),
+          completionRetained: nullableInteger(deliveryValue.completion_retained, `snapshot.nodes[${index}].delivery.completion_retained`),
+        },
       };
     }),
+    broker: brokerSnapshot(payload.broker),
+    transport: transportSnapshot(payload.transport),
   };
+}
+
+function lifecycleState(value: unknown): NonNullable<P4RegisteredNodeSnapshot["lifecycleState"]> {
+  if (value !== "loading" && value !== "loaded" && value !== "unloading" && value !== "failed") throw new Error("Invalid node lifecycle state");
+  return value;
 }

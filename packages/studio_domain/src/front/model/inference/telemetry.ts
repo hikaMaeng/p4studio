@@ -70,7 +70,7 @@ export class InferenceTelemetryCache {
 
 export function appendMonitoring(run: InferenceRun, snapshot: InferenceMonitoring) {
   const previous = run.monitoring.at(-1);
-  const changed = !previous || JSON.stringify(previous.nodes) !== JSON.stringify(snapshot.nodes);
+  const changed = !previous || JSON.stringify([previous.nodes, previous.agents]) !== JSON.stringify([snapshot.nodes, snapshot.agents]);
   if (!changed) return false;
   run.monitoring.push(structuredClone(snapshot));
   if (run.monitoring.length > HISTORY_LIMIT) run.monitoring.splice(0, run.monitoring.length - HISTORY_LIMIT);

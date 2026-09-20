@@ -1,8 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { AgentRecord, ModelRecord, NodeRecord, PipelineRecord, PipelineStageRecord } from "../../common/domain.js";
+import type { AgentProtocolObservation, AgentRecord, ModelRecord, NodeRecord, PipelineRecord, PipelineStageRecord } from "../../common/domain.js";
+import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import { schema } from "./schema.js";
+import { AgentGroupRepository } from "./agent-groups.js";
 import type { NodeLabel, NodeLabelInput } from "@p4studio/studio_domain/common";
 
 type Row = Record<string, unknown>;
@@ -14,6 +16,7 @@ const nullableNumber = (row: Row, key: string) => row[key] == null ? null : Numb
 /** Owns the SQLite registry and maps snake-case storage rows to the API contract. */
 export class StudioDatabase {
   readonly connection: DatabaseSync;
+  readonly agentGroups: AgentGroupRepository;
 
   constructor(path: string) {
     if (path !== ":memory:") {
@@ -24,6 +27,7 @@ export class StudioDatabase {
       this.connection = new DatabaseSync(path);
     }
     this.connection.exec(schema);
+    this.agentGroups = new AgentGroupRepository(this.connection);
     this.dropLegacyAgentAdapter();
     this.dropLegacyNodeAdapter();
   }
@@ -80,6 +84,23 @@ export class StudioDatabase {
   renameAgent(id: string, name: string) {
     this.connection.prepare("UPDATE agents SET name=?, updated_at=? WHERE id=?").run(name, new Date().toISOString(), id);
     return this.agent(id);
+  }
+
+  agentObservation(agentId: string): AgentProtocolObservation | null {
+    const row = this.connection.prepare("SELECT observed_at,snapshot_json FROM agent_observations WHERE agent_id=?").get(agentId) as Row | undefined;
+    if (!row) return null;
+    try {
+      const snapshot = JSON.parse(text(row, "snapshot_json")) as unknown;
+      if (snapshot === null || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+      return { state: "available", inspectedAt: text(row, "observed_at"), error: null, snapshot: snapshot as P4AgentSnapshot };
+    } catch { return null; }
+  }
+
+  recordAgentObservation(agentId: string, observedAt: string, snapshot: P4AgentSnapshot): AgentProtocolObservation {
+    const serialized = JSON.stringify(snapshot);
+    this.connection.prepare("INSERT INTO agent_observations (agent_id,observed_at,snapshot_json) VALUES (?,?,?) ON CONFLICT(agent_id) DO UPDATE SET observed_at=excluded.observed_at,snapshot_json=excluded.snapshot_json WHERE excluded.observed_at >= agent_observations.observed_at")
+      .run(agentId, observedAt, serialized);
+    return this.agentObservation(agentId)!;
   }
 
   nodeLabels(): NodeLabel[] {

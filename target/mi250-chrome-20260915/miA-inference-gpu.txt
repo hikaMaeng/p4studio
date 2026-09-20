@@ -1,0 +1,43 @@
+P4_EVENT_RETAINED_LIMITS queue=65536 retained=65536 bytes_per_store=268435456 connections=256
+P4_EVENT_CONNECTION_OPENED connection=1 peer=127.0.0.1:38202
+P4_EVENT_CONNECTION_OPENED connection=2 peer=127.0.0.1:57862
+
+
+============================ ROCm System Management Interface ============================
+=================================== % time GPU is busy ===================================
+GPU[0]		: GPU use (%): 0
+GPU[0]		: GFX Activity: 3973136959
+GPU[1]		: GPU use (%): 0
+GPU[1]		: GFX Activity: 2507999437
+GPU[2]		: GPU use (%): 0
+GPU[2]		: GFX Activity: 1282936379
+GPU[3]		: GPU use (%): 0
+GPU[3]		: GFX Activity: 2937091047
+GPU[4]		: GPU use (%): 0
+GPU[4]		: GFX Activity: 1063705188
+GPU[5]		: GPU use (%): 0
+GPU[5]		: GFX Activity: 1730371707
+GPU[6]		: GPU use (%): 0
+GPU[6]		: GFX Activity: 2472098518
+GPU[7]		: GPU use (%): 0
+GPU[7]		: GFX Activity: 1920658230
+==========================================================================================
+================================== Memory Usage (Bytes) ==================================
+GPU[0]		: VRAM Total Memory (B): 68702699520
+GPU[0]		: VRAM Total Used Memory (B): 1128443904
+GPU[1]		: VRAM Total Memory (B): 68702699520
+GPU[1]		: VRAM Total Used Memory (B): 1059213312
+GPU[2]		: VRAM Total Memory (B): 68702699520
+GPU[2]		: VRAM Total Used Memory (B): 28034908160
+GPU[3]		: VRAM Total Memory (B): 68702699520
+GPU[3]		: VRAM Total Used Memory (B): 35908800512
+GPU[4]		: VRAM Total Memory (B): 68702699520
+GPU[4]		: VRAM Total Used Memory (B): 1059991552
+GPU[5]		: VRAM Total Memory (B): 68702699520
+GPU[5]		: VRAM Total Used Memory (B): 872906752
+GPU[6]		: VRAM Total Memory (B): 68702699520
+GPU[6]		: VRAM Total Used Memory (B): 1059225600
+GPU[7]		: VRAM Total Memory (B): 68702699520
+GPU[7]		: VRAM Total Used Memory (B): 1059102720
+==========================================================================================
+================================== End of ROCm SMI Log ===================================

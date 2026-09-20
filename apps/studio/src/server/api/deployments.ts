@@ -2,7 +2,9 @@ import { Router } from "express";
 import {
   deploymentInputSchema,
   deploymentReceiptSchema,
+  deploymentReconciliationSchema,
   deploymentRoutes,
+  canStartDeployment,
   type DeploymentErrorResponse,
   type DeploymentListResponse,
 } from "@p4studio/studio_domain/common";
@@ -22,10 +24,19 @@ export function createDeploymentRouter(database: StudioDatabase) {
     try { return res.status(201).json(repository.create(input.data)); }
     catch (error) { return res.status(409).json(rejected(String(error))); }
   });
+  router.delete(deploymentRoutes.remove.path, (req, res) => {
+    const record = repository.get(String(req.params.id));
+    if (!record) return res.status(404).json(rejected("Model not found"));
+    // Deleting a declaration does not UNLOAD remote P4 resources. Require an
+    // explicit discard marker before dropping a record that still needs recovery.
+    if (!canStartDeployment(record) && req.query.discard !== "true") return res.status(409).json(rejected("Unload or reconcile this deployment before deletion; discarding its declaration requires explicit confirmation"));
+    if (!repository.remove(record.id)) return res.status(404).json(rejected("Model not found"));
+    return res.status(204).end();
+  });
   router.put(deploymentRoutes.update.path, (req, res) => {
     const record = repository.get(String(req.params.id));
     if (!record) return res.status(404).json(rejected("Model not found"));
-    if (!["draft", "unloaded", "failed", "unknown"].includes(record.status)) return res.status(409).json(rejected("A browser-owned P4 operation is still recorded as active"));
+    if (!canStartDeployment(record)) return res.status(409).json(rejected("Recover or inspect the previous load before editing its placement"));
     const input = deploymentInputSchema.safeParse(req.body);
     if (!input.success) return res.status(400).json(rejected(input.error.message));
     Object.assign(record, input.data, { status: "draft", reports: [], resolvedAddresses: {}, error: "", operationId: "", updatedAt: new Date().toISOString() });
@@ -36,7 +47,22 @@ export function createDeploymentRouter(database: StudioDatabase) {
     if (!record) return res.status(404).json(rejected("Model not found"));
     const receipt = deploymentReceiptSchema.safeParse(req.body);
     if (!receipt.success) return res.status(400).json(rejected(receipt.error.message));
-    Object.assign(record, receipt.data, { updatedAt: new Date().toISOString() });
+    const { stageGenerations, ...data } = receipt.data;
+    if (stageGenerations) {
+      if (Object.keys(stageGenerations).length !== record.stages.length || record.stages.some(stage => !stageGenerations[stage.id] || stageGenerations[stage.id]! < stage.nodeGeneration)) return res.status(409).json(rejected("Invalid stage generation receipt"));
+      record.stages.forEach(stage => { stage.nodeGeneration = stageGenerations[stage.id]!; });
+    }
+    Object.assign(record, data, { updatedAt: new Date().toISOString() });
+    repository.save(record); return res.json(record);
+  });
+  router.put(deploymentRoutes.reconcile.path, (req, res) => {
+    const record = repository.get(String(req.params.id));
+    if (!record) return res.status(404).json(rejected("Model not found"));
+    const input = deploymentReconciliationSchema.safeParse(req.body);
+    if (!input.success) return res.status(400).json(rejected(input.error.message));
+    const { expectedUpdatedAt, ...receipt } = input.data;
+    if (record.updatedAt !== expectedUpdatedAt) return res.status(409).json(rejected("Model changed during inspection; refresh its state again"));
+    Object.assign(record, receipt, { updatedAt: new Date().toISOString() });
     repository.save(record); return res.json(record);
   });
   for (const route of [deploymentRoutes.load, deploymentRoutes.unload]) {

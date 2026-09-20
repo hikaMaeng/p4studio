@@ -1,9 +1,11 @@
 import { Router } from "express";
+import { createAgentGroupRouter } from "./agent-groups.js";
 import { P4_PROTOCOL } from "@p4studio/p4-protocol";
 import type { StudioDatabase } from "../database/client.js";
 import type { AgentObservationStore } from "../agent-socket/inspection/store.js";
-import { agentInput, modelInput, nodeInput, pipelineInput } from "./validation.js";
-import { graphInventoryRoutes, graphNameSchema, nodeLabelInputSchema, type GraphAgent, type GraphAgentList, type NodeLabelList } from "@p4studio/studio_domain/common";
+import { agentInput, modelInput, pipelineInput } from "./validation.js";
+import { agentObservationInputSchema, graphInventoryRoutes, graphNameSchema, nodeLabelInputSchema, type GraphAgent, type GraphAgentList, type NodeLabelList } from "@p4studio/studio_domain/common";
+import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 
 const apiError = (code: string, message: string, issues?: unknown) => ({ error: { code, message, ...(issues ? { issues } : {}) } });
 
@@ -12,9 +14,11 @@ export const createApiRouter = (
   observations: AgentObservationStore,
 ) => {
   const router = Router();
+  router.use(createAgentGroupRouter(database));
 
   router.get(graphInventoryRoutes.agents.path.slice(4), (_request, response) => response.json({
     agents: database.agents().map(({ id, name, host, port }) => ({ id, name, host, port })),
+    groups: database.agentGroups.list(),
   } satisfies GraphAgentList));
   router.get(graphInventoryRoutes.labels.path.slice(4), (_request, response) => response.json({ labels: database.nodeLabels() } satisfies NodeLabelList));
   router.patch<{ id: string }>(graphInventoryRoutes.renameAgent.path.slice(4), (request, response) => {
@@ -32,9 +36,20 @@ export const createApiRouter = (
   });
 
   router.get("/snapshot", (_request, response) => response.json({
-    agents: database.agents().map((agent) => observations.view(agent)), nodes: database.nodes(), models: database.models(), pipelines: database.pipelines(),
+    agents: database.agents().map((agent) => observations.view(agent, database.agentObservation(agent.id))), nodes: database.nodes(), models: database.models(), pipelines: database.pipelines(),
     protocol: P4_PROTOCOL, generatedAt: new Date().toISOString(),
   }));
+
+  // The browser decoded the P4 response. Persist it only as a dated observation;
+  // this route neither sends P4 commands nor treats it as current agent state.
+  router.put<{ id: string }>(graphInventoryRoutes.recordObservation.path.slice(4), (request, response) => {
+    if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "Agent not found"));
+    const parsed = agentObservationInputSchema.safeParse(request.body);
+    if (!parsed.success) return response.status(400).json(apiError("invalid_observation", "Invalid agent observation"));
+    const observation = database.recordAgentObservation(request.params.id, parsed.data.observedAt, parsed.data.snapshot as unknown as P4AgentSnapshot);
+    observations.set(request.params.id, observation);
+    return response.json(observation);
+  });
 
   router.post("/agents", (request, response) => {
     const parsed = agentInput.safeParse(request.body);
@@ -65,19 +80,16 @@ export const createApiRouter = (
   router.post("/agents/:id/nodes", (request, response) => {
     const agent = database.agent(request.params.id);
     if (!agent) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
-    const parsed = nodeInput.safeParse(request.body);
-    if (!parsed.success) return response.status(400).json(apiError("invalid_node", "노드 입력을 확인하세요.", parsed.error.issues));
-    try { return response.status(201).json(database.createNode({ agentId: agent.id, ...parsed.data })); }
-    catch { return response.status(409).json(apiError("node_conflict", "같은 이름의 노드가 이미 있습니다.")); }
+    return response.status(410).json(apiError("node_declaration_retired", "Nodes are load instances. Configure a model placement and issue LOAD."));
   });
 
-  router.delete("/agents/:id", (request, response) => {
+  router.delete<{ id: string }>(graphInventoryRoutes.removeAgent.path.slice(4), (request, response) => {
     try {
       if (!database.deleteAgent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "에이전트를 찾을 수 없습니다."));
       observations.delete(request.params.id);
       return response.status(204).end();
     } catch {
-      return response.status(409).json(apiError("agent_in_use", "노드가 연결된 에이전트는 삭제할 수 없습니다."));
+      return response.status(409).json(apiError("agent_in_use", "Studio 노드 선언 또는 게이트웨이 그룹에서 사용 중인 에이전트는 삭제할 수 없습니다."));
     }
   });
 

@@ -1,4 +1,5 @@
 export enum RSC {
+  DASHBOARD_METRIC_NODES_UNKNOWN_TEXT = "dashboard.metric.nodes.unknown.text",
   DASHBOARD_METRIC_AGENTS_TEXT = "dashboard.metric.agents.text",
   DASHBOARD_METRIC_AGENTS_DETAIL_MESSAGE = "dashboard.metric.agents.detail.message",
   DASHBOARD_METRIC_NODES_TEXT = "dashboard.metric.nodes.text",

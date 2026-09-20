@@ -1,0 +1,43 @@
+P4_EVENT_RETAINED_LIMITS queue=65536 retained=65536 bytes_per_store=268435456 connections=256
+P4_EVENT_CONNECTION_OPENED connection=1 peer=127.0.0.1:36106
+P4_EVENT_CONNECTION_OPENED connection=2 peer=127.0.0.1:45124
+
+
+============================ ROCm System Management Interface ============================
+=================================== % time GPU is busy ===================================
+GPU[0]		: GPU use (%): 0
+GPU[0]		: GFX Activity: 438745967
+GPU[1]		: GPU use (%): 0
+GPU[1]		: GFX Activity: 460557907
+GPU[2]		: GPU use (%): 0
+GPU[2]		: GFX Activity: 694067664
+GPU[3]		: GPU use (%): 0
+GPU[3]		: GFX Activity: 624663063
+GPU[4]		: GPU use (%): 0
+GPU[4]		: GFX Activity: 484469097
+GPU[5]		: GPU use (%): 0
+GPU[5]		: GFX Activity: 688542111
+GPU[6]		: GPU use (%): 0
+GPU[6]		: GFX Activity: 698981703
+GPU[7]		: GPU use (%): 0
+GPU[7]		: GFX Activity: 506804735
+==========================================================================================
+================================== Memory Usage (Bytes) ==================================
+GPU[0]		: VRAM Total Memory (B): 68702699520
+GPU[0]		: VRAM Total Used Memory (B): 13164544
+GPU[1]		: VRAM Total Memory (B): 68702699520
+GPU[1]		: VRAM Total Used Memory (B): 13164544
+GPU[2]		: VRAM Total Memory (B): 68702699520
+GPU[2]		: VRAM Total Used Memory (B): 35016970240
+GPU[3]		: VRAM Total Memory (B): 68702699520
+GPU[3]		: VRAM Total Used Memory (B): 26972491776
+GPU[4]		: VRAM Total Memory (B): 68702699520
+GPU[4]		: VRAM Total Used Memory (B): 13164544
+GPU[5]		: VRAM Total Memory (B): 68702699520
+GPU[5]		: VRAM Total Used Memory (B): 13164544
+GPU[6]		: VRAM Total Memory (B): 68702699520
+GPU[6]		: VRAM Total Used Memory (B): 13164544
+GPU[7]		: VRAM Total Memory (B): 68702699520
+GPU[7]		: VRAM Total Used Memory (B): 13164544
+==========================================================================================
+================================== End of ROCm SMI Log ===================================

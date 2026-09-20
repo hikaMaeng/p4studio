@@ -6,6 +6,10 @@ export type StudioRoute =
   | { kind: "overview" }
   | { kind: "agents" }
   | { kind: "agent-new" }
+  | { kind: "agent-groups" }
+  | { kind: "agent-group-new" }
+  | { kind: "agent-group-detail"; groupId: string }
+  | { kind: "agent-group-edit"; groupId: string }
   | { kind: "agent-detail"; agentId: string; tab: AgentTab }
   | { kind: "agent-node-new"; agentId: string }
   | { kind: "models" }
@@ -15,7 +19,9 @@ export type StudioRoute =
   | { kind: "pipelines" }
   | { kind: "pipeline-new" }
   | { kind: "pipeline-detail"; pipelineId: string }
-  | { kind: "inference"; tab: InferenceTab };
+  | { kind: "inference"; tab: InferenceTab }
+  | { kind: "inference-history-detail"; runId: string }
+  | { kind: "inference-request-detail"; requestId: string };
 
 const decode = (value: string) => {
   try { return decodeURIComponent(value); } catch { return value; }
@@ -24,6 +30,13 @@ const decode = (value: string) => {
 export const parseRoute = (pathname: string): StudioRoute => {
   const segments = pathname.split("/").filter(Boolean).map(decode);
   if (segments.length === 0) return { kind: "overview" };
+  if (segments[0] === "agent-groups") {
+    if (segments.length === 1) return { kind: "agent-groups" };
+    if (segments.length === 2 && segments[1] === "new") return { kind: "agent-group-new" };
+    if (segments.length === 2) return { kind: "agent-group-detail", groupId: segments[1]! };
+    if (segments.length === 3 && segments[2] === "edit") return { kind: "agent-group-edit", groupId: segments[1]! };
+    return { kind: "agent-group-detail", groupId: "" };
+  }
   if (segments.length === 1 && segments[0] === "agents") return { kind: "agents" };
   if (segments[0] === "agents" && segments[1] === "new" && segments.length === 2) return { kind: "agent-new" };
   if (segments[0] === "agents" && segments.length >= 2) {
@@ -40,6 +53,8 @@ export const parseRoute = (pathname: string): StudioRoute => {
   if (segments[0] === "pipelines" && segments[1] === "new" && segments.length === 2) return { kind: "pipeline-new" };
   if (segments[0] === "pipelines" && segments.length === 2) return { kind: "pipeline-detail", pipelineId: segments[1]! };
   if (segments.length === 1 && segments[0] === "inference") return { kind: "inference", tab: "query" };
+  if (segments[0] === "inference" && segments[1] === "requests" && segments.length === 3) return { kind: "inference-request-detail", requestId: segments[2]! };
+  if (segments[0] === "inference" && segments[1] === "history" && segments.length === 3) return { kind: "inference-history-detail", runId: segments[2]! };
   if (segments[0] === "inference" && (["query", "monitoring", "history"] as const).includes(segments[1] as InferenceTab) && segments.length === 2) return { kind: "inference", tab: segments[1] as InferenceTab };
   return { kind: "overview" };
 };
@@ -49,6 +64,10 @@ export const routePath = (route: StudioRoute) => {
     case "overview": return "/";
     case "agents": return "/agents";
     case "agent-new": return "/agents/new";
+    case "agent-groups": return "/agent-groups";
+    case "agent-group-new": return "/agent-groups/new";
+    case "agent-group-detail": return `/agent-groups/${encodeURIComponent(route.groupId)}`;
+    case "agent-group-edit": return `/agent-groups/${encodeURIComponent(route.groupId)}/edit`;
     case "agent-detail": return `/agents/${encodeURIComponent(route.agentId)}/${route.tab}`;
     case "agent-node-new": return `/agents/${encodeURIComponent(route.agentId)}/nodes/new`;
     case "models": return "/models";
@@ -59,6 +78,8 @@ export const routePath = (route: StudioRoute) => {
     case "pipeline-new": return "/pipelines/new";
     case "pipeline-detail": return `/pipelines/${encodeURIComponent(route.pipelineId)}`;
     case "inference": return `/inference/${route.tab}`;
+    case "inference-history-detail": return `/inference/history/${encodeURIComponent(route.runId)}`;
+    case "inference-request-detail": return `/inference/requests/${encodeURIComponent(route.requestId)}`;
   }
 };
 

@@ -46,7 +46,7 @@ export class InferenceController {
   }
   create(model: DeploymentRecord, input: InferenceRunInput) {
     if (model.status !== "ready" || model.adapter !== "llamacpp" || !model.loadGeneration || model.stages.length < 2) throw new Error("The selected llama.cpp distributed model is not ready for inference");
-    const run: InferenceRun = { id: randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, monitoring: [], requests: [] };
+    const run: InferenceRun = { id: randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     this.runs.set(run.id, run); this.timings.set(run.id, new Map()); this.expected.set(run.id, input.concurrency * input.repetitions); this.publish(run);
     void this.execute(run, model, input);
     return run;
@@ -92,7 +92,7 @@ export class InferenceController {
         if (repetition > 0 && input.intervalMs) await new Promise(resolve => setTimeout(resolve, input.intervalMs));
         for (let lane = 0; lane < input.concurrency; lane += 1) {
           const id = `${run.id}-${repetition + 1}-${lane + 1}`;
-          const request: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, submittedAt: now(), completedAt: null, error: null };
+          const request: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: now(), completedAt: null, error: null, telemetry: { batchObservations: 0, physicalBatches: 0, issueCount: 0, mixedPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] } };
           run.state = "running"; run.requests.push(request); run.submitted += 1; this.timings.get(run.id)!.set(id, { submittedAtMs: Date.now(), prefillRows: 0 });
           await this.write(socket, event({ kind: "node", address: stages[0]!.agent, nodeId: stages[0]!.node, generation: stages[0]!.generation }, PREFILL,
             { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: input.prompt, options: "", max_tokens: input.maxTokens }, id));

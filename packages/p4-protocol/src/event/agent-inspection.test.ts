@@ -81,7 +81,19 @@ describe("P4 event-v3 agent inspection", () => {
             gpus: { source: "nvidia-smi", state: "available", detail: null },
           },
         },
-        nodes: [{ node_id: "node-a", generation: 4, adapter_kind: "llamacpp", state: { lifecycle: "ready" } }],
+        nodes: [{ node_id: "node-a", generation: 4, adapter_kind: "llamacpp", lifecycle_state: "loaded", lifecycle_result: null, state: { lifecycle: "ready" }, delivery: { stopped: false, input_retained: 2, completion_retained: 1 } }],
+        broker: {
+          sampled_at_unix_ms: 1_789_000_000_001, state: "ok",
+          receipts: {
+            duplicate_window: 8,
+            indexed: { events: 2, event_bytes: 1024, payload_capacity_bytes: 768, unmeasured_events: 0 },
+            retired: { events: 0, event_bytes: 0, payload_capacity_bytes: 0, unmeasured_events: 0 },
+            allocated: { events: 3, event_bytes: 2048, payload_capacity_bytes: 1536, unmeasured_events: 0 },
+            peak_allocated_event_bytes: 4096, committed_events: 7, evicted_events: 1, freed_events: 4,
+            event_index_capacity: 64, order_capacity: 64, sequence_entries: 3, sequence_capacity: 32,
+          },
+        },
+        transport: { transfer: { hop_data_writes: 17, hop_data_bytes: 262_144 } },
       }),
       "inspect-2",
     );
@@ -106,8 +118,38 @@ describe("P4 event-v3 agent inspection", () => {
           gpus: { source: "nvidia-smi", state: "available", detail: null },
         },
       },
-      nodes: [{ nodeId: "node-a", generation: 4, adapterKind: "llamacpp", state: { lifecycle: "ready" } }],
+      nodes: [{ nodeId: "node-a", generation: 4, adapterKind: "llamacpp", lifecycleState: "loaded", lifecycleResult: null, state: { lifecycle: "ready" }, delivery: { stopped: false, inputRetained: 2, completionRetained: 1 } }],
+      broker: {
+        sampledAtUnixMs: 1_789_000_000_001, state: "ok", detail: null,
+        receipts: {
+          duplicateWindow: 8,
+          indexed: { events: 2, eventBytes: 1024, payloadCapacityBytes: 768, unmeasuredEvents: 0 },
+          retired: { events: 0, eventBytes: 0, payloadCapacityBytes: 0, unmeasuredEvents: 0 },
+          allocated: { events: 3, eventBytes: 2048, payloadCapacityBytes: 1536, unmeasuredEvents: 0 },
+          peakAllocatedEventBytes: 4096, committedEvents: 7, evictedEvents: 1, freedEvents: 4,
+          eventIndexCapacity: 64, orderCapacity: 64, sequenceEntries: 3, sequenceCapacity: 32,
+        },
+      },
+      transport: { transfer: { hopDataWrites: 17, hopDataBytes: 262_144 } },
     });
+  });
+
+  it("keeps unavailable transport transfer evidence distinct from zero", () => {
+    const decoded = decodeAgentInspectionResponse(
+      responseEvent("inspect-legacy", P4_AGENT_SNAPSHOT_CONTENT_TYPE, {
+        schema: 1,
+        protocol_version: 3,
+        generated_at_unix_ms: 1,
+        machine: {
+          capability: { os: "windows", arch: "x86_64", cpu: { physical_cores: 1, logical_cores: 1 }, memory: { total_bytes: null }, gpus: [], adapters: [] },
+          occupancy: { memory: { available_bytes: null, used_bytes: null }, gpus: [] },
+          probes: { memory: { source: "os", state: "unavailable", detail: null }, gpus: { source: "none", state: "unavailable", detail: null } },
+        },
+        nodes: [],
+      }),
+      "inspect-legacy",
+    );
+    expect(decoded.transport).toBeNull();
   });
 
   it("surfaces a standard P4 rejection detail", () => {

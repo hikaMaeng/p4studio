@@ -7,7 +7,7 @@ const finite = z.number().finite().nonnegative();
 export const inferenceRunInputSchema = z.object({
   modelId: identifier,
   prompt: z.string().trim().min(1).max(131072).refine(value => !value.includes("\0")),
-  concurrency: z.union([z.literal(1), z.literal(5), z.literal(10), z.literal(20), z.literal(30), z.literal(40)]),
+  concurrency: z.number().int().min(1).max(65536),
   repetitions: z.number().int().min(1).max(1000),
   intervalMs: z.number().int().min(0).max(86400000),
   maxTokens: z.number().int().min(1).max(32768),
@@ -24,11 +24,40 @@ export const inferenceRequestSchema = z.object({
   generationTps: finite.nullable(),
   ttftMs: nonNegative.nullable(),
   finalTps: finite.nullable(),
+  waveIndex: z.number().int().min(1).nullable().default(null),
   submittedAt: z.string(),
   completedAt: z.string().nullable(),
   error: z.string().nullable(),
+  telemetry: z.object({
+    batchObservations: nonNegative,
+    physicalBatches: nonNegative,
+    issueCount: nonNegative,
+    mixedPhysicalBatches: nonNegative,
+    prefillRows: nonNegative,
+    decodeRows: nonNegative,
+    verifyRows: nonNegative,
+    replayRows: nonNegative,
+    batchFillRatioSum: finite,
+    batchFillSamples: nonNegative,
+    maxBatchFillRatio: finite,
+    maxReadyRows: nonNegative,
+    stages: z.array(z.object({
+      stageIndex: nonNegative,
+      agentName: z.string(),
+      nodeId: identifier,
+      spans: nonNegative,
+      executions: nonNegative,
+      rows: nonNegative,
+      ingressQueueMs: nonNegative,
+      sharedStageMs: nonNegative,
+      forwardMs: nonNegative,
+      firstIngressUnixMs: nonNegative.nullable(),
+      lastForwardUnixMs: nonNegative.nullable(),
+    })),
+  }).default({ batchObservations: 0, physicalBatches: 0, issueCount: 0, mixedPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] }),
 });
 export type InferenceRequest = z.infer<typeof inferenceRequestSchema>;
+export type InferenceRequestTelemetry = InferenceRequest["telemetry"];
 
 export const inferenceGpuSchema = z.object({
   index: nonNegative, name: z.string(), vramUsedBytes: nonNegative, vramFreeBytes: nonNegative,
@@ -56,12 +85,109 @@ export const inferenceNodeSchema = z.object({
   stageIndex: nonNegative, agentId: identifier, agentName: z.string(), nodeId: identifier, nodeGeneration: nonNegative,
   reachability: z.enum(["unknown", "reachable", "unreachable"]), observationState: z.enum(["pending", "available", "error"]),
   observedAt: z.string().nullable(), adapterState: z.unknown().nullable(), gpus: z.array(inferenceGpuSchema),
+  delivery: z.object({ stopped: z.boolean(), inputRetained: nonNegative, completionRetained: nonNegative.nullable() }).nullable().default(null),
   latestBatch: inferenceBatchSchema.nullable(), latestSpan: inferenceStageSpanSchema.nullable().default(null), error: z.string().nullable().default(null),
 });
 export type InferenceNode = z.infer<typeof inferenceNodeSchema>;
 
-export const inferenceMonitoringSchema = z.object({ modelId: identifier, generatedAt: z.string(), nodes: z.array(inferenceNodeSchema) });
+export const inferenceBrokerSchema = z.object({
+  sampledAtUnixMs: nonNegative,
+  state: z.enum(["ok", "failed"]),
+  detail: z.string().nullable(),
+  duplicateWindow: nonNegative.nullable(),
+  indexedEvents: nonNegative.nullable(),
+  allocatedEvents: nonNegative.nullable(),
+  allocatedEventBytes: nonNegative.nullable(),
+  allocatedPayloadCapacityBytes: nonNegative.nullable(),
+  unmeasuredEvents: nonNegative.nullable(),
+  peakAllocatedEventBytes: nonNegative.nullable(),
+  committedEvents: nonNegative.nullable(),
+  evictedEvents: nonNegative.nullable(),
+  freedEvents: nonNegative.nullable(),
+  eventIndexCapacity: nonNegative.nullable(),
+  orderCapacity: nonNegative.nullable(),
+  sequenceEntries: nonNegative.nullable(),
+  sequenceCapacity: nonNegative.nullable(),
+});
+export type InferenceBroker = z.infer<typeof inferenceBrokerSchema>;
+
+export const inferenceAgentMonitoringSchema = z.object({ agentId: identifier, agentName: z.string(), broker: inferenceBrokerSchema.nullable() });
+export type InferenceAgentMonitoring = z.infer<typeof inferenceAgentMonitoringSchema>;
+
+export const inferenceMonitoringSchema = z.object({ modelId: identifier, generatedAt: z.string(), nodes: z.array(inferenceNodeSchema), agents: z.array(inferenceAgentMonitoringSchema).default([]) });
 export type InferenceMonitoring = z.infer<typeof inferenceMonitoringSchema>;
+
+export const inferenceStageMonitoringSummarySchema = z.object({
+  stageIndex: nonNegative,
+  agentName: z.string(),
+  nodeId: identifier,
+  batchObservations: nonNegative,
+  stageSpans: nonNegative,
+  physicalBatches: nonNegative,
+  mixedPhysicalBatches: nonNegative,
+  rows: nonNegative,
+  prefillRows: nonNegative,
+  decodeRows: nonNegative,
+  verifyRows: nonNegative,
+  replayRows: nonNegative,
+  executionCount: nonNegative,
+  batchStageMs: nonNegative,
+  idleMs: nonNegative,
+  idleGated: nonNegative,
+  spanStageMs: nonNegative,
+  spanTotalMs: nonNegative,
+  maxReadyRows: nonNegative,
+  maxReadySequences: nonNegative,
+  lastObservedAt: z.string().nullable(),
+});
+export type InferenceStageMonitoringSummary = z.infer<typeof inferenceStageMonitoringSummarySchema>;
+
+export const inferenceMonitoringSummarySchema = z.object({
+  batchObservations: nonNegative,
+  stageSpans: nonNegative,
+  stages: z.array(inferenceStageMonitoringSummarySchema),
+});
+export type InferenceMonitoringSummary = z.infer<typeof inferenceMonitoringSummarySchema>;
+
+const inferenceOutputSeriesPointSchema = z.object({
+  atUnixMs: nonNegative,
+  tokens: nonNegative,
+  completed: nonNegative,
+  queued: nonNegative,
+  streaming: nonNegative,
+});
+const inferenceBatchSeriesPointSchema = z.object({
+  atUnixMs: nonNegative,
+  stageIndex: nonNegative,
+  observations: nonNegative,
+  physicalBatches: nonNegative,
+  capacityRows: nonNegative,
+  rows: nonNegative,
+  readyRowsMax: nonNegative,
+  prefillRows: nonNegative,
+  decodeRows: nonNegative,
+  verifyRows: nonNegative,
+  replayRows: nonNegative,
+  stageMs: nonNegative,
+  idleMs: nonNegative,
+});
+const inferenceSpanSeriesPointSchema = z.object({
+  atUnixMs: nonNegative,
+  stageIndex: nonNegative,
+  spans: nonNegative,
+  executions: nonNegative,
+  rows: nonNegative,
+  ingressQueueMs: nonNegative,
+  stageMs: nonNegative,
+  forwardMs: nonNegative,
+});
+export const inferenceTelemetrySeriesSchema = z.object({
+  version: z.literal(1),
+  output: z.array(inferenceOutputSeriesPointSchema),
+  batches: z.array(inferenceBatchSeriesPointSchema),
+  spans: z.array(inferenceSpanSeriesPointSchema),
+}).default({ version: 1, output: [], batches: [], spans: [] });
+export type InferenceTelemetrySeries = z.infer<typeof inferenceTelemetrySeriesSchema>;
 
 export const inferenceRunSchema = z.object({
   id: identifier,
@@ -72,7 +198,10 @@ export const inferenceRunSchema = z.object({
   completed: nonNegative,
   createdAt: z.string(),
   error: z.string().nullable(),
+  nUbatch: nonNegative.default(0),
   monitoring: z.array(inferenceMonitoringSchema).default([]),
+  monitoringSummary: inferenceMonitoringSummarySchema.nullable().default(null),
+  telemetrySeries: inferenceTelemetrySeriesSchema,
   requests: z.array(inferenceRequestSchema),
 });
 export type InferenceRun = z.infer<typeof inferenceRunSchema>;
