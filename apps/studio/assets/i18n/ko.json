@@ -326,6 +326,7 @@
   "inference.repetitions.label": "반복 횟수",
   "inference.interval.label": "반복 간격 (초)",
   "inference.maxTokens.label": "최대 생성 토큰",
+  "inference.maxTokens.helper": "프롬프트와 출력은 컨텍스트를 공유합니다. 이 배치에서 생성 토큰은 최대 {limit}개입니다.",
   "inference.prompt.label": "프롬프트",
   "inference.send.button": "질의 전송",
   "inference.sending.status": "전송 중…",

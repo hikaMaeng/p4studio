@@ -326,6 +326,7 @@
   "inference.repetitions.label": "Repetitions",
   "inference.interval.label": "Repeat interval (seconds)",
   "inference.maxTokens.label": "Maximum generated tokens",
+  "inference.maxTokens.helper": "Prompt and output share the context. This deployment permits at most {limit} generated tokens.",
   "inference.prompt.label": "Prompt",
   "inference.send.button": "Send query",
   "inference.sending.status": "Sending…",

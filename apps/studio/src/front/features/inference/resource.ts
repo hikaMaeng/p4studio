@@ -10,6 +10,7 @@ export enum RSC {
   INFERENCE_REPETITIONS_LABEL = "inference.repetitions.label",
   INFERENCE_INTERVAL_LABEL = "inference.interval.label",
   INFERENCE_MAX_TOKENS_LABEL = "inference.maxTokens.label",
+  INFERENCE_MAX_TOKENS_HELPER = "inference.maxTokens.helper",
   INFERENCE_PROMPT_LABEL = "inference.prompt.label",
   INFERENCE_SEND_BUTTON = "inference.send.button",
   INFERENCE_SENDING_STATUS = "inference.sending.status",

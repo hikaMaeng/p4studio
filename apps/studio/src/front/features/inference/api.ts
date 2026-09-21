@@ -40,13 +40,21 @@ let persistTimer: number | undefined;
 type Stage = { stageIndex: number; agentId: string; agentName: string; address: string; nodeId: string; generation: number };
 type Inspection = { snapshot: P4AgentSnapshot | null; observedAt: string; error: string | null };
 
-// P4 v2 requires a positive wire budget.  The zero shown by Studio means that
-// the user did not impose one, so use the loaded adapter's declared maximum.
+const DEFAULT_MAX_TOKENS = 512;
+
 function wireMaxTokens(model: DeploymentRecord, maxTokens: number): number {
-  if (maxTokens !== 0) return maxTokens;
   const limits = llamaDispatchLimits(model.stages);
   if (!limits) throw new Error("The selected deployment has no valid llama.cpp resource_profile admission limits");
-  return limits.maxOutputTokensPerRequest;
+  if (maxTokens < 1) return DEFAULT_MAX_TOKENS;
+  if (maxTokens > limits.maxOutputTokensPerRequest) throw new Error(`Requested ${maxTokens} generated tokens exceed the deployment limit of ${limits.maxOutputTokensPerRequest}`);
+  return maxTokens;
+}
+
+// Qwen GGUFs use ChatML. The deployment owns the artifact path, so Studio can
+// apply the known adapter contract without making a user paste control tokens.
+function wirePrompt(model: DeploymentRecord, prompt: string): string {
+  if (!model.stages.some(stage => /qwen/i.test(stage.artifact))) return prompt;
+  return `<|im_start|>user\n${prompt.trim()}\n<|im_end|>\n<|im_start|>assistant\n`;
 }
 
 const persist = () => { try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify({ timingVersion: 3, runs: [...runs.values()] })); } catch { /* storage is optional */ } };
@@ -163,9 +171,7 @@ const gateway: InferenceGateway = {
     const limits = llamaDispatchLimits(model.stages);
     if (!limits) throw new Error("The selected deployment has no valid llama.cpp resource_profile admission limits");
     if (input.concurrency > limits.maxRequests) throw new Error(`Requested ${input.concurrency} concurrent requests exceed the deployment limit of ${limits.maxRequests}`);
-    // The model adapter, not this view, adjudicates a requested generation
-    // budget against its current context and admission profile.  In
-    // particular, zero is the OUTER sentinel for no user-imposed cap.
+    if (input.maxTokens > limits.maxOutputTokensPerRequest) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the deployment limit of ${limits.maxOutputTokensPerRequest}`);
     const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     runs.set(run.id, run); publish(run); void execute(run, model, input); return run;
   },
@@ -205,7 +211,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     run.state = "running"; publish(run); const expected = input.concurrency * input.repetitions;
     const stop = connection.onEvent((event, receivedAtMs) => {
       if (!connection!.owns(event.target) || event.adapterKind !== "llamacpp") return;
-      if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload)); return; }
+      if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload), "failed"); return; }
       try {
         const stage = stageFor(event, stages);
         const telemetryKind = classifyP4Telemetry(event.contentType);
@@ -241,7 +247,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       if (repetition && input.intervalMs) await new Promise(resolve => window.setTimeout(resolve, input.intervalMs));
       for (let lane = 0; lane < input.concurrency; lane += 1) {
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
-        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: input.prompt, options: "", max_tokens: wireMaxTokens(model, input.maxTokens) }, 1);
+        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: "", max_tokens: wireMaxTokens(model, input.maxTokens) }, 1);
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };
         run.requests.push(item); run.submitted += 1; timings.set(id, { sentAtMs: receipt.sentAtMs, firstOutputAtMs: null, prefillRows: 0 });
       }
@@ -267,9 +273,9 @@ function waitForWave(run: InferenceRun, waveIndex: number): Promise<void> {
   });
 }
 
-function fail(run: InferenceRun, detail: string) {
+function fail(run: InferenceRun, detail: string, disposition: "failed" | "unknown" = "unknown") {
   if (!["preparing", "running"].includes(run.state)) return;
-  run.error = detail; run.state = run.requests.some(item => item.state === "streaming") ? "unknown" : "failed";
-  run.requests.forEach(item => { if (["queued", "streaming"].includes(item.state)) { item.state = "unknown"; item.error = detail; } }); publish(run);
+  run.error = detail; run.state = disposition === "failed" ? "failed" : run.requests.some(item => item.state === "streaming") ? "unknown" : "failed";
+  run.requests.forEach(item => { if (["queued", "streaming"].includes(item.state)) { item.state = run.state === "failed" ? "failed" : "unknown"; item.error = detail; } }); publish(run);
 }
 export const startInference = () => inference.start(gateway);

@@ -32,7 +32,7 @@ export function InferenceView({ tab, historyRunId, requestId, onTab, onOpenHisto
 }
 function QueryPanel({ modelId, setModelId, ready, requestId, onOpenRequest, onBackRequest }: { modelId: string; setModelId: (value: string) => void; ready: DeploymentRecord[]; requestId?: string; onOpenRequest: (requestId: string) => void; onBackRequest: () => void }) {
   const { t } = useTranslation(); const runs = useModel(inference.runs).value; const activity = useModel(inference.activity).value;
-  const [prompt, setPrompt] = useState(""); const [concurrency, setConcurrency] = useState(1); const [repetitions, setRepetitions] = useState(1); const [intervalSeconds, setIntervalSeconds] = useState(0); const [maxTokens, setMaxTokens] = useState(0);
+  const [prompt, setPrompt] = useState(""); const [concurrency, setConcurrency] = useState(1); const [repetitions, setRepetitions] = useState(1); const [intervalSeconds, setIntervalSeconds] = useState(0); const [maxTokens, setMaxTokens] = useState(512);
   const selected = ready.find(record => record.id === modelId); const limits = selected ? llamaDispatchLimits(selected.stages) : null;
   const maxConcurrency = limits?.maxRequests ?? 1;
   const maxRepetitions = maxInferenceRepetitions;
@@ -45,7 +45,7 @@ function QueryPanel({ modelId, setModelId, ready, requestId, onOpenRequest, onBa
     <TextField type="number" label={t[RSC.INFERENCE_CONCURRENCY_LABEL]} value={concurrency} slotProps={{ htmlInput: { min: 1, max: maxConcurrency } }} onChange={event => setConcurrency(Math.min(maxConcurrency, Math.max(1, Number(event.target.value))))} />
     <TextField type="number" label={t[RSC.INFERENCE_REPETITIONS_LABEL]} value={repetitions} slotProps={{ htmlInput: { min: 1, max: maxRepetitions } }} onChange={event => setRepetitions(Math.min(maxRepetitions, Math.max(1, Number(event.target.value))))} />
     <TextField type="number" label={t[RSC.INFERENCE_INTERVAL_LABEL]} value={intervalSeconds} slotProps={{ htmlInput: { min: 0 } }} onChange={event => setIntervalSeconds(Math.max(0, Number(event.target.value)))} />
-    <TextField type="number" label={t[RSC.INFERENCE_MAX_TOKENS_LABEL]} value={maxTokens} slotProps={{ htmlInput: { min: 0, max: 0xffff_ffff } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value)) setMaxTokens(Math.min(0xffff_ffff, Math.max(0, value))); }} />
+    <TextField type="number" label={t[RSC.INFERENCE_MAX_TOKENS_LABEL]} value={maxTokens} helperText={formatMessage(t[RSC.INFERENCE_MAX_TOKENS_HELPER], { limit: limits?.maxOutputTokensPerRequest ?? 0 })} slotProps={{ htmlInput: { min: 1, max: limits?.maxOutputTokensPerRequest ?? 1 } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value)) setMaxTokens(Math.min(limits?.maxOutputTokensPerRequest ?? 1, Math.max(1, value))); }} />
   </Box><TextField required fullWidth multiline minRows={4} sx={{ mt: 2 }} label={t[RSC.INFERENCE_PROMPT_LABEL]} value={prompt} onChange={event => setPrompt(event.target.value)} /><Box sx={{ display: "flex", justifyContent: "end", mt: 2 }}><Button variant="contained" disabled={activity.busy || !modelId || !prompt.trim()} onClick={submit}>{activity.busy ? t[RSC.INFERENCE_SENDING_STATUS] : t[RSC.INFERENCE_SEND_BUTTON]}</Button></Box></Paper>
   {activeRuns.map(run => <RunMonitoringSummary key={run.id} run={run} />)}
   {requestId ? <RequestDetailPage requestId={requestId} onBack={onBackRequest} /> : <RequestTable requests={requests} onOpen={onOpenRequest} />}
