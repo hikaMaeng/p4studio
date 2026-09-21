@@ -16,7 +16,7 @@
 
 인퍼런스 모니터링 집계는 active run의 session ID와 구성 stage identity를 통과한 batch/span만 더한다. batch `observation_id`와 span execution/time identity를 중복 제거하며, stage 간 처리 행의 합은 파이프라인 전체 고유 토큰 수로 해석하지 않는다. 원시 snapshot 보존 한도와 누적 summary를 분리한다.
 
-요청별 모니터링은 `owned_requests`와 stage execution owner가 확인된 event만 더한다. 요청에 귀속된 stage 시간은 함께 실행된 공유 batch 시간이며 요청 전용 compute 시간이 아니다. batch fill은 physical rows / configured UBATCH로 계산하지만 건강 점수나 최적화 목표로 쓰지 않는다. `ready_rows`는 issue 순간의 표본이며 지속 queue 길이가 아니다. bytes가 없는 stage span에서 네트워크 대역폭을 만들지 않는다.
+요청별 모니터링은 `owned_requests`와 stage execution owner가 확인된 event만 더한다. 요청에 귀속된 stage 시간은 함께 실행된 공유 batch 시간이며 요청 전용 compute 시간이 아니다. batch fill은 physical rows / observation의 `scheduling.max_issue_rows`(P4 `SchedulingSnapshot`, 실행 시점 issue-row 상한)로 계산한다. 이 값이 0(상한 없음)이거나 `scheduling`이 없는 producer의 관측은 배포에 저장된 configured UBATCH로 fallback하고 `configured`로 구분해 집계한다(`batchFillFallbackSamples`, `fallbackCapacityRows`); 둘 다 없으면 분모를 만들지 않고 fill sample도 기록하지 않는다. 분모는 physical batch가 아니라 observation 단위로 정해져 graph와 요청 fill이 같은 값을 쓰며, 분자는 계속 physical batch rows다. `max_issue_rows`는 issue 선택 상한이지 physical 용량 자체가 아니다: P4는 atomic 후보가 있으면 이 상한을 적용하지 않아 fill이 1을 넘을 수 있고, 실제 n_ubatch가 상한보다 작으면 fill이 낮게 나온다(둘 다 Studio가 보정하지 않는다). batch fill은 건강 점수나 최적화 목표로 쓰지 않는다. `ready_rows`는 issue 순간의 표본이며 지속 queue 길이가 아니다. bytes가 없는 stage span에서 네트워크 대역폭을 만들지 않는다.
 
 `/common` graph-inventory의 소비자는 Studio HTTP router/SQL/frontend gateway, `/front` GraphInventoryStore의 소비자는 모델 그래프·이름 편집·노드 inspector다. 관리 이름 변경은 P4 nodeId/generation·배치 연결을 바꾸지 않는다. 관측 갱신은 Studio 이름을 덮어쓰지 않으며 실패는 기존 관측을 삭제하지 않는다. [관리 메타데이터](../../../apps/studio/docs/usage.md#managed-metadata)의 저장·확장 경계를 유지한다.
 ## Agent group consumers

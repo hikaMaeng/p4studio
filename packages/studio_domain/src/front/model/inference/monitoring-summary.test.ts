@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { InferenceMonitoring, InferenceRun, P4BatchObservation, P4StageSpan } from "../../../common/protocol/inference/index.js";
+import { inferenceStageMonitoringSummarySchema, type InferenceMonitoring, type InferenceRun, type P4BatchObservation, type P4StageSpan } from "../../../common/protocol/inference/index.js";
 import { monitoringSummaryFor, recordBatchSummary, recordSpanSummary, requestMetrics, summarizeLegacyMonitoring, waveMetrics } from "./monitoring-summary.js";
 import { emptyRequestTelemetry } from "./observability.js";
 
@@ -69,7 +69,8 @@ describe("inference monitoring summary", () => {
       decodeRows: 5,
       executionCount: 2,
       batchStageMs: 8,
-      idleMs: 3,
+      idleMs: 0,
+      initialIdleMs: 3,
       spanStageMs: 8,
       spanTotalMs: 15,
       maxReadyRows: 9,
@@ -91,6 +92,42 @@ describe("inference monitoring summary", () => {
     const summary = summarizeLegacyMonitoring([snapshot, { ...snapshot, generatedAt: "2026-09-15T00:00:02.000Z" }]);
     expect(summary).toMatchObject({ batchObservations: 1, stageSpans: 1 });
     expect(summary.stages[0]).toMatchObject({ rows: 7, executionCount: 2 });
+  });
+
+  it("keeps the first idle_ms (possibly hours before the run) out of run-internal idle", () => {
+    const value = run();
+    recordBatchSummary(value, stage, { ...batch, observation_id: "run:1:1", idle_ms: 9_284_758 }, "2026-09-15T00:00:01.000Z");
+    recordBatchSummary(value, stage, { ...batch, observation_id: "run:2:2", idle_ms: 3 }, "2026-09-15T00:00:02.000Z");
+    expect(value.monitoringSummary?.stages[0]).toMatchObject({ batchObservations: 2, initialIdleMs: 9_284_758, idleMs: 3 });
+    // A different stage has its own first observation.
+    recordBatchSummary(value, { stageIndex: 2, agentName: "agent-c", nodeId: "node-c" }, { ...batch, observation_id: "run:3:3", idle_ms: 5 }, "2026-09-15T00:00:03.000Z");
+    expect(value.monitoringSummary?.stages[1]).toMatchObject({ initialIdleMs: 5, idleMs: 0 });
+  });
+
+  it("does not let a rejected duplicate observation consume the first-idle slot", () => {
+    const value = run();
+    recordBatchSummary(value, stage, { ...batch, idle_ms: 7 }, "2026-09-15T00:00:01.000Z");
+    expect(recordBatchSummary(value, stage, { ...batch, idle_ms: 99 }, "2026-09-15T00:00:02.000Z")).toBe(false);
+    expect(value.monitoringSummary?.stages[0]).toMatchObject({ initialIdleMs: 7, idleMs: 0 });
+  });
+
+  it("applies the same first-idle split to the legacy projection without double counting repeated snapshots", () => {
+    const node = (observationId: string, idleMs: number, generatedAt: string): InferenceMonitoring => ({
+      modelId: "model", generatedAt, agents: [],
+      nodes: [{
+        stageIndex: 1, agentId: "agent", agentName: "agent-b", nodeId: "node-b", nodeGeneration: 1,
+        reachability: "reachable", observationState: "available", observedAt: generatedAt, adapterState: null, gpus: [], delivery: null, error: null, latestSpan: null,
+        latestBatch: { observationId, logicalOrdinal: 1, logicalRows: 1, physicalBatchCount: 1, mixedPhysicalBatches: 0, rows: 1, prefillRows: 1, decodeRows: 0, verifyRows: 0, replayRows: 0, requestCount: 1, sequenceCount: 1, stageMs: 1, idleMs, idleGated: 0, readyRows: 1, readySequences: 1, scheduling: null, observedAt: generatedAt },
+      }],
+    });
+    const first = node("run:1:1", 9_284_758, "2026-09-15T00:00:01.000Z");
+    const summary = summarizeLegacyMonitoring([first, { ...first, generatedAt: "2026-09-15T00:00:01.500Z" }, node("run:2:2", 3, "2026-09-15T00:00:02.000Z")]);
+    expect(summary.stages[0]).toMatchObject({ batchObservations: 2, initialIdleMs: 9_284_758, idleMs: 3 });
+  });
+
+  it("parses stage summaries persisted before initialIdleMs with a zero default", () => {
+    const legacy = { stageIndex: 0, agentName: "a", nodeId: "n", batchObservations: 0, stageSpans: 0, physicalBatches: 0, mixedPhysicalBatches: 0, rows: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, executionCount: 0, batchStageMs: 0, idleMs: 4, idleGated: 0, spanStageMs: 0, spanTotalMs: 0, maxReadyRows: 0, maxReadySequences: 0, lastObservedAt: null };
+    expect(inferenceStageMonitoringSummarySchema.parse(legacy)).toMatchObject({ idleMs: 4, initialIdleMs: 0 });
   });
 
   it("summarizes request percentiles by each dispatch wave and falls back for old history", () => {

@@ -35,13 +35,17 @@ export const inferenceRequestSchema = z.object({
     batchObservations: nonNegative,
     physicalBatches: nonNegative,
     issueCount: nonNegative,
-    mixedPhysicalBatches: nonNegative,
+    // Physical batches containing this request whose request_count > 1 (coalesced across requests). Not the P4
+    // wire `mixed_physical_batches`, which counts prefill+decode phase mixing and lives only on the stage summary.
+    multiRequestPhysicalBatches: nonNegative.default(0),
     prefillRows: nonNegative,
     decodeRows: nonNegative,
     verifyRows: nonNegative,
     replayRows: nonNegative,
     batchFillRatioSum: finite,
     batchFillSamples: nonNegative,
+    // Samples in batchFillSamples whose denominator was the configured n_ubatch, not an execution-time cap.
+    batchFillFallbackSamples: nonNegative.default(0),
     maxBatchFillRatio: finite,
     maxReadyRows: nonNegative,
     stages: z.array(z.object({
@@ -57,7 +61,7 @@ export const inferenceRequestSchema = z.object({
       firstIngressUnixMs: nonNegative.nullable(),
       lastForwardUnixMs: nonNegative.nullable(),
     })),
-  }).default({ batchObservations: 0, physicalBatches: 0, issueCount: 0, mixedPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] }),
+  }).default({ batchObservations: 0, physicalBatches: 0, issueCount: 0, multiRequestPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, batchFillFallbackSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] }),
 });
 export type InferenceRequest = z.infer<typeof inferenceRequestSchema>;
 export type InferenceRequestTelemetry = InferenceRequest["telemetry"];
@@ -127,6 +131,8 @@ export const inferenceStageMonitoringSummarySchema = z.object({
   batchObservations: nonNegative,
   stageSpans: nonNegative,
   physicalBatches: nonNegative,
+  // P4 wire `mixed_physical_batches`: physical batches mixing prefill with decode/verify/replay phases (phase-mixed),
+  // not batches shared by several requests (see request telemetry `multiRequestPhysicalBatches`).
   mixedPhysicalBatches: nonNegative,
   rows: nonNegative,
   prefillRows: nonNegative,
@@ -135,7 +141,10 @@ export const inferenceStageMonitoringSummarySchema = z.object({
   replayRows: nonNegative,
   executionCount: nonNegative,
   batchStageMs: nonNegative,
+  // Sum of P4 idle_ms from the second observation on. The first observation idle_ms measures time since the
+  // stage previous completion, which can predate the run, so it is kept apart in initialIdleMs.
   idleMs: nonNegative,
+  initialIdleMs: nonNegative.default(0),
   idleGated: nonNegative,
   spanStageMs: nonNegative,
   spanTotalMs: nonNegative,
@@ -164,7 +173,9 @@ const inferenceBatchSeriesPointSchema = z.object({
   stageIndex: nonNegative,
   observations: nonNegative,
   physicalBatches: nonNegative,
+  // Denominator rows of this window; fallbackCapacityRows is the part taken from the configured n_ubatch.
   capacityRows: nonNegative,
+  fallbackCapacityRows: nonNegative.default(0),
   rows: nonNegative,
   readyRowsMax: nonNegative,
   prefillRows: nonNegative,

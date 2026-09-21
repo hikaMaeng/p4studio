@@ -4,7 +4,7 @@
 
 ## 결론
 
-P4의 `OUTPUT v5`, `batch-observation v4`, `stage-span v4`, agent `INSPECT`만으로도 새 실행에 대해 다음 화면은 만들 수 있다.
+P4의 `OUTPUT v5`, `batch-observation v5`, `stage-span v5`, agent `INSPECT`만으로도 새 실행에 대해 다음 화면은 만들 수 있다.
 
 - 요청별 TTFT·decode 시간·출력 속도·완료 사유와, 그 요청이 소유한 issue/row/physical execution/stage 경로
 - 실행 전체의 동시 요청 수, 출력 token rate, batch width·ready rows·phase mix, stage 겹침, GPU·VRAM·전력·온도 변화
@@ -19,7 +19,7 @@ P4의 `OUTPUT v5`, `batch-observation v4`, `stage-span v4`, agent `INSPECT`만�
 | 출처 | 단위 | 제공 값 | 안전한 해석 | 한계 |
 | --- | --- | --- | --- | --- |
 | [OUTPUT v5](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs) `OutcomePayload`, [completion.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs) `ApprovedOutputPayload` | 요청·출력 token | request/sequence, token, text, position, stop, submission/incarnation, terminal issued-work proof | 브라우저 실제 send부터 첫 OUTPUT까지 client TTFT, 첫~마지막 OUTPUT decode 구간, token 수와 종료 사유 | 서버 queue/prefill/decode 내부 경계 timestamp 없음. 브라우저 수신 시각에는 transport 지연 포함 |
-| [commands.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs) `BatchObservation` | logical issue와 physical batch | logical/physical rows, phase별 rows, request/sequence 수, mixed batch, stage/idle, ready rows/sequences, scheduling snapshot | batch 폭, phase 구성, issue 시점 ready set, 정책·제약 스냅샷 | `idle_ms`는 직전 stage call 반환 뒤 다음 계획까지의 공백. 원인 전체를 뜻하지 않음 |
+| [commands.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs) `BatchObservation` | logical issue와 physical batch | logical/physical rows, phase별 rows, request/sequence 수, phase-mixed batch 수(`mixed_physical_batches`: prefill과 decode/verify/replay가 한 physical batch에 함께 든 수이며 여러 request가 든 batch가 아님), stage/idle, ready rows/sequences, scheduling snapshot | batch 폭, phase 구성, issue 시점 ready set, 정책·제약 스냅샷 | `idle_ms`는 직전 stage call 반환 뒤 다음 계획까지의 공백. 원인 전체를 뜻하지 않음. Studio run의 첫 관측은 실행 시작 전 시간을 포함할 수 있어 `initialIdleMs`로 분리하고 이후 관측만 `idleMs`에 누적함 |
 | 같은 파일의 `BatchRequestObservation` | 요청이 소유한 physical batch 부분 | request/submission/sequence/incarnation, request issue index, 정확한 issued row와 phase | 요청별 issue 횟수·prefill/decode/verify/replay row·execution 귀속 | batch의 stage 시간은 함께 탄 요청이 공유한 wall time이며 요청 전용 compute 시간이 아님 |
 | 같은 파일의 `StageSpan` | stage·execution 묶음 | execution IDs와 소유 요청, ingress/start/end/forward wall clock, rows | stage 실행·전달 구간, pipeline swimlane, 열린 execution 동시성 | 다중 머신 시 clock 동기 품질만큼만 정확. bytes가 없어 네트워크 MB/s를 계산할 수 없음 |
 | [agent inspection](../../p4/entrypoints/agent/src/event_runtime/control/inspection/mod.rs), [transport snapshot](../../p4/entrypoints/agent/src/event_runtime/transport.rs) | pull 시점 agent/node/broker 및 agent 수명 | node generation·adapter 상태 문자열, retained input/completion, receipt 저장량·용량·eviction, 성공한 P4 DATA hop write/encoded byte 누적 | node 생존, 전달·receipt 압력, agent-wide 누적 전송 활동 | transport counter는 request/stage/edge·수신 byte·retry·측정창을 소유하지 않는다. adapter snapshot은 구조화된 queue/KV 상태가 아니라 `loaded`, `failed:*` 같은 상태 문자열 |
@@ -34,7 +34,7 @@ P4 로드맵도 `ready_rows`가 다음 계획 순간의 ready set이며 남은 p
 | 현재 동작 | 영향 |
 | --- | --- |
 | [telemetry.ts](../packages/studio_domain/src/common/protocol/inference/telemetry.ts)가 owner/execution 상세까지 strict decode | 새 실행 수신 시 요청 귀속 원자료는 존재함 |
-| [front telemetry cache](../packages/studio_domain/src/front/model/inference/telemetry.ts)는 stage별 최신 projection을 유지하고, [observability.ts](../packages/studio_domain/src/front/model/inference/observability.ts)는 수신 즉시 `owned_requests`와 `executions`를 요청별 합계와 1초 run series로 투영 | 새 실행은 요청별 batch·phase·stage 귀속과 run-wide 그래프를 저장함. 원시 이벤트 전체를 복제하지 않음 |
+| [front telemetry cache](../packages/studio_domain/src/front/model/inference/telemetry.ts)는 stage별 최신 projection을 유지하고, [observability.ts](../packages/studio_domain/src/front/model/inference/observability.ts)는 수신 즉시 `owned_requests`와 `executions`를 요청별 합계와 1초 run series로 투영 | 새 실행은 요청별 batch·phase·stage 귀속과 run-wide 그래프를 저장함. 원시 이벤트 전체를 복제하지 않음. "발행 작업과 준비 행" 그래프는 1초 bucket 합이 아니라 bucket의 `physicalBatches`로 나눈 physical batch당 평균 prefill/decode row이며(폭 10 발행은 bucket에 1건이든 2건이든 10) ready row는 bucket 최대 snapshot이다. physical batch가 없는 bucket은 phase 점을 만들지 않는다 |
 | [monitoring-summary.ts](../packages/studio_domain/src/front/model/inference/monitoring-summary.ts)가 stage totals를 별도 누적 | 회계용 stage 합계는 보조 상세로 계속 제공함 |
 | browser-owned inference가 실행 중 INSPECT 변경 snapshot을 최대 240개 보존하고, P4 protocol decoder가 node delivery와 broker receipt를 구조화함 | GPU/VRAM과 input/completion retained, broker allocated/evicted/known bytes 그래프를 만듦. 긴 실행은 앞 표본이 잘릴 수 있음 |
 | OUTPUT 수신마다 1초 output token·active request bucket을 저장 | 실행 전체 output rate는 가능. 개별 token timestamp 전부를 보존하지 않으므로 정확한 ITL 분포는 아직 불가능함 |
@@ -60,14 +60,14 @@ P4 로드맵도 `ready_rows`가 다음 계획 순간의 ready set이며 남은 p
 
 1. 활성·queued·streaming·completed 요청 수와 wave 제출 시각
 2. window별 output tokens/s와 completed requests/s
-3. physical batch rows / configured `n_ubatch`, `ready_rows`, physical batch 수
-4. prefill/decode/verify/replay row의 stacked area와 mixed batch 비율
+3. physical batch rows / 실행 시점 issue-row 상한(없으면 configured `n_ubatch` fallback, 아래 batch fill 정의), `ready_rows`, physical batch 수
+4. prefill/decode/verify/replay row의 stacked area와 phase-mixed batch 비율(다중 request batch 수는 별도 `multiRequestPhysicalBatches`)
 5. stage swimlane: ingress→start queue, start→end native stage, end→forward 전달
 6. stage별 열려 있는 execution 수와 pipeline overlap/depth
 7. GPU utilization, VRAM used, power, temperature 및 host RAM
 8. receipt allocated/retained bytes와 completion/input retained 수
 
-batch fill은 원인 분석용 관측값이다. P4 검증 기록에서도 fill 상승과 처리량 하락이 함께 나타났으므로 높은 fill을 건강 점수로 만들지 않는다. 처리량·TTFT·overlap과 같은 시각축에서만 비교한다.
+batch fill 분모는 observation의 `scheduling.max_issue_rows`(P4 `SchedulingSnapshot`, 실행 시점 issue-row 상한)이며, 0(상한 없음)이거나 `scheduling`이 없는 producer는 배포에 저장된 configured UBATCH로 fallback해 `configured`로 구분 집계하고 둘 다 없으면 fill을 기록하지 않는다. graph와 요청 fill은 observation별로 같은 분모를 쓰고 분자는 physical batch rows다. 이 상한은 atomic 후보가 있으면 P4가 적용하지 않으므로 fill이 1을 넘을 수 있고, 실제 n_ubatch가 더 작으면 낮게 나온다. batch fill은 원인 분석용 관측값이다. P4 검증 기록에서도 fill 상승과 처리량 하락이 함께 나타났으므로 높은 fill을 건강 점수로 만들지 않는다. 처리량·TTFT·overlap과 같은 시각축에서만 비교한다.
 
 `StageSpan`에서 계산할 수 있는 전송 관련 값은 `end→forward latency`와 `rows / (forward-end)`의 effective row rate다. bytes가 없으므로 이를 네트워크 대역폭 또는 MB/s로 표기하지 않는다.
 

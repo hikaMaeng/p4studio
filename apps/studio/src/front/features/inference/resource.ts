@@ -137,7 +137,7 @@ export enum RSC {
   INFERENCE_REQUEST_MONITORING_E2E_LABEL = "inference.requestMonitoring.e2e.label",
   INFERENCE_REQUEST_MONITORING_BATCH_FILL_LABEL = "inference.requestMonitoring.batchFill.label",
   INFERENCE_REQUEST_MONITORING_ISSUES_LABEL = "inference.requestMonitoring.issues.label",
-  INFERENCE_REQUEST_MONITORING_MIXED_LABEL = "inference.requestMonitoring.mixed.label",
+  INFERENCE_REQUEST_MONITORING_MULTI_REQUEST_LABEL = "inference.requestMonitoring.multiRequest.label",
   INFERENCE_REQUEST_MONITORING_PREFILL_ROWS_LABEL = "inference.requestMonitoring.prefillRows.label",
   INFERENCE_REQUEST_MONITORING_DECODE_ROWS_LABEL = "inference.requestMonitoring.decodeRows.label",
   INFERENCE_REQUEST_MONITORING_UNAVAILABLE_MESSAGE = "inference.requestMonitoring.unavailable.message",

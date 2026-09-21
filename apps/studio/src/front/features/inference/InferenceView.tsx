@@ -134,7 +134,7 @@ function StageSummary({ summary }: { summary: InferenceMonitoringSummary }) {
       <SummaryMetric label={t[RSC.INFERENCE_STAGE_SUMMARY_EVENTS_LABEL]} value={formatMessage(t[RSC.INFERENCE_SUMMARY_EVENTS_TEXT], { batches: stage.batchObservations, spans: stage.stageSpans })} />
       <SummaryMetric label={t[RSC.INFERENCE_STAGE_SUMMARY_PHASES_LABEL]} value={formatMessage(t[RSC.INFERENCE_STAGE_SUMMARY_PHASES_TEXT], { prefill: stage.prefillRows, decode: stage.decodeRows, verify: stage.verifyRows, replay: stage.replayRows })} />
       <SummaryMetric label={t[RSC.INFERENCE_STAGE_SUMMARY_BATCHES_LABEL]} value={formatMessage(t[RSC.INFERENCE_STAGE_SUMMARY_BATCHES_TEXT], { physical: stage.physicalBatches, mixed: stage.mixedPhysicalBatches, executions: stage.executionCount, rows: stage.rows, readyRows: stage.maxReadyRows, readySequences: stage.maxReadySequences })} />
-      <SummaryMetric label={t[RSC.INFERENCE_STAGE_SUMMARY_TIMING_LABEL]} value={formatMessage(t[RSC.INFERENCE_STAGE_SUMMARY_TIMING_TEXT], { batch: stage.batchStageMs, idle: stage.idleMs, gated: stage.idleGated, span: stage.spanStageMs, total: stage.spanTotalMs })} />
+      <SummaryMetric label={t[RSC.INFERENCE_STAGE_SUMMARY_TIMING_LABEL]} value={formatMessage(t[RSC.INFERENCE_STAGE_SUMMARY_TIMING_TEXT], { batch: stage.batchStageMs, idle: stage.idleMs, initialIdle: stage.initialIdleMs, gated: stage.idleGated, span: stage.spanStageMs, total: stage.spanTotalMs })} />
     </Box>
   </Paper>)}</Box>;
 }

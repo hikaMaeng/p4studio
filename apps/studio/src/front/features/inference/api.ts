@@ -1,7 +1,7 @@
 import { type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
 import {
   canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
-  parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
+  classifyP4Telemetry, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
 } from "@p4studio/studio_domain/common";
 import {
@@ -28,8 +28,6 @@ const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
 const PREFILL = "application/vnd.p4.llamacpp.prefill-v3+json";
 const OUTPUT = "application/vnd.p4.llamacpp.output-v5+json";
-const BATCH = "application/vnd.p4.llamacpp.batch-observation-v4+json";
-const STAGE_SPAN = "application/vnd.p4.llamacpp.stage-span-v4+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
 const runs = new Map<string, InferenceRun>();
 const listeners = new Map<string, Set<(run: InferenceRun) => void>>();
@@ -210,9 +208,11 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload)); return; }
       try {
         const stage = stageFor(event, stages);
-        if (event.contentType === BATCH || event.contentType === STAGE_SPAN) {
+        const telemetryKind = classifyP4Telemetry(event.contentType);
+        if (telemetryKind === "unsupported") throw new Error(`Unsupported P4 telemetry contract ${event.contentType}`);
+        if (telemetryKind) {
           if (!stage) throw new Error("P4 telemetry source does not match a configured model stage"); const observedAt = now();
-          if (event.contentType === BATCH) {
+          if (telemetryKind === "batch-observation") {
             const value = parseP4BatchObservation(JSON.parse(new TextDecoder().decode(event.payload)));
             if (value.load_generation !== model.loadGeneration || value.session_id !== run.id) throw new Error("P4 batch observation identity does not match the active run");
             telemetry.recordBatch(model.id, stage.address, stage.nodeId, stage.generation, value, observedAt);

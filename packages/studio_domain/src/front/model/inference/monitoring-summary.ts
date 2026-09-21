@@ -39,6 +39,7 @@ const stageSummary = (summary: InferenceMonitoringSummary, stage: StageIdentity)
     executionCount: 0,
     batchStageMs: 0,
     idleMs: 0,
+    initialIdleMs: 0,
     idleGated: 0,
     spanStageMs: 0,
     spanTotalMs: 0,
@@ -61,8 +62,12 @@ export function recordBatchSummary(run: InferenceRun, stage: StageIdentity, valu
   const total = (field: "rows" | "prefill_rows" | "decode_rows" | "verify_rows" | "replay_rows") =>
     value.physical_batches.reduce((sum, batch) => sum + batch[field], 0);
   summary.batchObservations += 1;
+  // P4 idle_ms is elapsed time since the stage's previous local completion. The first observation of a run can
+  // therefore include time from before the run started; keep it out of the run-internal idle sum.
+  const firstObservation = target.batchObservations === 0;
   target.batchObservations += 1;
   target.physicalBatches += value.physical_batches.length;
+  // Wire meaning: physical batches mixing prefill and decode/verify/replay phases (phase-mixed), not multi-request.
   target.mixedPhysicalBatches += value.mixed_physical_batches;
   target.rows += total("rows");
   target.prefillRows += total("prefill_rows");
@@ -70,7 +75,7 @@ export function recordBatchSummary(run: InferenceRun, stage: StageIdentity, valu
   target.verifyRows += total("verify_rows");
   target.replayRows += total("replay_rows");
   target.batchStageMs += value.stage_ms;
-  target.idleMs += value.idle_ms;
+  if (firstObservation) target.initialIdleMs = value.idle_ms; else target.idleMs += value.idle_ms;
   target.idleGated += value.idle_gated;
   target.maxReadyRows = Math.max(target.maxReadyRows, value.ready_rows);
   target.maxReadySequences = Math.max(target.maxReadySequences, value.ready_sequences);
@@ -95,6 +100,8 @@ export function recordSpanSummary(run: InferenceRun, stage: StageIdentity, value
 }
 
 const addProjectedBatch = (target: InferenceStageMonitoringSummary, batch: InferenceBatch) => {
+  // Same first-observation split as recordBatchSummary, applied to the first distinct projected batch of the stage.
+  const firstObservation = target.batchObservations === 0;
   target.batchObservations += 1;
   target.physicalBatches += batch.physicalBatchCount;
   target.mixedPhysicalBatches += batch.mixedPhysicalBatches;
@@ -104,7 +111,7 @@ const addProjectedBatch = (target: InferenceStageMonitoringSummary, batch: Infer
   target.verifyRows += batch.verifyRows;
   target.replayRows += batch.replayRows;
   target.batchStageMs += batch.stageMs;
-  target.idleMs += batch.idleMs;
+  if (firstObservation) target.initialIdleMs = batch.idleMs; else target.idleMs += batch.idleMs;
   target.idleGated += batch.idleGated;
   target.maxReadyRows = Math.max(target.maxReadyRows, batch.readyRows);
   target.maxReadySequences = Math.max(target.maxReadySequences, batch.readySequences);

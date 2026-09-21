@@ -1,6 +1,6 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from "@mui/material";
 import { useState } from "react";
-import { requestBatchFillRatio } from "@p4studio/studio_domain/front";
+import { projectPhaseWorkSeries, requestBatchFillRatio } from "@p4studio/studio_domain/front";
 import type { InferenceRequest, InferenceRun } from "@p4studio/studio_domain/common";
 import { useTranslation } from "../../i18n/useTranslation.js";
 import { RSC } from "./resource.js";
@@ -56,7 +56,7 @@ const deliverySeries = (run: InferenceRun) => run.monitoring.map(snapshot => {
 }).filter(point => Number.isFinite(point.x));
 
 export function RunObservability({ run }: { run: InferenceRun }) {
-  const { t } = useTranslation(); const theme = useTheme(); const batches = aggregateBatch(run); const resources = resourceSeries(run); const delivery = deliverySeries(run);
+  const { t } = useTranslation(); const theme = useTheme(); const batches = aggregateBatch(run); const phaseWork = projectPhaseWorkSeries(run.telemetrySeries.batches); const resources = resourceSeries(run); const delivery = deliverySeries(run);
   const output = [...run.telemetrySeries.output].sort((a, b) => a.atUnixMs - b.atUnixMs);
   const stageIndexes = [...new Set(run.telemetrySeries.spans.map(point => point.stageIndex))].sort((a, b) => a - b);
   const stageColors = [theme.palette.primary.main, theme.palette.secondary.main, theme.palette.success.main, theme.palette.warning.main, theme.palette.info.main, theme.palette.error.main];
@@ -67,7 +67,7 @@ export function RunObservability({ run }: { run: InferenceRun }) {
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "repeat(2, minmax(0, 1fr))" }, gap: 1.5 }}>
       <LineChart title={t[RSC.INFERENCE_CHART_THROUGHPUT_TITLE]} description={t[RSC.INFERENCE_CHART_THROUGHPUT_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_OUTPUT_TOKENS_LABEL], color: theme.palette.primary.main, points: output.map(point => ({ x: point.atUnixMs, y: point.tokens })) }, { label: t[RSC.INFERENCE_CHART_ACTIVE_REQUESTS_LABEL], color: theme.palette.warning.main, points: output.map(point => ({ x: point.atUnixMs, y: point.queued + point.streaming })) }]} />
       <LineChart percent title={t[RSC.INFERENCE_CHART_BATCH_FILL_TITLE]} description={t[RSC.INFERENCE_CHART_BATCH_FILL_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_BATCH_FILL_LABEL], color: theme.palette.secondary.main, points: batches.filter(([, value]) => value.capacity > 0).map(([x, value]) => ({ x, y: value.rows * 100 / value.capacity })) }]} />
-      <LineChart title={t[RSC.INFERENCE_CHART_PHASES_TITLE]} description={t[RSC.INFERENCE_CHART_PHASES_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_PREFILL_LABEL], color: theme.palette.info.main, points: batches.map(([x, value]) => ({ x, y: value.prefill })) }, { label: t[RSC.INFERENCE_CHART_DECODE_LABEL], color: theme.palette.success.main, points: batches.map(([x, value]) => ({ x, y: value.decode })) }, { label: t[RSC.INFERENCE_CHART_READY_LABEL], color: theme.palette.warning.main, points: batches.map(([x, value]) => ({ x, y: value.ready })) }]} />
+      <LineChart title={t[RSC.INFERENCE_CHART_PHASES_TITLE]} description={t[RSC.INFERENCE_CHART_PHASES_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_PREFILL_LABEL], color: theme.palette.info.main, points: phaseWork.filter(point => point.prefillRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.prefillRowsPerBatch! })) }, { label: t[RSC.INFERENCE_CHART_DECODE_LABEL], color: theme.palette.success.main, points: phaseWork.filter(point => point.decodeRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.decodeRowsPerBatch! })) }, { label: t[RSC.INFERENCE_CHART_READY_LABEL], color: theme.palette.warning.main, points: phaseWork.map(point => ({ x: point.atUnixMs, y: point.readyRowsMax })) }]} />
       <LineChart title={t[RSC.INFERENCE_CHART_STAGE_TITLE]} description={t[RSC.INFERENCE_CHART_STAGE_MESSAGE]} series={stageIndexes.map((stageIndex, index) => ({ label: `${t[RSC.INFERENCE_STAGE_LABEL]} ${stageIndex + 1}`, color: stageColors[index % stageColors.length]!, points: run.telemetrySeries.spans.filter(point => point.stageIndex === stageIndex).map(point => ({ x: point.atUnixMs, y: point.spans ? point.stageMs / point.spans : 0 })) }))} />
       <LineChart percent title={t[RSC.INFERENCE_CHART_RESOURCE_TITLE]} description={t[RSC.INFERENCE_CHART_RESOURCE_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_GPU_LABEL], color: theme.palette.primary.main, points: resources.filter(point => point.utilization !== null).map(point => ({ x: point.x, y: point.utilization! })) }, { label: t[RSC.INFERENCE_CHART_VRAM_LABEL], color: theme.palette.error.main, points: resources.filter(point => point.memory !== null).map(point => ({ x: point.x, y: point.memory! })) }]} />
       <LineChart title={t[RSC.INFERENCE_CHART_DELIVERY_TITLE]} description={t[RSC.INFERENCE_CHART_DELIVERY_MESSAGE]} series={[
@@ -85,7 +85,7 @@ export function RequestPerformanceMetrics({ request }: { request: InferenceReque
   const { t } = useTranslation(); const telemetry = request.telemetry; const fill = requestBatchFillRatio(request); const e2e = request.completedAt ? Date.parse(request.completedAt) - Date.parse(request.submittedAt) : null;
   return <Box data-testid="inference-request-metrics" sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5 }}>{[
     [t[RSC.INFERENCE_TTFT_LABEL], fmt(request.ttftMs, " ms")], [t[RSC.INFERENCE_REQUEST_MONITORING_E2E_LABEL], fmt(e2e, " ms")], [t[RSC.INFERENCE_FINAL_TPS_LABEL], fmt(request.finalTps)], [t[RSC.INFERENCE_GENERATION_TPS_LABEL], fmt(request.generationTps)],
-    [t[RSC.INFERENCE_REQUEST_MONITORING_BATCH_FILL_LABEL], fmt(fill === null ? null : fill * 100, "%")], [t[RSC.INFERENCE_REQUEST_MONITORING_ISSUES_LABEL], telemetry.issueCount], [t[RSC.INFERENCE_REQUEST_MONITORING_MIXED_LABEL], telemetry.mixedPhysicalBatches], [t[RSC.INFERENCE_REQUEST_MONITORING_PREFILL_ROWS_LABEL], telemetry.prefillRows], [t[RSC.INFERENCE_REQUEST_MONITORING_DECODE_ROWS_LABEL], telemetry.decodeRows],
+    [t[RSC.INFERENCE_REQUEST_MONITORING_BATCH_FILL_LABEL], fmt(fill === null ? null : fill * 100, "%")], [t[RSC.INFERENCE_REQUEST_MONITORING_ISSUES_LABEL], telemetry.issueCount], [t[RSC.INFERENCE_REQUEST_MONITORING_MULTI_REQUEST_LABEL], telemetry.multiRequestPhysicalBatches], [t[RSC.INFERENCE_REQUEST_MONITORING_PREFILL_ROWS_LABEL], telemetry.prefillRows], [t[RSC.INFERENCE_REQUEST_MONITORING_DECODE_ROWS_LABEL], telemetry.decodeRows],
   ].map(([label, value]) => <Paper variant="outlined" sx={{ p: 1.5 }} key={String(label)}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography sx={{ mt: .25, fontWeight: 650 }}>{value}</Typography></Paper>)}</Box>;
 }
 

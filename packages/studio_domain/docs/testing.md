@@ -17,7 +17,7 @@ npm test --workspace=@p4studio/studio_domain
 
 [monitoring-summary.test.ts](../src/front/model/inference/monitoring-summary.test.ts)는 batch/span의 run·stage 집계, 중복 event 제거, phase·execution·시간 합계, 전체·웨이브별 TTFT p50/p95/최댓값, 최종 TPS p50과 이전 snapshot 기록의 중복 제거를 검사한다.
 
-[observability.test.ts](../src/front/model/inference/observability.test.ts)는 요청 owner를 유지한 batch fill·phase 집계, execution owner를 유지한 stage 시간 집계와 1초 output window 병합을 검사한다. 실제 GPU 표본 간격·브라우저 렌더·P4 event 완전성은 별도 연동 시험 대상이다.
+[observability.test.ts](../src/front/model/inference/observability.test.ts)는 요청 owner를 유지한 batch fill·phase 집계(실행 시점 issue cap이 stale configured UBATCH보다 우선하는 1행/cap 10 = 10%, cap 없음·0의 표시된 fallback, 분모 부재 시 무측정, 다중 physical batch·다중 stage의 observation별 분모), execution owner를 유지한 stage 시간 집계와 1초 output window 병합을 검사한다. 같은 파일은 폭 10 발행 2건(같은 초)·1건(다음 초)이 모두 10 row/batch로 투영되는 `projectPhaseWorkSeries` 반례, stage 병합·ready 최대·physical batch 없는 bucket의 `null`, 다중 request batch와 phase-mixed 집계의 분리를 검사한다. [monitoring-summary.test.ts](../src/front/model/inference/monitoring-summary.test.ts)는 첫 `idle_ms` 9,284,758과 둘째 3이 `initialIdleMs`·`idleMs`로 분리되는 것, 중복 관측이 첫 idle 자리를 소비하지 않는 것, legacy 재구성의 동일 분리와 `initialIdleMs` 기본값을 검사한다. 실제 GPU 표본 간격·브라우저 렌더·P4 event 완전성은 별도 연동 시험 대상이다.
 
 배치 규칙 변경은 레이어 누락/중복, endpoint·generation, 불법 옵션과 adapter payload를 검사한다. 실행기 변경은 가짜 transport로 stage별 완료·부분 실패·결과 불명 보존을 재현하고 실제 앱 소비 경로와 agent 연동을 별도로 검증한다. 현재 존재하는 시험과 새로 필요한 시험을 결과에 구분한다.
 

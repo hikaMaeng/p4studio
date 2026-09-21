@@ -10,7 +10,7 @@ const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
 const PREFILL = "application/vnd.p4.llamacpp.prefill-v3+json";
 const OUTPUT = "application/vnd.p4.llamacpp.output-v5+json";
-const BATCH = "application/vnd.p4.llamacpp.batch-observation-v4+json";
+const BATCH = "application/vnd.p4.llamacpp.batch-observation-v5+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
 
 type Listener = (run: InferenceRun) => void;
@@ -92,7 +92,7 @@ export class InferenceController {
         if (repetition > 0 && input.intervalMs) await new Promise(resolve => setTimeout(resolve, input.intervalMs));
         for (let lane = 0; lane < input.concurrency; lane += 1) {
           const id = `${run.id}-${repetition + 1}-${lane + 1}`;
-          const request: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: now(), completedAt: null, error: null, telemetry: { batchObservations: 0, physicalBatches: 0, issueCount: 0, mixedPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] } };
+          const request: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: now(), completedAt: null, error: null, telemetry: { batchObservations: 0, physicalBatches: 0, issueCount: 0, multiRequestPhysicalBatches: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, batchFillRatioSum: 0, batchFillSamples: 0, batchFillFallbackSamples: 0, maxBatchFillRatio: 0, maxReadyRows: 0, stages: [] } };
           run.state = "running"; run.requests.push(request); run.submitted += 1; this.timings.get(run.id)!.set(id, { submittedAtMs: Date.now(), prefillRows: 0 });
           await this.write(socket, event({ kind: "node", address: stages[0]!.agent, nodeId: stages[0]!.node, generation: stages[0]!.generation }, PREFILL,
             { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: input.prompt, options: "", max_tokens: input.maxTokens }, id));
