@@ -24,14 +24,20 @@ export interface P4MemoryCapability {
   totalBytes: number | null;
 }
 
+/** `vram*` is null on unified-memory devices; `memory*` is then the shared system pool. */
 export interface P4GpuCapability {
   index: number;
   uuid: string;
   vendor: string;
   name: string;
-  pciBusId: string;
-  driverVersion: string;
-  vramTotalBytes: number;
+  /** Backend LOAD family reported by the provider probe (cuda, rocm, metal); null from older agents. */
+  backend: string | null;
+  /** "dedicated" or "unified"; null from agents that predate the field. */
+  memoryKind: string | null;
+  pciBusId: string | null;
+  driverVersion: string | null;
+  memoryTotalBytes: number | null;
+  vramTotalBytes: number | null;
 }
 
 export interface P4MachineCapability {
@@ -50,8 +56,10 @@ export interface P4MemoryOccupancy {
 
 export interface P4GpuOccupancy {
   uuid: string;
-  vramUsedBytes: number;
-  vramFreeBytes: number;
+  memoryUsedBytes: number | null;
+  memoryFreeBytes: number | null;
+  vramUsedBytes: number | null;
+  vramFreeBytes: number | null;
   utilizationGpuPercent: number | null;
   temperatureC: number | null;
   powerDrawW: number | null;
@@ -84,6 +92,12 @@ export interface P4RegisteredNodeSnapshot {
   generation: number;
   adapterKind: string;
   state: unknown;
+  /**
+   * Identity of the load this node currently holds. Every later command must
+   * echo it exactly. Null when the node holds none or the agent predates the
+   * field. It is not `generation`, the node registration generation.
+   */
+  loadGeneration: number | null;
   lifecycleState?: "loading" | "loaded" | "unloading" | "failed";
   lifecycleResult?: LifecycleResultMetadata | null;
   delivery: P4NodeDeliverySnapshot | null;
@@ -117,6 +131,11 @@ export interface P4BrokerReceiptSnapshot {
   sequenceCapacity: number;
 }
 
+/**
+ * The lightweight broker (P4 2026-10-02) keeps no delivery history, so current
+ * agents report liveness only and `receipts` is null. The receipt fields remain
+ * for agents that still run the duplicate ledger.
+ */
 export interface P4BrokerSnapshot {
   sampledAtUnixMs: number;
   state: "ok" | "failed";
@@ -130,8 +149,33 @@ export interface P4HopTransferSnapshot {
   hopDataBytes: number;
 }
 
+/**
+ * Evidence records of transport originals P4 preserved and will never resend.
+ * `count` covers the records still kept (at most `limit`); `evicted` counts
+ * older ones dropped to keep that bound. Not a request outcome.
+ */
+export interface P4TransportFailuresSnapshot {
+  count: number;
+  evicted: number;
+  limit: number;
+  eventBytes: number;
+  oldestUnixMs: number | null;
+  states: Record<string, number>;
+}
+
+/** Delivery-failure notices still waiting on a Full return route, and those dropped at `limit`. */
+export interface P4TransportNoticesSnapshot {
+  publishing: number;
+  limit: number;
+  dropped: number;
+}
+
 export interface P4TransportSnapshot {
   transfer: P4HopTransferSnapshot | null;
+  /** Outbound originals waiting for their next sender-side attempt. */
+  retryWaiting: number | null;
+  notices: P4TransportNoticesSnapshot | null;
+  failures: P4TransportFailuresSnapshot | null;
 }
 
 export interface P4AgentSnapshot {
@@ -474,7 +518,7 @@ function brokerSnapshot(value: unknown): P4BrokerSnapshot | null {
   const state = string(broker.state, "snapshot.broker.state");
   if (state !== "ok" && state !== "failed") throw new Error("snapshot.broker.state is unsupported");
   const detail = broker.detail === undefined || broker.detail === null ? null : string(broker.detail, "snapshot.broker.detail");
-  if (broker.receipts === null) return { sampledAtUnixMs: integer(broker.sampled_at_unix_ms, "snapshot.broker.sampled_at_unix_ms"), state, receipts: null, detail };
+  if (broker.receipts === undefined || broker.receipts === null) return { sampledAtUnixMs: integer(broker.sampled_at_unix_ms, "snapshot.broker.sampled_at_unix_ms"), state, receipts: null, detail };
   const receipts = object(broker.receipts, "snapshot.broker.receipts");
   return {
     sampledAtUnixMs: integer(broker.sampled_at_unix_ms, "snapshot.broker.sampled_at_unix_ms"),
@@ -497,15 +541,46 @@ function brokerSnapshot(value: unknown): P4BrokerSnapshot | null {
   };
 }
 
+const absent = (value: unknown) => value === undefined || value === null;
+
+function transportFailures(value: unknown): P4TransportFailuresSnapshot | null {
+  if (absent(value)) return null;
+  const label = "snapshot.transport.failures";
+  const failures = object(value, label);
+  // Agents before the bounded evidence log (P4 C6-5) report neither field.
+  if (failures.limit === undefined || failures.evicted === undefined) return null;
+  const states: Record<string, number> = {};
+  for (const [state, count] of Object.entries(object(failures.states, `${label}.states`))) {
+    states[state] = integer(count, `${label}.states.${state}`);
+  }
+  return {
+    count: integer(failures.count, `${label}.count`),
+    evicted: integer(failures.evicted, `${label}.evicted`),
+    limit: integer(failures.limit, `${label}.limit`),
+    eventBytes: integer(failures.event_bytes, `${label}.event_bytes`),
+    oldestUnixMs: nullableInteger(failures.oldest_unix_ms ?? null, `${label}.oldest_unix_ms`),
+    states,
+  };
+}
+
+function transportNotices(value: unknown): P4TransportNoticesSnapshot | null {
+  if (absent(value)) return null;
+  const label = "snapshot.transport.notices";
+  const notices = object(value, label);
+  return {
+    publishing: integer(notices.publishing, `${label}.publishing`),
+    limit: integer(notices.limit, `${label}.limit`),
+    dropped: integer(notices.dropped, `${label}.dropped`),
+  };
+}
+
 function transportSnapshot(value: unknown): P4TransportSnapshot | null {
   if (value === undefined) return null;
   const transport = object(value, "snapshot.transport");
-  if (transport.transfer === undefined || transport.transfer === null) {
-    return { transfer: null };
-  }
-  const transfer = object(transport.transfer, "snapshot.transport.transfer");
+  const transfer = absent(transport.transfer) ? null : object(transport.transfer, "snapshot.transport.transfer");
+  const retry = absent(transport.retry) ? null : object(transport.retry, "snapshot.transport.retry");
   return {
-    transfer: {
+    transfer: transfer === null ? null : {
       hopDataWrites: integer(
         transfer.hop_data_writes,
         "snapshot.transport.transfer.hop_data_writes",
@@ -515,7 +590,14 @@ function transportSnapshot(value: unknown): P4TransportSnapshot | null {
         "snapshot.transport.transfer.hop_data_bytes",
       ),
     },
+    retryWaiting: retry === null ? null : integer(retry.waiting, "snapshot.transport.retry.waiting"),
+    notices: transportNotices(transport.notices),
+    failures: transportFailures(transport.failures),
   };
+}
+
+function nullableString(value: unknown, label: string): string | null {
+  return absent(value) ? null : string(value, label);
 }
 
 function probeStatus(value: unknown, label: string): P4ProbeStatus {
@@ -643,9 +725,12 @@ export function decodeAgentInspectionResponse(
             uuid: string(value.uuid, `snapshot.machine.capability.gpus[${index}].uuid`),
             vendor: string(value.vendor, `snapshot.machine.capability.gpus[${index}].vendor`),
             name: string(value.name, `snapshot.machine.capability.gpus[${index}].name`),
-            pciBusId: string(value.pci_bus_id, `snapshot.machine.capability.gpus[${index}].pci_bus_id`),
-            driverVersion: string(value.driver_version, `snapshot.machine.capability.gpus[${index}].driver_version`),
-            vramTotalBytes: integer(value.vram_total_bytes, `snapshot.machine.capability.gpus[${index}].vram_total_bytes`),
+            backend: nullableString(value.backend, `snapshot.machine.capability.gpus[${index}].backend`),
+            memoryKind: nullableString(value.memory_kind, `snapshot.machine.capability.gpus[${index}].memory_kind`),
+            pciBusId: nullableString(value.pci_bus_id, `snapshot.machine.capability.gpus[${index}].pci_bus_id`),
+            driverVersion: nullableString(value.driver_version, `snapshot.machine.capability.gpus[${index}].driver_version`),
+            memoryTotalBytes: nullableInteger(value.memory_total_bytes ?? null, `snapshot.machine.capability.gpus[${index}].memory_total_bytes`),
+            vramTotalBytes: nullableInteger(value.vram_total_bytes ?? null, `snapshot.machine.capability.gpus[${index}].vram_total_bytes`),
           };
         }),
         adapters: capability.adapters.map((adapter, index) =>
@@ -667,8 +752,10 @@ export function decodeAgentInspectionResponse(
           const value = object(gpu, `snapshot.machine.occupancy.gpus[${index}]`);
           return {
             uuid: string(value.uuid, `snapshot.machine.occupancy.gpus[${index}].uuid`),
-            vramUsedBytes: integer(value.vram_used_bytes, `snapshot.machine.occupancy.gpus[${index}].vram_used_bytes`),
-            vramFreeBytes: integer(value.vram_free_bytes, `snapshot.machine.occupancy.gpus[${index}].vram_free_bytes`),
+            memoryUsedBytes: nullableInteger(value.memory_used_bytes ?? null, `snapshot.machine.occupancy.gpus[${index}].memory_used_bytes`),
+            memoryFreeBytes: nullableInteger(value.memory_free_bytes ?? null, `snapshot.machine.occupancy.gpus[${index}].memory_free_bytes`),
+            vramUsedBytes: nullableInteger(value.vram_used_bytes ?? null, `snapshot.machine.occupancy.gpus[${index}].vram_used_bytes`),
+            vramFreeBytes: nullableInteger(value.vram_free_bytes ?? null, `snapshot.machine.occupancy.gpus[${index}].vram_free_bytes`),
             utilizationGpuPercent: nullableInteger(value.utilization_gpu_percent, `snapshot.machine.occupancy.gpus[${index}].utilization_gpu_percent`),
             temperatureC: nullableInteger(value.temperature_c, `snapshot.machine.occupancy.gpus[${index}].temperature_c`),
             powerDrawW: nullableFiniteNumber(value.power_draw_w, `snapshot.machine.occupancy.gpus[${index}].power_draw_w`),
@@ -694,6 +781,7 @@ export function decodeAgentInspectionResponse(
           `snapshot.nodes[${index}].adapter_kind`,
         ),
         state: value.state,
+        loadGeneration: nullableInteger(value.load_generation ?? null, `snapshot.nodes[${index}].load_generation`),
         ...(value.lifecycle_state === undefined ? {} : { lifecycleState: lifecycleState(value.lifecycle_state) }),
         ...(value.lifecycle_result === undefined ? {} : { lifecycleResult: value.lifecycle_result === null ? null : parseLifecycleResult(value.lifecycle_result) }),
         delivery: deliveryValue === null ? null : {

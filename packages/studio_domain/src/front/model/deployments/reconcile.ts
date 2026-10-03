@@ -1,7 +1,7 @@
 import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import type { DeploymentRecord, StageReport } from "../../../common/protocol/deployments/index.js";
 
-/** See docs/api.md#model-refresh. INSPECT lacks llama.cpp load-generation identity. */
+/** See docs/api.md#model-refresh. Current agents report the held load generation; older ones report none. */
 export function reconcileDeployment(record: DeploymentRecord, observations: Map<string, P4AgentSnapshot | Error>, checkedAt: string): void {
   record.reports = record.stages.map(stage => {
     const previous = record.reports.find(value => value.stageId === stage.id);
@@ -21,6 +21,9 @@ export function reconcileDeployment(record: DeploymentRecord, observations: Map<
       }
       else if (node.generation !== stage.nodeGeneration || node.adapterKind !== record.adapter) {
         observation.detail = "Observed node generation or adapter differs from this deployment";
+      } else if (typeof node.loadGeneration === "number" && record.loadGeneration > 0 && node.loadGeneration !== record.loadGeneration) {
+        // Same node identity, another LOAD: nothing recorded here describes what the node holds now.
+        observation.detail = "Observed load generation differs from this deployment's recorded LOAD";
       } else if (node.lifecycleState !== undefined) {
         observation.state = node.lifecycleState;
         const result = node.lifecycleResult;

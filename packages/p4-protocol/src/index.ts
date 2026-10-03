@@ -1,6 +1,7 @@
 /** Public protocol identities mirrored from the P4 wire contract. */
 export * from "./event/wire.js";
 export * from "./event/lifecycle.js";
+export * from "./event/delivery-failure.js";
 export const P4_PROTOCOL = Object.freeze({
   frameVersion: 8,
   eventVersion: 3,
@@ -43,5 +44,7 @@ export type {
   P4NodeDeliverySnapshot,
   P4ReceiptStorageSnapshot,
   P4RegisteredNodeSnapshot,
+  P4TransportFailuresSnapshot,
+  P4TransportNoticesSnapshot,
   P4TransportSnapshot,
 } from "./event/agent-inspection.js";

@@ -1,3 +1,4 @@
+import * as fixture from "./fixtures/agent-snapshot-p4-4b62e3e4.js";
 import { describe, expect, it } from "vitest";
 import {
   P4_AGENT_INSPECT_CONTENT_TYPE,
@@ -58,7 +59,7 @@ describe("P4 event-v3 agent inspection", () => {
     expect(new TextDecoder().decode(encoded)).toContain(P4_AGENT_INSPECT_CONTENT_TYPE);
   });
 
-  it("decodes machine facts and the live node registry", () => {
+  it("decodes machine facts and the live node registry of an agent that still reports the receipt ledger", () => {
     const decoded = decodeAgentInspectionResponse(
       responseEvent("inspect-2", P4_AGENT_SNAPSHOT_CONTENT_TYPE, {
         schema: 1,
@@ -106,19 +107,19 @@ describe("P4 event-v3 agent inspection", () => {
           os: "windows", arch: "x86_64",
           cpu: { physicalCores: 8, logicalCores: 16 },
           memory: { totalBytes: 34_359_738_368 },
-          gpus: [{ index: 0, uuid: "GPU-a", vendor: "NVIDIA", name: "RTX 3090", pciBusId: "0000:21:00.0", driverVersion: "596.21", vramTotalBytes: 25_769_803_776 }],
+          gpus: [{ index: 0, uuid: "GPU-a", vendor: "NVIDIA", name: "RTX 3090", backend: null, memoryKind: null, pciBusId: "0000:21:00.0", driverVersion: "596.21", memoryTotalBytes: null, vramTotalBytes: 25_769_803_776 }],
           adapters: ["llamacpp"],
         },
         occupancy: {
           memory: { availableBytes: 17_179_869_184, usedBytes: 17_179_869_184 },
-          gpus: [{ uuid: "GPU-a", vramUsedBytes: 1_073_741_824, vramFreeBytes: 24_696_061_952, utilizationGpuPercent: 73, temperatureC: 58, powerDrawW: 312.5 }],
+          gpus: [{ uuid: "GPU-a", memoryUsedBytes: null, memoryFreeBytes: null, vramUsedBytes: 1_073_741_824, vramFreeBytes: 24_696_061_952, utilizationGpuPercent: 73, temperatureC: 58, powerDrawW: 312.5 }],
         },
         probes: {
           memory: { source: "os", state: "available", detail: null },
           gpus: { source: "nvidia-smi", state: "available", detail: null },
         },
       },
-      nodes: [{ nodeId: "node-a", generation: 4, adapterKind: "llamacpp", lifecycleState: "loaded", lifecycleResult: null, state: { lifecycle: "ready" }, delivery: { stopped: false, inputRetained: 2, completionRetained: 1 } }],
+      nodes: [{ nodeId: "node-a", generation: 4, adapterKind: "llamacpp", lifecycleState: "loaded", lifecycleResult: null, state: { lifecycle: "ready" }, loadGeneration: null, delivery: { stopped: false, inputRetained: 2, completionRetained: 1 } }],
       broker: {
         sampledAtUnixMs: 1_789_000_000_001, state: "ok", detail: null,
         receipts: {
@@ -130,7 +131,7 @@ describe("P4 event-v3 agent inspection", () => {
           eventIndexCapacity: 64, orderCapacity: 64, sequenceEntries: 3, sequenceCapacity: 32,
         },
       },
-      transport: { transfer: { hopDataWrites: 17, hopDataBytes: 262_144 } },
+      transport: { transfer: { hopDataWrites: 17, hopDataBytes: 262_144 }, retryWaiting: null, notices: null, failures: null },
     });
   });
 
@@ -157,5 +158,34 @@ describe("P4 event-v3 agent inspection", () => {
       responseEvent("inspect-3", P4_RESULT_CONTENT_TYPE, { ok: false, detail: "inspection is unsupported" }),
       "inspect-3",
     )).toThrow("inspection is unsupported");
+  });
+});
+
+describe("INSPECT reply bytes produced by a P4 4b62e3e4 agent", () => {
+  // Captured from the running agent, not authored here: see the fixture header.
+  const decoded = decodeAgentInspectionResponse(Uint8Array.from(atob(fixture.eventBase64), char => char.charCodeAt(0)), fixture.correlationId);
+
+  it("decodes a lightweight-broker snapshot that carries no receipt ledger", () => {
+    expect(decoded.broker).toMatchObject({ state: "ok", receipts: null });
+    expect(decoded.nodes).toEqual([]);
+  });
+
+  it("reads the bounded transport failure log, notices and retry queue", () => {
+    expect(decoded.transport).toEqual({
+      transfer: { hopDataWrites: 0, hopDataBytes: 0 }, retryWaiting: 0,
+      notices: { publishing: 0, limit: 65536, dropped: 0 },
+      failures: { count: 0, evicted: 0, limit: 256, eventBytes: 0, oldestUnixMs: null, states: {} },
+    });
+  });
+
+  it("reads the provider-reported backend and memory kind of each device", () => {
+    expect(decoded.machine.capability.gpus.map(gpu => [gpu.backend, gpu.memoryKind])).toEqual([["cuda", "dedicated"], ["cuda", "dedicated"]]);
+    expect(decoded.machine.capability.gpus.every(gpu => gpu.vramTotalBytes === gpu.memoryTotalBytes)).toBe(true);
+  });
+
+  it("reads the load generation a loaded node holds, distinct from its node generation field", () => {
+    const loaded = decodeAgentInspectionResponse(Uint8Array.from(atob(fixture.loadedEventBase64), char => char.charCodeAt(0)), fixture.loadedCorrelationId);
+    expect(loaded.nodes).toHaveLength(1);
+    expect(loaded.nodes[0]).toMatchObject({ nodeId: "studio-ts-4080-head", adapterKind: "llamacpp", lifecycleState: "loaded", loadGeneration: 1791002889344 });
   });
 });

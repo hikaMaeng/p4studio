@@ -9,7 +9,7 @@ import type { InferenceBatch } from "@p4studio/studio_domain/common";
 const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
 const PREFILL = "application/vnd.p4.llamacpp.prefill-v3+json";
-const OUTPUT = "application/vnd.p4.llamacpp.output-v5+json";
+const OUTPUT = "application/vnd.p4.llamacpp.output-v6+json";
 const BATCH = "application/vnd.p4.llamacpp.batch-observation-v5+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
 

@@ -37,4 +37,6 @@
 
 ## Node lifecycle
 
+[resource-profile.ts](../src/common/protocol/deployments/resource-profile.ts): `readLlamaResourceProfile`은 P4 `validate_preload` 중 agent 상태가 필요 없는 검사(version 2, 필수 양수 필드, unknown field, byte·token 한도 일관성)만 수행한다. `llamaCompletionStoreBytes`·`llamaCompletionStoreCount`는 LOAD allocation의 하한 추정이다. `validateDeploymentLoad`는 LOAD 직전에만 호출된다. [output.ts](../src/common/protocol/inference/output.ts): `parseP4ApprovedOutput`(strict `output-v6`), `classifyP4Output`, 요청별 `OutputOrdinalBuffer`.
+
 [공통 runtime](../src/common/protocol/deployments/runtime.ts)의 `runBrowserDeployment`가 browser transport를 주입받아 stage별 최종 결과와 회수를 조율한다. [lifecycle 정책](../src/common/protocol/deployments/lifecycle.ts)은 allocation·재적재 eligibility·generation을 소유한다. 입력의 legacy `createNode`는 parser가 제거한다. receipt의 `stageGenerations`는 stage ID별 실행 generation을 저장해 다음 조회·SESSION에 전달하며 감소·누락·다른 ID는 거부한다. [전체 계약](../../../docs/node-lifecycle.md).

@@ -2,7 +2,22 @@
 
 이 문서는 P4 Studio가 OUTER로 구현해야 할 책임과 `F:/dev/p4`에서 계약을 찾는 경로를 정리한다. 작업 규칙은 [AGENTS.md](../AGENTS.md), Studio 내부 구조는 [architecture.md](architecture.md)가 소유한다. P4 명세를 복제하는 문서가 아니다.
 
-2026-09-19 현재 계약 대조: P4 HEAD `4df7496b92c9c84efddb4a908ab56ea0b5c6e77f`, clean. event-v3/inspection schema v1은 유지되고, agent inspection의 `transport.transfer`에 누적 `hop_data_writes`·`hop_data_bytes`가 추가됐다. Studio는 이를 agent-wide 관측값으로만 보존·표시하며 request/edge별 bytes나 MB/s로 바꾸지 않는다. `tools/event-drive`의 Release A source-grounded oracle·측정 barrier·증거 봉인은 benchmark driver의 수용 계약이지 P4 agent의 새 browser/Studio API가 아니다. [Studio 적용 계약](node-lifecycle.md). 아래 최초 조사 기록은 역사다.
+2026-10-03 경량 브로커 계약 대조: P4 HEAD `4b62e3e4aef1f265de0235dd0141f95feb3a1338`, clean. 직전 대조(`945fc359`) 이후 Studio가 소비하는 계약의 변경과 적용은 다음과 같다. 이 HEAD로 빌드한 agent에 대한 실기 결과는 [검증 보고서](../tests/reports/p4-latest-contract/20261003_135500.md)가 소유한다.
+
+| P4 변경 | 근거 | Studio 적용 |
+| --- | --- | --- |
+| broker가 중복 ledger를 삭제해 INSPECT `broker`에 `receipts`가 없다 | [inspection/mod.rs](../../p4/entrypoints/agent/src/event_runtime/control/inspection/mod.rs) `broker_state` | [agent-inspection.ts](../packages/p4-protocol/src/event/agent-inspection.ts)가 부재를 `null`로 읽는다. 이전 디코더는 조회 전체를 실패시켰다 |
+| INSPECT node에 `load_generation` 추가 | 같은 파일 `snapshot` | `loadGeneration`으로 decode하고 [reconcile](../packages/studio_domain/src/front/model/deployments/reconcile.ts)이 기록된 LOAD와 다른 값을 ready로 승격하지 않는다 |
+| transport snapshot에 `retry`, `notices`, 상한이 있는 `failures` 증거 기록 | [transport.rs](../../p4/entrypoints/agent/src/event_runtime/transport.rs) `Inspector::snapshot` | decode만 한다. 요청 결과로 해석하지 않으며 화면 표시는 없다 |
+| 같은 event가 두 번 오면 두 번 전달되고 도착 순서를 보장하지 않는다 | [protocol-outer.md](../../p4/docs/protocol-outer.md) 2026-10-02 의무 | [connection.ts](../apps/studio/src/front/p4/connection.ts)가 이미 소비한 event ID를 버리고, 추론은 `output_ordinal`로만 소비한다 |
+| OUTPUT `output-v6`: 필수 `output_ordinal` | [completion.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs) `ApprovedOutputWire` | [output.ts](../packages/studio_domain/src/common/protocol/inference/output.ts)의 strict schema와 요청별 순번 버퍼. v5 등 다른 버전은 run을 명시적 오류로 종료한다 |
+| transport `delivery-failure-v1` 통지 | [event/mod.rs](../../p4/layers/protocol/src/event/mod.rs), [retry.rs](../../p4/entrypoints/agent/src/event_runtime/transport/retry.rs) | [delivery-failure.ts](../packages/p4-protocol/src/event/delivery-failure.ts). 대기 중인 exchange와 PREFILL의 대기만 끝내며 정산·terminal로 취급하지 않는다 |
+| `resource_profile` version 2: OUTER footprint 3종과 `outer_token_issue_window` 필수, completion store가 모든 예약을 동시에 담아야 한다 | [resource_profile.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/resource_profile.rs), [lifecycle.rs](../../p4/tools/event-drive/src/run/lifecycle.rs) | [resource-profile.ts](../packages/studio_domain/src/common/protocol/deployments/resource-profile.ts)가 LOAD 직전에 검증하고 `retained_bytes`를 산정한다. [노드 수명](node-lifecycle.md) |
+| LOAD의 `binary`는 agent의 `P4_STAGED_SERVER_BINARY`와 같은 경로여야 한다 | [event-protocol-v2.md](../../p4/docs/event-protocol-v2.md) Load | Studio는 agent 설정을 읽을 수 없으므로 검증하지 않는다. 불일치는 P4의 LOAD 거부로 드러난다 |
+
+미적용: 요청별 취소 `cancel-v1`(`CancelCommand`)은 Studio가 발행하지 않는다. `SchedulingSnapshot.outer_token`은 passthrough로 보존만 한다. event ID는 이전부터 `crypto.randomUUID()`이며 P4는 형식을 검사하지 않는다.
+
+2026-09-19 계약 대조: P4 HEAD `4df7496b92c9c84efddb4a908ab56ea0b5c6e77f`, clean. event-v3/inspection schema v1은 유지되고, agent inspection의 `transport.transfer`에 누적 `hop_data_writes`·`hop_data_bytes`가 추가됐다. Studio는 이를 agent-wide 관측값으로만 보존·표시하며 request/edge별 bytes나 MB/s로 바꾸지 않는다. `tools/event-drive`의 Release A source-grounded oracle·측정 barrier·증거 봉인은 benchmark driver의 수용 계약이지 P4 agent의 새 browser/Studio API가 아니다. [Studio 적용 계약](node-lifecycle.md). 아래 최초 조사 기록은 역사다.
 
 2026-09-21 텔레메트리 계약 대조: P4 HEAD `945fc359e625a96ad06080415a606038078c2684`(작업 트리는 dirty였고 `layers/adapters/llamacpp/staged/adapter/src/v2/{mod,commands}.rs`의 커밋되지 않은 변경을 포함한 작업 트리 내용을 읽음). 현재 llama.cpp adapter는 `application/vnd.p4.llamacpp.batch-observation-v5+json`과 `stage-span-v5+json`을 방출하며 v4 대비 `BatchRequestObservation`·`StageRequestObservation`에 필수 `reply`(ReplySpec)가 추가됐다. Studio는 정확한 v5 content type만 소비하고 다른 버전의 같은 계열은 현재 계약으로 취급하지 않는다. 이 대조는 실행 시험이 아니며 실기 Studio 검증은 별도 결과다.
 
@@ -74,14 +89,14 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 | 재연결·timeout·분할 수신 | [run/wire.rs](../../p4/tools/event-drive/src/run/wire.rs): `EventWire`; [wire/tests.rs](../../p4/tools/event-drive/src/run/wire/tests.rs) | 취소/timeout 후 미완성 프레임 보존. 재연결 identity와 부분 응답 관리 |
 | 레이어 cut·메모리·실행 인자 | [llamacpp-stage-memory.md](../../p4/docs/llamacpp-stage-memory.md), [server/plan.cpp](../../p4/layers/adapters/llamacpp/staged/server/src/server/plan.cpp), [run/config.rs](../../p4/tools/event-drive/src/run/config.rs): `NodeConfig` | Studio stage 계획/검증. backend 실제 메모리 계산은 복제하지 않음 |
 | build·지원 구성 대조 | [build_identity.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/build_identity.rs): `BuildIdentity`, `agree`; [load.rs](../../p4/tools/event-drive/src/run/load.rs) | Loaded 응답의 build/patch/backend 일치 확인; GPU/모델 정보만으로 호환 판정 금지 |
-| 추론 결과·지속 관측·실패/정리 | [inference.rs](../../p4/tools/event-drive/src/run/inference.rs), [observe.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/observe.rs), [effects.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/effects.rs), [run/mod.rs](../../p4/tools/event-drive/src/run/mod.rs), [failure CLI test](../../p4/tools/event-drive/tests/cli_writes_the_artifact_of_a_failed_run.rs) | `batch-observation-v5`·`stage-span-v5`(request 소유 항목의 `reply` return context 포함)의 source/load/session identity, 승인 출력/부분 결과, 최초 오류, `cleanup_error`, `evidence_missing` 구분 |
+| 추론 결과·지속 관측·실패/정리 | [inference.rs](../../p4/tools/event-drive/src/run/inference.rs), [observe.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/observe.rs), [effects.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/effects.rs), [run/mod.rs](../../p4/tools/event-drive/src/run/mod.rs), [failure CLI test](../../p4/tools/event-drive/tests/cli_writes_the_artifact_of_a_failed_run.rs) | `output-v6`의 `output_ordinal` 순서, `batch-observation-v5`·`stage-span-v5`(request 소유 항목의 `reply` return context 포함)의 source/load/session identity, 승인 출력/부분 결과, 최초 오류, `cleanup_error`, `evidence_missing` 구분 |
 | KV·heartbeat·재개 | [protocol-outer.md](../../p4/docs/protocol-outer.md), [kv-state-store-convention.md](../../p4/docs/kv-state-store-convention.md), [layer isolation](../../p4/docs/layer-isolation-contract.md) | 분야 목표와 현재 event 구현을 대조. service 경로 구현을 event 지원으로 광고하지 않음 |
 | 시나리오·성능 결과 | [p4-4node README](../../p4/test/benchmarks/p4-4node/README.md), [scenarios.mjs](../../p4/test/benchmarks/p4-4node/scenarios.mjs), [검증 규약](../../p4/docs/distributed-batching-verification.md) | 입력 예시/시험 설계에 사용. report metrics version·분모·정상 응답·topology 확인 |
 
 ## wire를 구현할 때 지킬 차이
 
 - 파일명이 `event-protocol-v2.md`이고 Rust 모듈이 `v2`여도 현재 event envelope version은 **3**, magic은 **`P4E3`**다. TCP는 `u32 little-endian length + encoded event`다. event 내부에는 magic, envelope 길이, payload 길이, envelope, payload가 있다.
-- 옛 frame version 8, status schema 6, inspection snapshot schema 1, adapter별 content-type version은 서로 다른 버전 축이다. 모든 명령의 suffix를 일괄 v3로 바꾸지 않는다. 현재 SESSION v4와 OUTPUT v5 같은 값은 adapter의 상수를 확인한다.
+- 옛 frame version 8, status schema 6, inspection snapshot schema 1, adapter별 content-type version은 서로 다른 버전 축이다. 모든 명령의 suffix를 일괄 v3로 바꾸지 않는다. 현재 SESSION v4와 OUTPUT v6 같은 값은 adapter의 상수를 확인한다.
 - endpoint의 node generation, adapter load generation, OUTER connection generation과 session/request/event identity는 수명이 다르다. UUID 하나로 합치지 않는다. source/target/return_route와 요청-응답 identity를 검사한다.
 - inspection `transport.transfer.hop_data_writes`와 `hop_data_bytes`는 agent 전체 수명에서 P4 DATA hop을 성공적으로 write한 누적 counter다. 개별 request·stage·edge 소유, 수신 byte, retry/queue 시간, 측정창 경계가 없으므로 per-run 전송량·대역폭·완료 증거로 사용하지 않는다.
 - UNLOAD 성공은 자원과 노드의 제거 완료다. DB 행 삭제는 UNLOAD가 아니다. busy/단절 뒤 잔존 상태와 별도 연결의 순간적인 부재를 최종 완료로 바꾸지 않는다.

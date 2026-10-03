@@ -3,6 +3,8 @@ import {
   encodeP4Event,
   frameP4Event,
   P4FrameReader,
+  P4_DELIVERY_FAILURE_CONTENT_TYPE,
+  parseP4DeliveryFailure,
   sameEndpoint,
   type P4Endpoint,
   type P4Event,
@@ -10,6 +12,11 @@ import {
 import { P4_TUNNEL_PATH, parseP4TunnelServerControl } from "@p4studio/studio_domain/common";
 
 export class UncertainDelivery extends Error { constructor(message: string) { super(message); this.name = "UncertainP4Delivery"; } }
+
+// The P4 broker relays a repeated event as often as it arrives, so the OUTER
+// drops what it already consumed. Keyed by event ID, scoped to one connection,
+// oldest evicted beyond this bound, discarded with the connection.
+const SEEN_EVENT_IDS = 65_536;
 
 type Pending = { event: P4Event; terminalTypes: string[]; resolve: (event: P4Event) => void; reject: (error: Error) => void; timer: number };
 export type P4DispatchReceipt = { event: P4Event; sentAtMs: number; sentAt: string };
@@ -22,6 +29,7 @@ export class BrowserP4Connection {
   private opened = false;
   private stopped = false;
   private sequence = 0;
+  private readonly seen = new Set<string>();
   private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
   readonly operationId: string;
   readonly outer: Extract<P4Endpoint, { kind: "outer" }>;
@@ -94,7 +102,11 @@ export class BrowserP4Connection {
   }
 
   private match(event: P4Event, receivedAtMs: number) {
+    if (this.seen.has(event.eventId)) return;
+    this.seen.add(event.eventId);
+    if (this.seen.size > SEEN_EVENT_IDS) this.seen.delete(this.seen.values().next().value!);
     this.listeners.forEach(listener => listener(event, receivedAtMs));
+    if (event.contentType === P4_DELIVERY_FAILURE_CONTENT_TYPE) { this.deliveryFailure(event); return; }
     const pending = this.pending;
     if (!pending || event.correlationId !== this.operationId || event.causationId !== pending.event.eventId) return;
     const adapterMatches = pending.event.target.kind === "agent" ? event.adapterKind === null : event.adapterKind === pending.event.adapterKind;
@@ -103,6 +115,19 @@ export class BrowserP4Connection {
     }
     if (!pending.terminalTypes.includes(event.contentType)) return;
     window.clearTimeout(pending.timer); this.pending = undefined; pending.resolve(event);
+  }
+
+  /** A transport notice settles nothing; it only ends the wait for a reply that cannot come. */
+  private deliveryFailure(event: P4Event) {
+    const pending = this.pending;
+    if (!pending || event.correlationId !== this.operationId || !sameEndpoint(event.target, this.outer)) return;
+    let notice;
+    try { notice = parseP4DeliveryFailure(event.payload); } catch { return; }
+    if (notice.eventId !== pending.event.eventId) return;
+    window.clearTimeout(pending.timer); this.pending = undefined;
+    pending.reject(notice.result === "not_started"
+      ? new Error("P4 reported that the request was never sent to its target agent")
+      : new UncertainDelivery("P4 could not confirm delivery of the request; state is unknown"));
   }
 
   private event(target: P4Endpoint, adapter: string | null, contentType: string, payload: unknown, eventClass: number, deadline: number | null): P4Event {

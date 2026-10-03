@@ -10,6 +10,7 @@ export interface BrowserOwnedDeploymentTransport {
 export class UncertainP4Delivery extends Error {}
 import { buildNodeLifecyclePayload, stageNeedsRecovery } from "./lifecycle.js";
 import { checkBuilds } from "./compatibility.js";
+import { stageResourceProfile } from "./resource-profile.js";
 
 /** Validation owned by the OUTER before it starts an irreversible P4 load. */
 export function validateDeployment(plan: DeploymentInput): void {
@@ -40,6 +41,20 @@ export function validateDeployment(plan: DeploymentInput): void {
     const types = [plan.loadContentType, plan.loadedContentType, plan.unloadContentType, plan.unloadedContentType, plan.errorContentType];
     if (types.some(t => !/^application\/[\w.+-]+$/.test(t)) || new Set(types).size !== types.length) throw new Error("Specify the adapter's distinct load, loaded, unload, unloaded and error content types");
   }
+}
+
+/**
+ * Checks made only when a LOAD is about to be sent. A saved draft may still
+ * lack them; a LOAD the current adapter is known to refuse is not sent.
+ */
+export function validateDeploymentLoad(plan: DeploymentInput): void {
+  validateDeployment(plan);
+  if (plan.adapter !== "llamacpp") return;
+  plan.stages.forEach((stage, index) => {
+    if (stage.planText === undefined) throw new Error(`Stage ${index + 1}: edit the placement as native plan text and add a resource_profile before loading`);
+    try { stageResourceProfile(stage); }
+    catch (error) { throw new Error(`Stage ${index + 1} (${stage.nodeId}): ${error instanceof Error ? error.message : String(error)}`); }
+  });
 }
 
 /** Agent terminal results own readiness/removal; browser owns multi-stage recovery. */

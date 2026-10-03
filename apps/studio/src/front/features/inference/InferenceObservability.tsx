@@ -34,7 +34,7 @@ const aggregateBatch = (run: InferenceRun) => {
 };
 
 const resourceSeries = (run: InferenceRun) => run.monitoring.map(snapshot => {
-  const gpus = snapshot.nodes.flatMap(node => node.gpus); const utilization = gpus.map(gpu => gpu.utilizationGpuPercent).filter((value): value is number => value !== null); const memory = gpus.map(gpu => gpu.vramUsedBytes + gpu.vramFreeBytes > 0 ? gpu.vramUsedBytes * 100 / (gpu.vramUsedBytes + gpu.vramFreeBytes) : null).filter((value): value is number => value !== null);
+  const gpus = snapshot.nodes.flatMap(node => node.gpus); const utilization = gpus.map(gpu => gpu.utilizationGpuPercent).filter((value): value is number => value !== null); const memory = gpus.map(gpu => gpu.vramUsedBytes !== null && gpu.vramFreeBytes !== null && gpu.vramUsedBytes + gpu.vramFreeBytes > 0 ? gpu.vramUsedBytes * 100 / (gpu.vramUsedBytes + gpu.vramFreeBytes) : null).filter((value): value is number => value !== null);
   return { x: Date.parse(snapshot.generatedAt), utilization: utilization.length ? utilization.reduce((sum, value) => sum + value, 0) / utilization.length : null, memory: memory.length ? memory.reduce((sum, value) => sum + value, 0) / memory.length : null };
 }).filter(point => Number.isFinite(point.x));
 

@@ -66,7 +66,7 @@ export type InferenceRequest = z.infer<typeof inferenceRequestSchema>;
 export type InferenceRequestTelemetry = InferenceRequest["telemetry"];
 
 export const inferenceGpuSchema = z.object({
-  index: nonNegative, name: z.string(), vramUsedBytes: nonNegative, vramFreeBytes: nonNegative,
+  index: nonNegative, name: z.string(), vramUsedBytes: nonNegative.nullable(), vramFreeBytes: nonNegative.nullable(),
   utilizationGpuPercent: nonNegative.nullable(), temperatureC: nonNegative.nullable(), powerDrawW: finite.nullable(),
 });
 export type InferenceGpu = z.infer<typeof inferenceGpuSchema>;

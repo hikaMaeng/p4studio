@@ -5,7 +5,9 @@
 - `AgentReachability`: protocol health와 분리한 TCP 상태
 - `encodeAgentInspectionRequest`: agent endpoint를 향한 event-v3 control event 생성
 - `decodeAgentInspectionResponse`: 상관관계와 content type, schema를 검증하고 머신·노드 snapshot 반환
-- `P4AgentSnapshot`: 머신 facts, 현재 agent node registry, node delivery retained 상태와 broker receipt 저장 상태 타입. 구형 snapshot에서 추가 필드가 없으면 `delivery`와 `broker`는 `null`이다.
+- `P4AgentSnapshot`: 머신 facts, 현재 agent node registry, node delivery retained 상태, broker 상태와 transport 관측 타입. 없는 필드는 0이 아니라 `null`이다: 경량 브로커 agent의 `broker.receipts`, 통합 메모리 장치의 `vram*`, 구형 agent의 `loadGeneration`·`backend`·`memoryKind`·`transport.failures`·`notices`·`retryWaiting`.
+- node `loadGeneration`: 노드가 보유한 적재의 identity. 등록 세대 `generation`과 다른 값이며 서로 대체하지 않는다.
+- `P4_DELIVERY_FAILURE_CONTENT_TYPE`, `parseP4DeliveryFailure`: 송신 agent의 `{event_id, result}` 통지. `not_started`는 한 바이트도 쓰지 않음, `unknown`은 쓰기가 시작됨을 뜻한다. 요청 terminal이나 정산이 아니다.
 - `P4_AGENT_INSPECT_CONTENT_TYPE`, `P4_AGENT_SNAPSHOT_CONTENT_TYPE`: inspection v1 media type
 
 ## Node lifecycle

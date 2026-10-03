@@ -1,4 +1,4 @@
-import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, runBrowserDeployment, validateDeployment, type DeploymentRecord } from "@p4studio/studio_domain/common";
+import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, runBrowserDeployment, validateDeploymentLoad, type DeploymentRecord } from "@p4studio/studio_domain/common";
 import { deployments, reconcileDeployment, type DeploymentGateway } from "@p4studio/studio_domain/front";
 import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import { inspectGraphAgent } from "../../p4/inspection.js";
@@ -58,7 +58,7 @@ async function operateInBrowser(id: string, action: "load" | "unload"): Promise<
   if (!record) throw new Error("Model deployment was not found");
   if (action === "load") {
     if (!canStartDeployment(record)) throw new Error("Recover or inspect the previous operation before loading again");
-    validateDeployment(record);
+    validateDeploymentLoad(record);
   } else if (!record.loadGeneration || ["draft", "unloaded"].includes(record.status)) throw new Error("No load operation to unload");
   const topology = await readAgentTopology();
   const addresses = action === "unload" ? new Map(Object.entries(record.resolvedAddresses)) : new Map(topology.agents.map(agent => [agent.id, agentAddress(agent)]));

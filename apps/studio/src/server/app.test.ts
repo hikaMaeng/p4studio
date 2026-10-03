@@ -32,7 +32,7 @@ const availableInspector: AgentInspector = async () => ({
         occupancy: { memory: { availableBytes: 16_000, usedBytes: 16_000 }, gpus: [] },
         probes: { memory: { source: "os", state: "available", detail: null }, gpus: { source: "nvidia-smi", state: "available", detail: null } },
       },
-      nodes: [{ nodeId: "live-node", generation: 2, adapterKind: "llamacpp", state: { lifecycle: "ready" }, delivery: null }],
+      nodes: [{ nodeId: "live-node", generation: 2, adapterKind: "llamacpp", state: { lifecycle: "ready" }, loadGeneration: null, delivery: null }],
       broker: null,
       transport: null,
     },

@@ -1,12 +1,27 @@
 import { encodeLifecycleMetadata, parseLifecycleRequest, type LifecycleOperation } from "@p4studio/p4-protocol";
 import type { DeploymentRecord, PlacementStage, StageReport } from "./index.js";
 import { buildLoadPayload, LLAMA_TYPES } from "./payload.js";
+import { llamaCompletionStoreBytes, llamaCompletionStoreCount, stageResourceProfile } from "./resource-profile.js";
 
 // OUTER allocation policy, separate from opaque adapter resource_profile.
 export const DEFAULT_NODE_ALLOCATION = { queueCapacity: 65536, completionCapacity: 65536, retainedCapacity: 65536, retainedBytes: 256 * 1024 * 1024 };
+/**
+ * An explicit stage allocation is sent as written. Otherwise a llama.cpp stage
+ * gets the default raised to what its own resource_profile needs: the adapter
+ * refuses a LOAD whose completion store cannot hold every reservation at once.
+ */
+export function nodeAllocation(record: DeploymentRecord, stage: PlacementStage) {
+  if (stage.allocation) return stage.allocation;
+  if (record.adapter !== "llamacpp" || stage.planText === undefined) return DEFAULT_NODE_ALLOCATION;
+  const profile = stageResourceProfile(stage);
+  return { ...DEFAULT_NODE_ALLOCATION,
+    completionCapacity: Math.max(DEFAULT_NODE_ALLOCATION.completionCapacity, llamaCompletionStoreCount(profile)),
+    retainedCapacity: Math.max(DEFAULT_NODE_ALLOCATION.retainedCapacity, llamaCompletionStoreCount(profile)),
+    retainedBytes: Math.max(DEFAULT_NODE_ALLOCATION.retainedBytes, llamaCompletionStoreBytes(profile)) };
+}
 export function buildNodeLifecyclePayload(record: DeploymentRecord, stage: PlacementStage, action: LifecycleOperation): Uint8Array {
   const types = record.adapter === "llamacpp" ? LLAMA_TYPES : record;
-  const allocation = stage.allocation ?? DEFAULT_NODE_ALLOCATION;
+  const allocation = action === "load" ? nodeAllocation(record, stage) : DEFAULT_NODE_ALLOCATION;
   const metadata = parseLifecycleRequest({ schema: 1, node_id: stage.nodeId, node_generation: stage.nodeGeneration,
     adapter_kind: record.adapter, adapter_content_type: action === "load" ? types.loadContentType : types.unloadContentType,
     ...(action === "load" ? { queue_capacity: allocation.queueCapacity, completion_capacity: allocation.completionCapacity,

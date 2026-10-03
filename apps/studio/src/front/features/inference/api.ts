@@ -1,7 +1,7 @@
-import { type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
+import { P4_DELIVERY_FAILURE_CONTENT_TYPE, parseP4DeliveryFailure, type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
 import {
   canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
-  classifyP4Telemetry, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
+  classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
 } from "@p4studio/studio_domain/common";
 import {
@@ -27,7 +27,6 @@ import { inspectGraphAgent } from "../../p4/inspection.js";
 const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
 const PREFILL = "application/vnd.p4.llamacpp.prefill-v3+json";
-const OUTPUT = "application/vnd.p4.llamacpp.output-v5+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
 const runs = new Map<string, InferenceRun>();
 const listeners = new Map<string, Set<(run: InferenceRun) => void>>();
@@ -199,6 +198,8 @@ function recordBatchTiming(run: InferenceRun, value: P4BatchObservation, timings
 
 async function execute(run: InferenceRun, model: DeploymentRecord, input: InferenceRunInput) {
   let connection: BrowserP4Reception | undefined; const timings = new Map<string, RequestTiming>();
+  // Keyed by request ID and by PREFILL event ID; one entry per submitted request, dropped with this execution.
+  const outputs = new Map<string, OutputOrdinalBuffer>(); const submissions = new Map<string, string>();
   try {
     const topology = await readAgentTopology();
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
@@ -210,7 +211,16 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     }
     run.state = "running"; publish(run); const expected = input.concurrency * input.repetitions;
     const stop = connection.onEvent((event, receivedAtMs) => {
-      if (!connection!.owns(event.target) || event.adapterKind !== "llamacpp") return;
+      if (!connection!.owns(event.target)) return;
+      if (event.contentType === P4_DELIVERY_FAILURE_CONTENT_TYPE) {
+        // A transport diagnostic. Only a PREFILL that provably never left ends its request as failed.
+        try {
+          const notice = parseP4DeliveryFailure(event.payload); const requestId = submissions.get(notice.eventId);
+          if (requestId) fail(run, `P4 delivery failure for request ${requestId}: ${notice.result}`, notice.result === "not_started" ? "failed" : "unknown");
+        } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); }
+        return;
+      }
+      if (event.adapterKind !== "llamacpp") return;
       if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload), "failed"); return; }
       try {
         const stage = stageFor(event, stages);
@@ -231,15 +241,22 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
           }
           appendMonitoring(run, monitoringSnapshot(model, stages, new Map(), observedAt)); publish(run); return;
         }
-        if (event.contentType !== OUTPUT) return;
-        const payload = JSON.parse(new TextDecoder().decode(event.payload)) as { request_id?: unknown; text?: unknown; stop?: unknown };
-        if (typeof payload.request_id !== "string" || typeof payload.text !== "string") throw new Error("Malformed P4 output payload");
-        const item = run.requests.find(value => value.id === payload.request_id); const timing = timings.get(payload.request_id); if (!item || !timing) throw new Error("P4 output references an unknown request");
-        item.state = "streaming"; item.text += payload.text;
-        recordOutputTiming(item, timing, receivedAtMs, typeof payload.stop === "string");
-        const terminal = typeof payload.stop === "string";
-        if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; if (run.completed === expected) { run.state = "completed"; stop(); connection?.close(); } }
-        recordOutputObservability(run, Date.now(), terminal);
+        const outputKind = classifyP4Output(event.contentType);
+        if (outputKind === "unsupported") throw new Error(`Unsupported P4 output contract ${event.contentType}`);
+        if (outputKind !== "output") return;
+        const approved = parseP4ApprovedOutput(JSON.parse(new TextDecoder().decode(event.payload)));
+        if (approved.load_generation !== model.loadGeneration || approved.session_id !== run.id) throw new Error("P4 output identity does not match the active run");
+        const item = run.requests.find(value => value.id === approved.request_id); const timing = timings.get(approved.request_id); const buffer = outputs.get(approved.request_id);
+        if (!item || !timing || !buffer) throw new Error("P4 output references an unknown request");
+        if (submissions.get(approved.submission_event_id) !== item.id) throw new Error("P4 output does not name the PREFILL submission of its request");
+        // Arrival order is not delivery order: consume by the head-approved ordinal only.
+        for (const output of buffer.accept(approved)) {
+          const terminal = output.stop !== null;
+          item.state = "streaming"; item.text += output.text;
+          recordOutputTiming(item, timing, receivedAtMs, terminal);
+          if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; if (run.completed === expected) { run.state = "completed"; stop(); connection?.close(); } }
+          recordOutputObservability(run, Date.now(), terminal);
+        }
         publish(run);
       } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); }
     });
@@ -247,7 +264,10 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       if (repetition && input.intervalMs) await new Promise(resolve => window.setTimeout(resolve, input.intervalMs));
       for (let lane = 0; lane < input.concurrency; lane += 1) {
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
-        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: "", max_tokens: wireMaxTokens(model, input.maxTokens) }, 1);
+        const maxTokens = wireMaxTokens(model, input.maxTokens);
+        outputs.set(id, new OutputOrdinalBuffer(maxTokens));
+        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: "", max_tokens: maxTokens }, 1);
+        submissions.set(receipt.event.eventId, id);
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };
         run.requests.push(item); run.submitted += 1; timings.set(id, { sentAtMs: receipt.sentAtMs, firstOutputAtMs: null, prefillRows: 0 });
       }
