@@ -5,7 +5,7 @@ import { emptyDeployment, emptyStage } from "./store.js";
 import { reconcileDeployment } from "./reconcile.js";
 
 const checkedAt = "2026-09-15T00:00:00.000Z";
-const model = (): DeploymentRecord => ({ ...emptyDeployment(), id: "model", name: "model", status: "ready", loadGeneration: 42, operationId: "load-42", error: "restart",
+const model = (): DeploymentRecord => ({ ...emptyDeployment(), id: "model", name: "model", status: "loaded", loadGeneration: 42, operationId: "load-42", error: "restart", sessionProof: null,
   resolvedAddresses: {}, createdAt: checkedAt, updatedAt: checkedAt,
   stages: ["a", "b"].map(id => ({ ...emptyStage(), id, agentId: id, nodeId: id, nodeGeneration: 2 })),
   reports: ["a", "b"].map(stageId => ({ stageId, state: "ready", loadRequested: true, detail: "", failureDetail: "old error", telemetry: { load_generation: 42 }, updatedAt: checkedAt })) });
@@ -47,12 +47,20 @@ it("reports confirmed worker failure without claiming memory was released", () =
   reconcileDeployment(record, new Map([['a', snapshot('a', 'loaded', { delivery: { stopped: true, inputRetained: 0, completionRetained: 0 } })], ['b', snapshot('b', 'failed:engine')]]), checkedAt);
   expect(record.status).toBe("failed"); expect(record.reports.every(value => value.state === "failed")).toBe(true);
 });
-it("accepts the matching supervised LOAD lifecycle terminal as readiness evidence", () => {
+it("accepts a supervised LOAD terminal as loaded evidence without a SESSION proof", () => {
   const record = model();
   const result = { schema: 1, node_id: "a", node_generation: 2, adapter_kind: "llamacpp", adapter_content_type: "loaded", operation: "load", status: "succeeded", resource_state: "present", first_error: null, cleanup_error: null } as const;
   reconcileDeployment(record, new Map([['a', snapshot('a', 'loaded', { lifecycleState: 'loaded', lifecycleResult: result })], ['b', snapshot('b', 'loaded', { lifecycleState: 'loaded', lifecycleResult: { ...result, node_id: "b" } })]]), checkedAt);
+  expect(record.status).toBe("loaded");
+  expect(record.reports[0]).toMatchObject({ state: "loaded", loadOutcome: "succeeded", resourceState: "present", observation: { state: "loaded" } });
+});
+it("promotes matching LOAD terminals only when every stage has the current SESSION proof", () => {
+  const record = model();
+  record.sessionProof = { sessionId: "session-42", loadGeneration: 42, stageIds: ["a", "b"], checkedAt: checkedAt };
+  const result = { schema: 1, node_id: "a", node_generation: 2, adapter_kind: "llamacpp", adapter_content_type: "loaded", operation: "load", status: "succeeded", resource_state: "present", first_error: null, cleanup_error: null } as const;
+  reconcileDeployment(record, new Map([['a', snapshot('a', 'loaded', { lifecycleState: 'loaded', lifecycleResult: result })], ['b', snapshot('b', 'loaded', { lifecycleState: 'loaded', lifecycleResult: { ...result, node_id: "b" } })]]), checkedAt);
   expect(record.status).toBe("ready");
-  expect(record.reports[0]).toMatchObject({ state: "ready", loadOutcome: "succeeded", resourceState: "present", observation: { state: "loaded" } });
+  expect(record.reports.every(report => report.state === "ready")).toBe(true);
 });
 it("reads neutral lifecycle state before adapter snapshots and preserves cleanup failure", () => {
   const record = model();

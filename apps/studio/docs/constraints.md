@@ -6,7 +6,7 @@
 - 주 탐색은 이름 있는 `nav`
 - 주요 collection은 이름 있는 `section`; 항목은 `article` 또는 list item
 - 입력은 visible label, dialog는 visible title을 사용
-- 반복 pipeline stage와 agent card만 stable test id 사용
+- 반복 pipeline stage·agent card·model row·inference run group은 [testing.md](testing.md)에 기록한 stable test id를 사용
 - SQLite 등록 상태와 browser-owned P4 inspection 성공을 별도 상태로 표시함
 - agent는 어댑터를 소유하지 않으며 node 구성과 독립적으로 등록
 - 노드 탭 배지는 해당 agent의 Studio 선언 name과 관측된 P4 nodeId의 합집합 크기다. 같은 노드는 한 번 세며, 선언 수를 P4 등록·적재 완료 수로 바꾸지 않는다.

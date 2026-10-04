@@ -22,6 +22,8 @@ import {
 } from "@p4studio/studio_domain/front";
 import { BrowserP4Reception, readAgentTopology } from "../../p4/reception.js";
 import { inspectGraphAgent } from "../../p4/inspection.js";
+import { recordSessionProof } from "../models/api.js";
+import { wireOptions, wirePrompt } from "./prompt.js";
 
 // See apps/studio/docs/api.md#browser-owned-inference.
 const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
@@ -39,21 +41,16 @@ let persistTimer: number | undefined;
 type Stage = { stageIndex: number; agentId: string; agentName: string; address: string; nodeId: string; generation: number };
 type Inspection = { snapshot: P4AgentSnapshot | null; observedAt: string; error: string | null };
 
-const DEFAULT_MAX_TOKENS = 512;
+export const MAX_OUTPUT_TOKENS = 4000;
+const DEFAULT_MAX_TOKENS = MAX_OUTPUT_TOKENS;
 
 function wireMaxTokens(model: DeploymentRecord, maxTokens: number): number {
   const limits = llamaDispatchLimits(model.stages);
   if (!limits) throw new Error("The selected deployment has no valid llama.cpp resource_profile admission limits");
   if (maxTokens < 1) return DEFAULT_MAX_TOKENS;
-  if (maxTokens > limits.maxOutputTokensPerRequest) throw new Error(`Requested ${maxTokens} generated tokens exceed the deployment limit of ${limits.maxOutputTokensPerRequest}`);
+  const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
+  if (maxTokens > maxAllowed) throw new Error(`Requested ${maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
   return maxTokens;
-}
-
-// Qwen GGUFs use ChatML. The deployment owns the artifact path, so Studio can
-// apply the known adapter contract without making a user paste control tokens.
-function wirePrompt(model: DeploymentRecord, prompt: string): string {
-  if (!model.stages.some(stage => /qwen/i.test(stage.artifact))) return prompt;
-  return `<|im_start|>user\n${prompt.trim()}\n<|im_end|>\n<|im_start|>assistant\n`;
 }
 
 const persist = () => { try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify({ timingVersion: 3, runs: [...runs.values()] })); } catch { /* storage is optional */ } };
@@ -164,14 +161,21 @@ async function inspectModel(modelId: string): Promise<InferenceMonitoring> {
 
 const gateway: InferenceGateway = {
   list: async () => [...runs.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+  remove: runId => {
+    if (!runs.delete(runId)) return;
+    window.clearTimeout(publishTimers.get(runId));
+    publishTimers.delete(runId);
+    listeners.delete(runId);
+    persist();
+  },
   create: async input => {
     const model = (await records()).find(value => value.id === input.modelId);
     if (!model || !canAttemptInference(model) || model.adapter !== "llamacpp" || !model.loadGeneration || model.stages.length < 2) throw new Error("The selected distributed llama.cpp deployment is not ready for a SESSION-gated inference attempt");
     const limits = llamaDispatchLimits(model.stages);
     if (!limits) throw new Error("The selected deployment has no valid llama.cpp resource_profile admission limits");
-    if (input.concurrency > limits.maxRequests) throw new Error(`Requested ${input.concurrency} concurrent requests exceed the deployment limit of ${limits.maxRequests}`);
-    if (input.maxTokens > limits.maxOutputTokensPerRequest) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the deployment limit of ${limits.maxOutputTokensPerRequest}`);
-    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
+    const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
+    if (input.maxTokens > maxAllowed) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
+    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     runs.set(run.id, run); publish(run); void execute(run, model, input); return run;
   },
   subscribe: (id, onRun) => {
@@ -208,6 +212,21 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       const event = await connection.exchange({ kind: "node", address: stage.address, nodeId: stage.nodeId, generation: stage.generation }, "llamacpp", SESSION,
         { load_generation: model.loadGeneration, session_id: run.id, stages: stages.map(value => ({ agent: value.address, node: value.nodeId, generation: value.generation })), stage_index: stage.stageIndex }, [SESSION_READY, ERROR], model.timeoutMs);
       if (event.contentType === ERROR) throw new Error(new TextDecoder().decode(event.payload));
+      if (event.contentType !== SESSION_READY || stageFor(event, stages)?.stageIndex !== stage.stageIndex) throw new Error("P4 SESSION_READY source or content type does not match the configured stage");
+      const proof: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(event.payload));
+      if (!proof || typeof proof !== "object" || !("state" in proof) || proof.state !== "ready"
+        || !("session_id" in proof) || proof.session_id !== run.id
+        || !("load_generation" in proof) || proof.load_generation !== model.loadGeneration) {
+        throw new Error("P4 SESSION_READY does not prove the active session and load generation");
+      }
+    }
+    try {
+      await recordSessionProof(model.id, run.id, now(), model.loadGeneration,
+        Object.fromEntries(model.stages.map(stage => [stage.id, stage.nodeGeneration])));
+    } catch {
+      // P4 has already confirmed this exact session on every captured stage.
+      // Studio's receipt is observability; a temporary persistence failure must
+      // not discard the live, generation-bound P4 session before PREFILL.
     }
     run.state = "running"; publish(run); const expected = input.concurrency * input.repetitions;
     const stop = connection.onEvent((event, receivedAtMs) => {
@@ -266,7 +285,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
         const maxTokens = wireMaxTokens(model, input.maxTokens);
         outputs.set(id, new OutputOrdinalBuffer(maxTokens));
-        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: "", max_tokens: maxTokens }, 1);
+        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: wireOptions(model), max_tokens: maxTokens }, 1);
         submissions.set(receipt.event.eventId, id);
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };
         run.requests.push(item); run.submitted += 1; timings.set(id, { sentAtMs: receipt.sentAtMs, firstOutputAtMs: null, prefillRows: 0 });

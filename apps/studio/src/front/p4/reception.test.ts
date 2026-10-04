@@ -100,8 +100,9 @@ it("loads and unloads stages through distinct gateway groups without a model ing
     status: "loading", loadGeneration: 10, operationId: "operation", error: "", reports: [], resolvedAddresses: {}, createdAt: "now", updatedAt: "now",
   });
   await runBrowserDeployment(record, "load", addresses, new BrowserP4Reception(topology, addresses), async () => {});
-  expect(record.status).toBe("ready");
-  expect(record.reports.map(report => report.state)).toEqual(["ready", "ready"]);
+  expect(record.status).toBe("loaded");
+  expect(record.sessionProof).toBeNull();
+  expect(record.reports.map(report => report.state)).toEqual(["loaded", "loaded"]);
   await runBrowserDeployment(record, "unload", addresses, new BrowserP4Reception(topology, addresses), async () => {});
   expect(record.status).toBe("unloaded");
   expect(Socket.opened).toEqual([0, 2, 2, 0].map(index => agents[index]!.id));

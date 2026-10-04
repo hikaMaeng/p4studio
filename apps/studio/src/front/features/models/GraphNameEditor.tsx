@@ -19,7 +19,7 @@ export function GraphNameEditor({ target, name }: { target: RenameTarget; name: 
       <Button size="small" disabled={draft.busy || !draft.name.trim()} onClick={() => void graphInventory.saveName()} sx={{ minWidth: 0, px: .5 }}>{t[RSC.MODELS_GRAPH_SAVE_BUTTON]}</Button>
       <Button size="small" disabled={draft.busy} onClick={() => graphInventory.cancel()} sx={{ minWidth: 0, px: .5 }}>{t[RSC.MODELS_CANCEL_BUTTON]}</Button>
     </Box> : <>
-      <Typography variant="body2" noWrap title={name} sx={{ minWidth: 0, fontWeight: 600 }}>{name}</Typography>
+      <Typography variant="body2" noWrap title={name} sx={{ minWidth: 0, fontWeight: 500 }}>{name}</Typography>
       <Tooltip title={`${label} ${t[RSC.MODELS_GRAPH_RENAME_BUTTON]}`}><IconButton size="small" aria-label={`${name} ${t[RSC.MODELS_GRAPH_RENAME_BUTTON]}`} onClick={event => { event.stopPropagation(); graphInventory.edit(target, name); }}><Icon name="edit" sx={{ fontSize: 15 }} /></IconButton></Tooltip>
     </>}
   </Box>;

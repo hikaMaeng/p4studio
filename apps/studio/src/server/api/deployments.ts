@@ -39,7 +39,7 @@ export function createDeploymentRouter(database: StudioDatabase) {
     if (!canStartDeployment(record)) return res.status(409).json(rejected("Recover or inspect the previous load before editing its placement"));
     const input = deploymentInputSchema.safeParse(req.body);
     if (!input.success) return res.status(400).json(rejected(input.error.message));
-    Object.assign(record, input.data, { status: "draft", reports: [], resolvedAddresses: {}, error: "", operationId: "", updatedAt: new Date().toISOString() });
+    Object.assign(record, input.data, { status: "draft", reports: [], sessionProof: null, resolvedAddresses: {}, error: "", operationId: "", updatedAt: new Date().toISOString() });
     repository.save(record); return res.json(record);
   });
   router.put(deploymentRoutes.receipt.path, (req, res) => {
@@ -47,7 +47,8 @@ export function createDeploymentRouter(database: StudioDatabase) {
     if (!record) return res.status(404).json(rejected("Model not found"));
     const receipt = deploymentReceiptSchema.safeParse(req.body);
     if (!receipt.success) return res.status(400).json(rejected(receipt.error.message));
-    const { stageGenerations, ...data } = receipt.data;
+    const { expectedUpdatedAt, stageGenerations, ...data } = receipt.data;
+    if (record.updatedAt !== expectedUpdatedAt) return res.status(409).json(rejected("Model changed while recording operation progress; refresh its state"));
     if (stageGenerations) {
       if (Object.keys(stageGenerations).length !== record.stages.length || record.stages.some(stage => !stageGenerations[stage.id] || stageGenerations[stage.id]! < stage.nodeGeneration)) return res.status(409).json(rejected("Invalid stage generation receipt"));
       record.stages.forEach(stage => { stage.nodeGeneration = stageGenerations[stage.id]!; });

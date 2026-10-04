@@ -6,6 +6,7 @@
 html, body, #root { width: 100%; min-width: 320px; height: 100%; margin: 0; }
 body { overflow: hidden; }
 button, input { font: inherit; }
+strong, b { font-weight: 500; }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: #383838; border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

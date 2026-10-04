@@ -110,7 +110,7 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
         // A rejected absent UNLOAD proves absence only; it is not a successful UNLOAD receipt.
         await save(); return false;
       }
-      report.state = operation === "load" ? "ready" : "unloaded";
+      report.state = operation === "load" ? "loaded" : "unloaded";
       if (operation === "load") report.telemetry = body;
       await save(); return true;
     } catch (error) {
@@ -134,7 +134,7 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
         catch (error) { failed = true; record.error = String(error); }
       }
       if (!failed) {
-        record.status = "ready"; await save();
+        record.status = "loaded"; record.sessionProof = null; await save();
         if (persistenceError) { failed = true; record.error ||= persistenceError; }
       }
     }
@@ -148,11 +148,12 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
         }
       }
     }
-    const unresolved = record.reports.some(stageNeedsRecovery);
+    // Successfully loaded/ready stages still own resources (so a new LOAD is
+    // blocked), but that known ownership is not an unresolved outcome.
+    const unresolved = record.reports.some(report => stageNeedsRecovery(report) && !["loaded", "ready"].includes(report.state));
     record.status = unresolved ? (record.reports.some(r => r.state === "unknown") ? "unknown" : "failed")
-      : action === "load" ? (failed ? "failed" : "ready") : "unloaded";
-    // Ready stages are expected to own resources after a successful load.
-    if (action === "load" && !failed && record.reports.length === record.stages.length && record.reports.every(r => r.state === "ready")) record.status = "ready";
-    if (persistenceError) { record.error ||= persistenceError; if (record.status === "ready") record.status = "unknown"; }
+      : action === "load" ? (failed ? "failed" : "loaded") : "unloaded";
+    if (action === "unload" && !failed && record.reports.length === record.stages.length && record.reports.every(r => r.state === "unloaded")) record.sessionProof = null;
+    if (persistenceError) { record.error ||= persistenceError; if (["loaded", "ready"].includes(record.status)) record.status = "unknown"; }
   } finally { wire.close(); await save(); }
 }

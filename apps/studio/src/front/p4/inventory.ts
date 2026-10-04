@@ -15,7 +15,7 @@ const gateway: GraphInventoryGateway = {
   inspect: inspectGraphAgent,
   saveObservation: async (id, observation) => {
     const route = graphInventoryRoutes.recordObservation;
-    await request(route.path.replace(":id", encodeURIComponent(id)), route.method, { observedAt: observation.inspectedAt, snapshot: observation.snapshot });
+    await request(route.path.replace(":id", encodeURIComponent(id)), route.method, { observedAt: observation.inspectedAt, latencyMs: observation.latencyMs, snapshot: observation.snapshot });
   },
   labels: async () => nodeLabelListSchema.parse(await request(graphInventoryRoutes.labels.path, graphInventoryRoutes.labels.method)).labels,
   renameAgent: async (id, name) => graphAgentSchema.parse(await request(graphInventoryRoutes.renameAgent.path.replace(":id", encodeURIComponent(id)), graphInventoryRoutes.renameAgent.method, { name })),
@@ -28,7 +28,7 @@ export function useGraphInventory(snapshot: StudioSnapshot): StudioSnapshot {
   useEffect(() => graphInventory.start(gateway), []);
   return { ...snapshot, agents: snapshot.agents.map(agent => {
     const observation = observations.get(agent.id);
-    return { ...agent, name: names.get(agent.id) ?? agent.name,
+    return { ...agent, ...(observation ? { reachability: "reachable" as const, latencyMs: observation.latencyMs, lastProbeAt: observation.inspectedAt, probeError: null } : {}), name: names.get(agent.id) ?? agent.name,
       inspection: observation ? { ...observation, state: "available" as const, error: null } : agent.inspection };
   }) };
 }

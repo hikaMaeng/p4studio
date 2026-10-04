@@ -43,15 +43,36 @@ const gateway: DeploymentGateway = {
   },
 };
 
-const receipt = (record: DeploymentRecord) => request(
+const receipt = async (record: DeploymentRecord, expectedUpdatedAt = record.updatedAt) => {
+  const saved = parseDeployment(await request(
   deploymentRoutes.receipt.path.replace(":id", encodeURIComponent(record.id)),
   deploymentRoutes.receipt.method,
   {
+    expectedUpdatedAt,
     status: record.status, loadGeneration: record.loadGeneration, operationId: record.operationId,
-    error: record.error, reports: record.reports, resolvedAddresses: record.resolvedAddresses,
+    error: record.error, reports: record.reports, sessionProof: record.sessionProof, resolvedAddresses: record.resolvedAddresses,
     stageGenerations: Object.fromEntries(record.stages.map(stage => [stage.id, stage.nodeGeneration])),
   },
-).then(parseDeployment);
+  ));
+  record.updatedAt = saved.updatedAt;
+  return saved;
+};
+
+export async function recordSessionProof(modelId: string, sessionId: string, checkedAt: string, loadGeneration: number, stageGenerations: Record<string, number>): Promise<void> {
+  const record = (await gateway.list()).find(value => value.id === modelId);
+  const freshlyObserved = record?.status === "unknown" && record.reports.every(report => report.observation?.state === "loaded");
+  if (!record || record.loadGeneration !== loadGeneration || record.stages.length !== record.reports.length
+    || !(["loaded", "ready"].includes(record.status) || freshlyObserved)
+    || record.stages.some(stage => stageGenerations[stage.id] !== stage.nodeGeneration)
+    || record.reports.some(report => report.loadOutcome !== "succeeded" || report.resourceState !== "present")) {
+    throw new Error("P4 SESSION_READY cannot prove a model whose current LOAD receipts are incomplete");
+  }
+  record.sessionProof = { sessionId, loadGeneration: record.loadGeneration, stageIds: record.stages.map(stage => stage.id), checkedAt };
+  record.status = "ready";
+  record.error = "";
+  record.reports.forEach(report => { report.state = "ready"; report.updatedAt = checkedAt; });
+  await receipt(record);
+}
 
 async function operateInBrowser(id: string, action: "load" | "unload"): Promise<DeploymentRecord> {
   const record = (await gateway.list()).find(value => value.id === id);
@@ -71,8 +92,12 @@ async function operateInBrowser(id: string, action: "load" | "unload"): Promise<
     record.resolvedAddresses = Object.fromEntries(addresses);
   }
   await receipt(record);
-  try { await runBrowserDeployment(record, action, addresses, connection, async () => { await receipt(record); }); }
-  catch (error) { record.status = "unknown"; record.error = error instanceof Error ? error.message : String(error); await receipt(record); }
+  let serverRevision = record.updatedAt;
+  try { await runBrowserDeployment(record, action, addresses, connection, async () => {
+    const saved = await receipt(record, serverRevision);
+    serverRevision = saved.updatedAt;
+  }); }
+  catch (error) { record.status = "unknown"; record.error = error instanceof Error ? error.message : String(error); await receipt(record, serverRevision); }
   return record;
 }
 export const startModels = () => deployments.start(gateway);

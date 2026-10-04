@@ -78,7 +78,7 @@ describe("Studio integration API", () => {
     const agent = first.createAgent({ name: "observed", host: "127.0.0.1", port: 59988 });
     const observedAt = "2026-09-20T12:34:56.000Z";
     const snapshot = (await availableInspector("127.0.0.1", 59988, 100)).observation.snapshot!;
-    await request(app).put(`/api/agents/${agent.id}/observation`).send({ observedAt, snapshot }).expect(200);
+    await request(app).put(`/api/agents/${agent.id}/observation`).send({ observedAt, latencyMs: 37, snapshot }).expect(200);
     first.close();
 
     const restarted = new StudioDatabase(path);
@@ -86,6 +86,9 @@ describe("Studio integration API", () => {
     const restored = await request(createApp(restarted)).get("/api/snapshot").expect(200);
     expect(restored.body.agents).toEqual([expect.objectContaining({
       id: agent.id,
+      reachability: "reachable",
+      latencyMs: 37,
+      probeError: null,
       inspection: { state: "available", inspectedAt: observedAt, error: null, snapshot },
     })]);
   });

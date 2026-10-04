@@ -40,13 +40,13 @@ export const createApiRouter = (
     protocol: P4_PROTOCOL, generatedAt: new Date().toISOString(),
   }));
 
-  // The browser decoded the P4 response. Persist it only as a dated observation;
-  // this route neither sends P4 commands nor treats it as current agent state.
+  // The browser decoded P4 INSPECT. Its successful response proves reachability
+  // at this observation time; the server still does not create P4 requests.
   router.put<{ id: string }>(graphInventoryRoutes.recordObservation.path.slice(4), (request, response) => {
     if (!database.agent(request.params.id)) return response.status(404).json(apiError("agent_not_found", "Agent not found"));
     const parsed = agentObservationInputSchema.safeParse(request.body);
     if (!parsed.success) return response.status(400).json(apiError("invalid_observation", "Invalid agent observation"));
-    const observation = database.recordAgentObservation(request.params.id, parsed.data.observedAt, parsed.data.snapshot as unknown as P4AgentSnapshot);
+    const observation = database.recordAgentObservation(request.params.id, parsed.data.observedAt, parsed.data.snapshot as unknown as P4AgentSnapshot, parsed.data.latencyMs ?? null);
     observations.set(request.params.id, observation);
     return response.json(observation);
   });

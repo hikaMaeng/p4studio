@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react";
 
 export type AgentTab = "information" | "nodes";
-export type InferenceTab = "query" | "monitoring" | "history";
 export type StudioRoute =
   | { kind: "overview" }
   | { kind: "agents" }
@@ -19,9 +18,11 @@ export type StudioRoute =
   | { kind: "pipelines" }
   | { kind: "pipeline-new" }
   | { kind: "pipeline-detail"; pipelineId: string }
-  | { kind: "inference"; tab: InferenceTab }
+  | { kind: "inference" }
+  | { kind: "inference-history" }
   | { kind: "inference-history-detail"; runId: string }
-  | { kind: "inference-request-detail"; requestId: string };
+  | { kind: "inference-request-detail"; requestId: string }
+  | { kind: "inference-history-request-detail"; runId: string; requestId: string };
 
 const decode = (value: string) => {
   try { return decodeURIComponent(value); } catch { return value; }
@@ -52,10 +53,12 @@ export const parseRoute = (pathname: string): StudioRoute => {
   if (segments.length === 1 && segments[0] === "pipelines") return { kind: "pipelines" };
   if (segments[0] === "pipelines" && segments[1] === "new" && segments.length === 2) return { kind: "pipeline-new" };
   if (segments[0] === "pipelines" && segments.length === 2) return { kind: "pipeline-detail", pipelineId: segments[1]! };
-  if (segments.length === 1 && segments[0] === "inference") return { kind: "inference", tab: "query" };
+  if (segments.length === 1 && segments[0] === "inference") return { kind: "inference" };
+  if (segments[0] === "inference" && segments[1] === "history" && segments[3] === "requests" && segments.length === 5) return { kind: "inference-history-request-detail", runId: segments[2]!, requestId: segments[4]! };
   if (segments[0] === "inference" && segments[1] === "requests" && segments.length === 3) return { kind: "inference-request-detail", requestId: segments[2]! };
   if (segments[0] === "inference" && segments[1] === "history" && segments.length === 3) return { kind: "inference-history-detail", runId: segments[2]! };
-  if (segments[0] === "inference" && (["query", "monitoring", "history"] as const).includes(segments[1] as InferenceTab) && segments.length === 2) return { kind: "inference", tab: segments[1] as InferenceTab };
+  if (segments[0] === "inference" && segments[1] === "history" && segments.length === 2) return { kind: "inference-history" };
+  if (segments[0] === "inference" && ["monitoring", "query"].includes(segments[1] ?? "") && segments.length === 2) return { kind: "inference" };
   return { kind: "overview" };
 };
 
@@ -77,9 +80,11 @@ export const routePath = (route: StudioRoute) => {
     case "pipelines": return "/pipelines";
     case "pipeline-new": return "/pipelines/new";
     case "pipeline-detail": return `/pipelines/${encodeURIComponent(route.pipelineId)}`;
-    case "inference": return `/inference/${route.tab}`;
+    case "inference": return "/inference/query";
+    case "inference-history": return "/inference/history";
     case "inference-history-detail": return `/inference/history/${encodeURIComponent(route.runId)}`;
     case "inference-request-detail": return `/inference/requests/${encodeURIComponent(route.requestId)}`;
+    case "inference-history-request-detail": return `/inference/history/${encodeURIComponent(route.runId)}/requests/${encodeURIComponent(route.requestId)}`;
   }
 };
 

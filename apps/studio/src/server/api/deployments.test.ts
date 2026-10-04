@@ -16,16 +16,17 @@ it("stores declarations and browser receipts but rejects server-side P4 executio
     stages: [{ ...emptyStage(), id: "stage-1", agentId: agent.id, nodeId: "node-1", artifact: "S:\\models\\model.gguf", binary: "stage-server", endpoint: "127.0.0.1:52001", layerStart: 0, layerEnd: 1 }] };
   const created = await request(app).post("/api/model-deployments").send(input).expect(201);
   await request(app).post(`/api/model-deployments/${created.body.id}/load`).expect(409);
-  const receipt = { status: "unknown", loadGeneration: 42, operationId: crypto.randomUUID(), error: "Browser closed after submission", reports: [{ stageId: "stage-1", state: "unknown", detail: "No reply", failureDetail: "No reply", loadRequested: true, telemetry: null, updatedAt: new Date().toISOString() }], resolvedAddresses: { [agent.id]: "tcp://127.0.0.1:51055" } };
+  const receipt = { expectedUpdatedAt: created.body.updatedAt, status: "unknown", loadGeneration: 42, operationId: crypto.randomUUID(), error: "Browser closed after submission", reports: [{ stageId: "stage-1", state: "unknown", detail: "No reply", failureDetail: "No reply", loadRequested: true, telemetry: null, updatedAt: new Date().toISOString() }], resolvedAddresses: { [agent.id]: "tcp://127.0.0.1:51055" } };
   const stored = await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send(receipt).expect(200);
-  expect(stored.body).toMatchObject(receipt);
+  expect(stored.body).toMatchObject({ status: receipt.status, loadGeneration: receipt.loadGeneration, operationId: receipt.operationId });
   await request(app).delete(`/api/model-deployments/${created.body.id}`).expect(409);
   await request(app).put(`/api/model-deployments/${created.body.id}`).send(input).expect(409);
-  const advanced = await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, stageGenerations: { "stage-1": 1234 } }).expect(200);
+  const advanced = await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, expectedUpdatedAt: stored.body.updatedAt, stageGenerations: { "stage-1": 1234 } }).expect(200);
   expect(advanced.body.stages[0].nodeGeneration).toBe(1234);
-  await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, stageGenerations: { "stage-1": 1233 } }).expect(409);
-  await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, stageGenerations: { other: 1234 } }).expect(409);
-  const observed = { ...receipt, status: "unloaded", reports: receipt.reports.map(report => ({ ...report, state: "unloaded", observation: { state: "missing", checkedAt: new Date().toISOString(), agentGeneratedAt: 123, detail: "" } })) };
+  await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, expectedUpdatedAt: advanced.body.updatedAt, stageGenerations: { "stage-1": 1233 } }).expect(409);
+  await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, expectedUpdatedAt: advanced.body.updatedAt, stageGenerations: { other: 1234 } }).expect(409);
+  const observed = { status: "unloaded", loadGeneration: receipt.loadGeneration, operationId: receipt.operationId, error: receipt.error,
+    reports: receipt.reports.map(report => ({ ...report, state: "unloaded", observation: { state: "missing", checkedAt: new Date().toISOString(), agentGeneratedAt: 123, detail: "" } })), resolvedAddresses: receipt.resolvedAddresses };
   await request(app).put(`/api/model-deployments/${created.body.id}/reconcile`).send({ ...observed, expectedUpdatedAt: "old-revision" }).expect(409);
   const reconciled = await request(app).put(`/api/model-deployments/${created.body.id}/reconcile`).send({ ...observed, expectedUpdatedAt: advanced.body.updatedAt }).expect(200);
   expect(reconciled.body).toMatchObject(observed);

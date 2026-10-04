@@ -96,10 +96,14 @@ export class StudioDatabase {
     } catch { return null; }
   }
 
-  recordAgentObservation(agentId: string, observedAt: string, snapshot: P4AgentSnapshot): AgentProtocolObservation {
+  recordAgentObservation(agentId: string, observedAt: string, snapshot: P4AgentSnapshot, latencyMs: number | null = null): AgentProtocolObservation {
+    const previous = this.connection.prepare("SELECT observed_at FROM agent_observations WHERE agent_id=?").get(agentId) as Row | undefined;
+    const normalizedObservedAt = new Date(Date.parse(observedAt)).toISOString();
+    const isNewest = !previous || Date.parse(normalizedObservedAt) >= Date.parse(text(previous, "observed_at"));
     const serialized = JSON.stringify(snapshot);
-    this.connection.prepare("INSERT INTO agent_observations (agent_id,observed_at,snapshot_json) VALUES (?,?,?) ON CONFLICT(agent_id) DO UPDATE SET observed_at=excluded.observed_at,snapshot_json=excluded.snapshot_json WHERE excluded.observed_at >= agent_observations.observed_at")
-      .run(agentId, observedAt, serialized);
+    this.connection.prepare("INSERT INTO agent_observations (agent_id,observed_at,snapshot_json) VALUES (?,?,?) ON CONFLICT(agent_id) DO UPDATE SET observed_at=excluded.observed_at,snapshot_json=excluded.snapshot_json WHERE julianday(excluded.observed_at) >= julianday(agent_observations.observed_at)")
+      .run(agentId, normalizedObservedAt, serialized);
+    if (isNewest) this.updateProbe(agentId, { reachability: "reachable", latencyMs, probeError: null });
     return this.agentObservation(agentId)!;
   }
 

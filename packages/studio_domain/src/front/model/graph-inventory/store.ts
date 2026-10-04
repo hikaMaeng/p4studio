@@ -6,7 +6,7 @@ import { SliceModel } from "../SliceModel.js";
 export type RenameTarget = { kind: "agent"; agentId: string } | { kind: "node"; agentId: string; nodeId: string };
 export interface GraphInventoryGateway {
   inspect(agent: GraphAgent): Promise<P4AgentSnapshot>;
-  saveObservation(id: string, observation: { snapshot: P4AgentSnapshot; inspectedAt: string }): Promise<void>;
+  saveObservation(id: string, observation: { snapshot: P4AgentSnapshot; inspectedAt: string; latencyMs: number }): Promise<void>;
   labels(): Promise<NodeLabel[]>;
   renameAgent(id: string, name: string): Promise<GraphAgent>;
   renameNode(id: string, input: NodeLabelInput): Promise<NodeLabel>;
@@ -15,7 +15,7 @@ export interface GraphInventoryGateway {
 export class GraphInventoryStore {
   readonly names = new SliceModel(new Map<string, string>());
   readonly labels = new SliceModel(new Map<string, NodeLabel>());
-  readonly observations = new SliceModel(new Map<string, { snapshot: P4AgentSnapshot; inspectedAt: string }>());
+  readonly observations = new SliceModel(new Map<string, { snapshot: P4AgentSnapshot; inspectedAt: string; latencyMs: number }>());
   readonly refreshState = new SliceModel(new Map<string, { busy: boolean; error: string | null }>());
   readonly draft = new SliceModel<{ target: RenameTarget; name: string; busy: boolean; failed: boolean } | null>(null);
   readonly labelError = new SliceModel(false);
@@ -39,8 +39,9 @@ export class GraphInventoryStore {
     if (!this.gateway || this.refreshState.value.get(agent.id)?.busy) return;
     this.refreshState.mutate(values => values.set(agent.id, { busy: true, error: null }));
     try {
+      const startedAt = performance.now();
       const snapshot = await this.gateway.inspect(agent);
-      const observation = { snapshot, inspectedAt: new Date().toISOString() };
+      const observation = { snapshot, inspectedAt: new Date().toISOString(), latencyMs: Math.max(0, Math.round(performance.now() - startedAt)) };
       this.observations.mutate(values => values.set(agent.id, observation));
       await this.gateway.saveObservation(agent.id, observation);
       this.refreshState.mutate(values => values.set(agent.id, { busy: false, error: null }));

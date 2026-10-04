@@ -4,11 +4,12 @@ import type { InferenceMonitoring, InferenceRun, InferenceRunInput } from "../..
 export interface InferenceGateway {
   list(): Promise<InferenceRun[]>;
   create(input: InferenceRunInput): Promise<InferenceRun>;
+  remove(runId: string): void;
   subscribe(runId: string, onRun: (run: InferenceRun) => void, onError: (error: Error) => void): () => void;
   monitoring(modelId: string): Promise<InferenceMonitoring>;
 }
 
-class InferenceStore {
+export class InferenceStore {
   readonly runs = new SliceModel<InferenceRun[]>([]);
   readonly monitoring = new SliceModel<InferenceMonitoring | null>(null);
   readonly activity = new SliceModel({ busy: false, error: "" });
@@ -27,6 +28,11 @@ class InferenceStore {
     try { const run = await this.gateway.create(input); this.upsert(run); this.listen(run); }
     catch (error) { this.activity.mutate(value => { value.error = error instanceof Error ? error.message : String(error); }); }
     finally { this.activity.mutate(value => { value.busy = false; }); }
+  }
+  remove(runId: string) {
+    this.stop(runId);
+    this.gateway?.remove(runId);
+    this.runs.set(values => values.filter(run => run.id !== runId));
   }
   async refreshMonitoring(modelId: string) {
     if (!this.gateway) return;

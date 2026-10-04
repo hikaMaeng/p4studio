@@ -31,7 +31,7 @@ export function buildNodeLifecyclePayload(record: DeploymentRecord, stage: Place
 }
 /** A rejected LOAD never transfers ownership of an already occupied ID. */
 export function stageNeedsRecovery(report: StageReport): boolean {
-  return (report.loadRequested || ["creating", "loading", "ready", "unloading", "unknown"].includes(report.state))
+  return (report.loadRequested || ["creating", "loading", "loaded", "ready", "unloading", "unknown"].includes(report.state))
     && report.loadOutcome !== "rejected" && report.resourceState !== "absent" && report.state !== "unloaded";
 }
 export function canStartDeployment(record: DeploymentRecord): boolean {
@@ -44,7 +44,13 @@ export function canStartDeployment(record: DeploymentRecord): boolean {
  * loaded.  SESSION remains the generation-aware authority before PREFILL.
  */
 export function canAttemptInference(record: DeploymentRecord): boolean {
-  if (record.status === "ready") return true;
+  const proof = record.sessionProof;
+  const proofMatches = !!proof && proof.loadGeneration === record.loadGeneration
+    && proof.stageIds.length === record.stages.length
+    && record.stages.every(stage => proof.stageIds.includes(stage.id));
+  if (record.status === "ready") return proofMatches;
+  if (record.status === "loaded" && record.loadGeneration > 0 && record.reports.length === record.stages.length
+    && record.reports.every(report => report.loadOutcome === "succeeded" && report.resourceState === "present")) return true;
   return record.status === "unknown" && record.loadGeneration > 0 && record.reports.length === record.stages.length
     && record.reports.every(report => report.loadOutcome === "succeeded" && report.resourceState === "present" && report.observation?.state === "loaded");
 }
@@ -56,5 +62,6 @@ export function prepareDeploymentLoad(record: DeploymentRecord, now = Date.now()
   if (!Number.isSafeInteger(loadGeneration) || next.some(value => !Number.isSafeInteger(value))) throw new Error("Deployment generation exhausted");
   record.stages.forEach((stage, index) => { stage.nodeGeneration = next[index]!; });
   record.loadGeneration = loadGeneration;
+  record.sessionProof = null;
   record.reports = record.stages.map(stage => ({ stageId: stage.id, state: "pending", detail: "", failureDetail: "", loadRequested: false, telemetry: null, updatedAt: new Date(now).toISOString() }));
 }

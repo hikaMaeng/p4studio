@@ -7,14 +7,21 @@ const finite = z.number().finite().nonnegative();
 export const inferenceRunInputSchema = z.object({
   modelId: identifier,
   prompt: z.string().trim().min(1).max(131072).refine(value => !value.includes("\0")),
-  concurrency: z.number().int().min(1).max(65536),
-  repetitions: z.number().int().min(1).max(1000),
+  concurrency: z.number().int().min(1),
+  repetitions: z.number().int().min(1),
   intervalMs: z.number().int().min(0).max(86400000),
   // P4 combines prompt and generated tokens in one finite per-sequence
   // context. Studio therefore always sends an explicit, positive output cap.
   maxTokens: z.number().int().min(1).max(0xffff_ffff),
 });
 export type InferenceRunInput = z.infer<typeof inferenceRunInputSchema>;
+
+export const inferenceRunSettingsSchema = z.object({
+  concurrency: z.number().int().min(1),
+  repetitions: z.number().int().min(1),
+  intervalMs: z.number().int().min(0).max(86400000),
+  maxTokens: z.number().int().min(1).max(0xffff_ffff),
+});
 
 export const inferenceRequestSchema = z.object({
   id: identifier,
@@ -211,6 +218,8 @@ export const inferenceRunSchema = z.object({
   completed: nonNegative,
   createdAt: z.string(),
   error: z.string().nullable(),
+  // Optional so browser-local history written before settings were recorded stays readable.
+  settings: inferenceRunSettingsSchema.optional(),
   nUbatch: nonNegative.default(0),
   monitoring: z.array(inferenceMonitoringSchema).default([]),
   monitoringSummary: inferenceMonitoringSummarySchema.nullable().default(null),

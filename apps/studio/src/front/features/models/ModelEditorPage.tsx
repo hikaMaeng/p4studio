@@ -37,7 +37,7 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
         <Button variant="outlined" size="small" onClick={close}>{t[RSC.MODELS_BACK_BUTTON]}</Button>
         <Box sx={{ flex: 1, minWidth: 140 }}>
           <Typography variant="caption" color="text.secondary">{t[RSC.MODELS_EDITOR_TITLE_TEXT]}</Typography>
-          <Typography component="h1" sx={{ fontSize: 18, lineHeight: 1.4, fontWeight: 600, overflowWrap: "anywhere" }}>{value.name || t[RSC.MODELS_CREATE_BUTTON]}</Typography>
+          <Typography component="h1" sx={{ fontSize: 18, lineHeight: 1.4, fontWeight: 500, overflowWrap: "anywhere" }}>{value.name || t[RSC.MODELS_CREATE_BUTTON]}</Typography>
         </Box>
         <Button size="small" variant="outlined" aria-expanded={generalOpen} aria-controls="model-general-settings" onClick={() => setGeneralOpen(!generalOpen)}>{t[RSC.MODELS_GENERAL_TEXT]}</Button>
         <Button size="small" variant="contained" disabled={activity.busy} type="submit">{t[RSC.MODELS_SAVE_BUTTON]}</Button>
@@ -49,7 +49,7 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
         <PlacementCanvas snapshot={snapshot} />
         {panelOpen && <Paper component="aside" data-testid="model-node-inspector" aria-label={t[RSC.MODELS_NODE_LABEL]} variant="outlined" onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); dismiss(); } }} sx={{ position: "absolute", insetInlineEnd: 12, top: 12, bottom: 12, width: { xs: "calc(100% - 24px)", sm: 380 }, maxWidth: "calc(100% - 24px)", zIndex: 5, boxShadow: 8, display: "flex", flexDirection: "column", overflow: "hidden", ...inspectorStyle }}>
           <Box sx={{ px: 1.5, py: 1, display: "flex", alignItems: "center", gap: 1, borderBottom: "1px solid", borderColor: "divider" }}>
-            <Typography component="h2" sx={{ flex: 1, fontSize: 13, fontWeight: 600, overflowWrap: "anywhere" }}>{value.stages[selected]?.nodeId ?? node?.nodeId}</Typography>
+            <Typography component="h2" sx={{ flex: 1, fontSize: 13, fontWeight: 500, overflowWrap: "anywhere" }}>{value.stages[selected]?.nodeId ?? node?.nodeId}</Typography>
             <Button size="small" onClick={dismiss}>{t[RSC.MODELS_PANEL_CLOSE_BUTTON]}</Button>
           </Box>
           <Box sx={{ p: 1.5, display: "grid", gap: 1.5, overflowY: "auto", minHeight: 0 }}>

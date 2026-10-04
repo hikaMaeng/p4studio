@@ -3,6 +3,10 @@ import type { DeploymentRecord, StageReport } from "../../../common/protocol/dep
 
 /** See docs/api.md#model-refresh. Current agents report the held load generation; older ones report none. */
 export function reconcileDeployment(record: DeploymentRecord, observations: Map<string, P4AgentSnapshot | Error>, checkedAt: string): void {
+  const proof = record.sessionProof;
+  const proofMatches = !!proof && proof.loadGeneration === record.loadGeneration
+    && proof.stageIds.length === record.stages.length
+    && record.stages.every(stage => proof.stageIds.includes(stage.id));
   record.reports = record.stages.map(stage => {
     const previous = record.reports.find(value => value.stageId === stage.id);
     const snapshot = observations.get(stage.agentId);
@@ -34,7 +38,7 @@ export function reconcileDeployment(record: DeploymentRecord, observations: Map<
             // The node generation identifies this exact accepted LOAD.  Unlike
             // an adapter's legacy `loaded` string, the lifecycle terminal is a
             // supervised completion whose node identity is validated above.
-            report.state = "ready"; report.loadOutcome = "succeeded"; report.resourceState = "present";
+            report.state = proofMatches ? "ready" : "loaded"; report.loadOutcome = "succeeded"; report.resourceState = "present";
           }
           if (node.lifecycleState === "failed") { report.state = "failed"; observation.detail = result?.first_error ?? "Node lifecycle failed"; }
           if (result?.cleanup_error) report.cleanupError = result.cleanup_error;
@@ -61,7 +65,8 @@ export function reconcileDeployment(record: DeploymentRecord, observations: Map<
     report.detail = observation.detail;
     return report;
   });
-  record.status = record.reports.length && record.reports.every(value => value.state === "ready") ? "ready"
+  record.status = record.reports.length && record.reports.every(value => value.state === "ready") && proofMatches ? "ready"
+    : record.reports.length && record.reports.every(value => value.state === "loaded") ? "loaded"
     : record.reports.length && record.reports.every(value => value.state === "unloaded") ? "unloaded"
       : record.reports.some(value => value.state === "unknown") || !record.reports.length ? "unknown" : "failed";
   if (record.status === "unloaded" && record.loadGeneration === 0) record.status = "draft";

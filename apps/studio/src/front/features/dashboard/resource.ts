@@ -1,4 +1,7 @@
 export enum RSC {
+  DASHBOARD_TITLE_TEXT = "dashboard.title.text",
+  DASHBOARD_REFRESH_BUTTON = "dashboard.refresh.button",
+  DASHBOARD_REGISTER_BUTTON = "dashboard.register.button",
   DASHBOARD_METRIC_NODES_UNKNOWN_TEXT = "dashboard.metric.nodes.unknown.text",
   DASHBOARD_METRIC_AGENTS_TEXT = "dashboard.metric.agents.text",
   DASHBOARD_METRIC_AGENTS_DETAIL_MESSAGE = "dashboard.metric.agents.detail.message",

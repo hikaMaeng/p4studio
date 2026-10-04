@@ -16,6 +16,7 @@ export const nodeLabelListSchema = z.object({ labels: z.array(nodeLabelSchema) }
 export type NodeLabelList = z.infer<typeof nodeLabelListSchema>;
 export const agentObservationInputSchema = z.object({
   observedAt: z.iso.datetime({ offset: true }),
+  latencyMs: z.number().int().nonnegative().optional(),
   snapshot: z.record(z.string(), z.unknown()),
 });
 export type AgentObservationInput = z.infer<typeof agentObservationInputSchema>;

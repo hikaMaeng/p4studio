@@ -25,7 +25,10 @@ export const deploymentInputSchema = z.object({
 });
 export type DeploymentInput = z.infer<typeof deploymentInputSchema>;
 export type PlacementStage = z.infer<typeof stageSchema>;
-export const stageStateSchema = z.enum(["pending", "creating", "loading", "ready", "unloading", "unloaded", "failed", "unknown"]);
+/** Persisted only after every stage answers SESSION_READY for the same generation and session; see docs/api.md#session-proof. */
+export const sessionProofSchema = z.object({ sessionId: text, loadGeneration: positive, stageIds: z.array(text).max(128), checkedAt: text });
+export type SessionProof = z.infer<typeof sessionProofSchema>;
+export const stageStateSchema = z.enum(["pending", "creating", "loading", "loaded", "ready", "unloading", "unloaded", "failed", "unknown"]);
 export type StageState = z.infer<typeof stageStateSchema>;
 export const reportSchema = z.object({ stageId: z.string(), state: stageStateSchema, detail: z.string(), failureDetail: z.string().default(""), loadRequested: z.boolean().default(false), updatedAt: z.string(), telemetry: z.unknown(),
   loadOutcome: z.enum(["succeeded", "rejected", "failed", "unknown"]).optional(),
@@ -36,22 +39,24 @@ export const reportSchema = z.object({ stageId: z.string(), state: stageStateSch
 });
 export type StageReport = z.infer<typeof reportSchema>;
 export const deploymentSchema = deploymentInputSchema.extend({
-  id: text, status: z.enum(["draft", "loading", "ready", "unloading", "unloaded", "failed", "unknown"]),
+  id: text, status: z.enum(["draft", "loading", "loaded", "ready", "unloading", "unloaded", "failed", "unknown"]),
   loadGeneration: z.number().int().min(0), operationId: z.string(), error: z.string(),
-  reports: z.array(reportSchema), resolvedAddresses: z.record(z.string(), z.string()).default({}), createdAt: z.string(), updatedAt: z.string(),
+  reports: z.array(reportSchema), sessionProof: sessionProofSchema.nullable().default(null), resolvedAddresses: z.record(z.string(), z.string()).default({}), createdAt: z.string(), updatedAt: z.string(),
 });
 export type DeploymentRecord = z.infer<typeof deploymentSchema>;
 export const deploymentReceiptSchema = z.object({
+  expectedUpdatedAt: text,
   stageGenerations: z.record(z.string(), positive).optional(),
   status: deploymentSchema.shape.status,
   loadGeneration: deploymentSchema.shape.loadGeneration,
   operationId: deploymentSchema.shape.operationId,
   error: deploymentSchema.shape.error,
   reports: deploymentSchema.shape.reports,
+  sessionProof: sessionProofSchema.nullable().optional(),
   resolvedAddresses: deploymentSchema.shape.resolvedAddresses,
 });
 export type DeploymentReceipt = z.infer<typeof deploymentReceiptSchema>;
-export const deploymentReconciliationSchema = deploymentReceiptSchema.extend({ expectedUpdatedAt: z.string() });
+export const deploymentReconciliationSchema = deploymentReceiptSchema;
 export const deploymentRoutes = {
   list: { path: "/api/model-deployments", method: "GET" },
   create: { path: "/api/model-deployments", method: "POST" },

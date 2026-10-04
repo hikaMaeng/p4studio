@@ -57,9 +57,9 @@ function transport(mutate?: (event: P4Event, metadata: LifecycleResultMetadata) 
 const run = (record: DeploymentRecord, wire: BrowserOwnedDeploymentTransport, action: "load" | "unload" = "load") => runBrowserDeployment(record, action, addresses, wire, async () => {});
 const reject = (metadata: LifecycleResultMetadata, resource: "absent" | "present" | "unknown" = "present") => Object.assign(metadata, { status: "rejected", resource_state: resource, adapter_content_type: metadata.operation, first_error: "busy or occupied" });
 
-it("creates nodes with LOAD, confirms every stage, then removes them with UNLOAD", async () => {
+it("records LOAD without claiming SESSION readiness, then removes every stage with UNLOAD", async () => {
   const record = model(), wire = transport();
-  await run(record, wire); expect(record.status).toBe("ready"); expect(canStartDeployment(record)).toBe(false);
+  await run(record, wire); expect(record.status).toBe("loaded"); expect(record.sessionProof).toBeNull(); expect(canAttemptInference(record)).toBe(true); expect(canStartDeployment(record)).toBe(false);
   expect(wire.calls[0]?.capacities).toMatchObject({ queue_capacity: 65536, retained_bytes: 268435456 });
   await run(record, wire, "unload"); expect(record.status).toBe("unloaded");
   expect(wire.calls.map(c => `${c.action}:${c.node}`)).toEqual(["load:n0", "load:n1", "load:n2", "unload:n2", "unload:n1", "unload:n0"]);
@@ -130,7 +130,7 @@ it("rolls back all loaded stages after build incompatibility", async () => {
 });
 it("recovers owned resources even if saving the loaded receipt fails", async () => {
   const record = model(), wire = transport();
-  await runBrowserDeployment(record, "load", addresses, wire, async () => { if (record.reports[0]?.state === "ready") throw new Error("storage unavailable"); });
+  await runBrowserDeployment(record, "load", addresses, wire, async () => { if (record.reports[0]?.state === "loaded") throw new Error("storage unavailable"); });
   expect(wire.calls.map(c => c.action)).toEqual(["load", "unload"]);
   expect(record.reports[0]?.resourceState).toBe("absent"); expect(record.error).toContain("storage unavailable");
 });
