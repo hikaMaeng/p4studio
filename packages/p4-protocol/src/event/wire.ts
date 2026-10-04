@@ -11,6 +11,12 @@ export type P4Event = {
 };
 export const MAX_EVENT_BYTES = 8 * 1024 * 1024;
 
+/** Ends one P4 TCP event connection after its pending response has been read. */
+export function finishP4ConnectionFrame(): Uint8Array {
+  // P4 event-v3 uses an empty length-prefixed frame as connection-scoped FINISH.
+  return new Uint8Array(4);
+}
+
 /** Frames one encoded P4 event for its TCP transport. */
 export function frameP4Event(event: Uint8Array): Uint8Array {
   if (event.byteLength === 0 || event.byteLength > MAX_EVENT_BYTES) throw new Error("Invalid P4 event frame size");
@@ -24,14 +30,14 @@ export function frameP4Event(event: Uint8Array): Uint8Array {
 export class P4FrameReader {
   private buffered = new Uint8Array();
 
-  push(chunk: Uint8Array): Uint8Array[] {
+  push(chunk: Uint8Array, allowFinish = false): Uint8Array[] {
     const combined = new Uint8Array(this.buffered.byteLength + chunk.byteLength);
     combined.set(this.buffered); combined.set(chunk, this.buffered.byteLength);
     const events: Uint8Array[] = [];
     let offset = 0;
     while (combined.byteLength - offset >= 4) {
       const size = new DataView(combined.buffer, combined.byteOffset + offset, 4).getUint32(0, true);
-      if (size === 0 || size > MAX_EVENT_BYTES) throw new Error("Invalid P4 event frame size");
+      if ((size === 0 && !allowFinish) || size > MAX_EVENT_BYTES) throw new Error("Invalid P4 event frame size");
       if (combined.byteLength - offset < size + 4) break;
       events.push(combined.slice(offset + 4, offset + size + 4));
       offset += size + 4;

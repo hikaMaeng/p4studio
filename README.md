@@ -1,5 +1,7 @@
 # P4 Studio
 
+[연결 회수 수정 계획](tests/plans/connection-teardown-20261005.md) · [조사·검증 기록](tests/reports/connection-teardown/20261005_042300.md): browser FINISH/ACK, 단절 fallback, 종료 drain과 P4 실제 연결 회귀. 운영 배포·모델 수용은 별도다.
+
 P4 에이전트와 모델·노드·파이프라인 지식을 관리하는 독립 웹 콘솔이다.
 
 | Topic | Path |

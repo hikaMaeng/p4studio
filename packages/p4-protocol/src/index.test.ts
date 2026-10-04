@@ -19,4 +19,10 @@ describe("P4 public boundary", () => {
     expect(reader.push(all.slice(2, 8))).toEqual([new Uint8Array([1, 2, 3])]);
     expect(reader.push(all.slice(8))).toEqual([new Uint8Array([4, 5])]);
   });
+  it("accepts a zero-length ACK only during explicit FINISH, across split chunks", () => {
+    expect(() => new P4FrameReader().push(new Uint8Array(4))).toThrow();
+    const reader = new P4FrameReader();
+    expect(reader.push(new Uint8Array(2), true)).toEqual([]);
+    expect(reader.push(new Uint8Array(2), true)).toEqual([new Uint8Array(0)]);
+  });
 });

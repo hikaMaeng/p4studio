@@ -47,5 +47,9 @@ export class BrowserP4Reception {
     this.listeners.add(listener); return () => { this.listeners.delete(listener); };
   }
   recover() { this.connections.forEach(connection => connection.close()); this.connections.clear(); }
-  close() { this.closed = true; this.connections.forEach(connection => connection.close()); this.connections.clear(); this.listeners.clear(); }
+  async close() {
+    this.closed = true;
+    const connections = [...this.connections.values()]; this.connections.clear(); this.listeners.clear();
+    return (await Promise.all(connections.map(connection => connection.close()))).every(Boolean);
+  }
 }

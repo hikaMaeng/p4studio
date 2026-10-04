@@ -13,3 +13,6 @@ npm run build
 노드 수명: [검증계획](../tests/plans/node-lifecycle-20260916.md), [계약과 증거 경계](node-lifecycle.md).
 
 - [노드 수명 검증 결과](../tests/reports/node-lifecycle/20260916_120900.md)
+
+
+[연결 회수 계획](../tests/plans/connection-teardown-20261005.md) · [검증 기록](../tests/reports/connection-teardown/20261005_042300.md): `test/connection-teardown.mjs`는 명시한 테스트 소유 P4 바이너리와 실제 Chromium/bridge를 사용해20회 INSPECT/FINISH ACK와 PID별 잔여0을 단언한다. 배포된 제품 UI나 모델 실기 수용을 대체하지 않는다.

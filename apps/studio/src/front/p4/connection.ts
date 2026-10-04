@@ -2,6 +2,7 @@ import {
   decodeP4Event,
   encodeP4Event,
   frameP4Event,
+  finishP4ConnectionFrame,
   P4FrameReader,
   P4_DELIVERY_FAILURE_CONTENT_TYPE,
   parseP4DeliveryFailure,
@@ -28,6 +29,8 @@ export class BrowserP4Connection {
   private pending: Pending | undefined;
   private opened = false;
   private stopped = false;
+  private closing: Promise<boolean> | undefined;
+  private finishClose: ((acknowledged: boolean) => void) | undefined;
   private sequence = 0;
   private readonly seen = new Set<string>();
   private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
@@ -41,8 +44,8 @@ export class BrowserP4Connection {
     this.socket = new WebSocket(`${protocol}://${location.host}${P4_TUNNEL_PATH}`);
     this.socket.binaryType = "arraybuffer";
     this.socket.addEventListener("message", event => this.receive(event.data, performance.now()));
-    this.socket.addEventListener("close", () => this.fail(new UncertainDelivery("P4 bridge closed before completion")));
-    this.socket.addEventListener("error", () => this.fail(new UncertainDelivery("P4 bridge transport failed")));
+    this.socket.addEventListener("close", () => { this.finishClose?.(false); this.fail(new UncertainDelivery("P4 bridge closed before completion")); });
+    this.socket.addEventListener("error", () => { this.finishClose?.(false); this.fail(new UncertainDelivery("P4 bridge transport failed")); });
     this.socket.addEventListener("open", () => this.socket.send(JSON.stringify({ type: "open", connectionId: this.operationId, agentId })));
   }
 
@@ -83,22 +86,40 @@ export class BrowserP4Connection {
 
   onEvent(listener: (event: P4Event, receivedAtMs: number) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
 
-  close() {
+  close(): Promise<boolean> {
+    if (this.closing) return this.closing;
     this.stopped = true;
-    if (this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: "close", connectionId: this.operationId }));
-    this.socket.close();
+    const pending = this.pending; this.pending = undefined;
+    if (pending) { window.clearTimeout(pending.timer); pending.reject(new UncertainDelivery("P4 operation closed before completion")); }
+    this.closing = new Promise(resolve => {
+      const timer = window.setTimeout(() => this.finishClose?.(false), 30_000);
+      this.finishClose = acknowledged => {
+        this.finishClose = undefined; window.clearTimeout(timer);
+        if (this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: "close", connectionId: this.operationId }));
+        this.socket.close(); resolve(acknowledged);
+      };
+      if (!this.opened || this.socket.readyState !== WebSocket.OPEN) { this.finishClose(false); return; }
+      // The browser owns retirement: consume the transport ACK before closing
+      // its WebSocket. This acknowledges no model/request/KV settlement.
+      try { this.send(finishP4ConnectionFrame()); }
+      catch { this.finishClose?.(false); }
+    });
+    return this.closing;
   }
 
   private receive(data: unknown, receivedAtMs: number) {
     if (typeof data === "string") {
-      try { const message = parseP4TunnelServerControl(JSON.parse(data)); if (message.type !== "opened") this.fail(new UncertainDelivery(message.detail)); } catch { /* invalid text does not alter P4 byte state */ }
+      try { const message = parseP4TunnelServerControl(JSON.parse(data)); if (message.type !== "opened") { this.finishClose?.(false); this.fail(new UncertainDelivery(message.detail)); } } catch { /* invalid text does not alter P4 byte state */ }
       return;
     }
     try {
       if (!(data instanceof ArrayBuffer)) throw new Error("P4 bridge delivered a non-binary WebSocket message");
       const bytes = new Uint8Array(data);
-      for (const frame of this.reader.push(bytes)) this.match(decodeP4Event(frame), receivedAtMs);
-    } catch (error) { this.fail(new UncertainDelivery(error instanceof Error ? error.message : String(error))); }
+      for (const frame of this.reader.push(bytes, this.stopped)) {
+        if (frame.byteLength === 0) this.finishClose?.(true);
+        else if (!this.stopped) this.match(decodeP4Event(frame), receivedAtMs);
+      }
+    } catch (error) { this.finishClose?.(false); this.fail(new UncertainDelivery(error instanceof Error ? error.message : String(error))); }
   }
 
   private match(event: P4Event, receivedAtMs: number) {
@@ -143,9 +164,8 @@ export class BrowserP4Connection {
 
   private fail(error: Error) {
     if (this.stopped) return;
-    this.stopped = true;
     const pending = this.pending; this.pending = undefined;
     if (pending) { window.clearTimeout(pending.timer); pending.reject(error); }
-    this.socket.close();
+    void this.close();
   }
 }

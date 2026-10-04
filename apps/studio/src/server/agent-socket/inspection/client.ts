@@ -6,6 +6,7 @@ import {
   decodeAgentInspectionResponse,
   encodeAgentInspectionRequest,
 } from "@p4studio/p4-protocol";
+import { finishP4Socket } from "../finish.js";
 import type { AgentInspectionAttempt } from "./types.js";
 import { availableObservation, errorObservation } from "./types.js";
 
@@ -39,10 +40,21 @@ export const inspectAgent = (
     let received = Buffer.alloc(0);
     let expectedLength: number | null = null;
 
+    const closeP4Connection = () => {
+      if (connectedAt === null || socket.destroyed || socket.writableEnded) {
+        socket.destroy();
+        return;
+      }
+      // The agent keeps the reply writer bound to this route until it receives
+      // an explicit connection-scoped FINISH. Destroying a timed-out or
+      // completed inspection socket leaves the agent holding a CLOSE_WAIT
+      // writer and eventually prevents fresh inspections from being admitted.
+      void finishP4Socket(socket);
+    };
     const finish = (attempt: AgentInspectionAttempt) => {
       if (settled) return;
       settled = true;
-      socket.destroy();
+      closeP4Connection();
       resolve(attempt);
     };
     const protocolFailure = (message: string) =>

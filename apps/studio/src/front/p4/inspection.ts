@@ -12,5 +12,5 @@ export async function inspectGraphAgent(agent: GraphAgent, topology?: GraphAgent
   try {
     const response = await connection.exchange({ kind: "agent", address }, null, P4_AGENT_INSPECT_CONTENT_TYPE, {}, [P4_AGENT_SNAPSHOT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE], 10_000);
     return decodeAgentInspectionResponse(encodeP4Event(response), connection.operationId);
-  } finally { connection.close(); }
+  } finally { await connection.close(); }
 }

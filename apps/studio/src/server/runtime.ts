@@ -15,8 +15,11 @@ export const startRuntime = (env: StudioEnv) => {
     console.log(`p4studio status=ready port=${env.P4STUDIO_PORT} database=${env.P4STUDIO_SQLITE_PATH}`);
   });
   const stopBridge = attachBrowserP4Bridge(server, database);
-  const stop = () => {
-    stopBridge();
+  let stopping = false;
+  const stop = async () => {
+    if (stopping) return;
+    stopping = true;
+    await stopBridge();
     stopTunnels();
     server.close(() => { database.close(); process.exit(0); });
   };

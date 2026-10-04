@@ -17,6 +17,8 @@ services:
       - studio-data:/app/data
       - ./apps/studio/docker/volumes/ssh:/run/studio-ssh:ro
     init: true
+    # Allow the 30s P4 FINISH deadline to close sockets before Docker kills Node.
+    stop_grace_period: 35s
     networks:
       - studio-control
     restart: unless-stopped

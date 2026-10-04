@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "binary": "C:\\Users\\hika0\\.codex\\worktrees\\connection-teardown\\p4\\target\\debug\\p4-agent.exe",
+  "binarySha256": "7f6121d02cf70ff37c4cb3b5be315f3571b6edf6de349a8b21969b6e3c2f5a32",
+  "url": "http://127.0.0.1:54220",
+  "inspections": 20,
+  "errors": [],
+  "census": [
+    {
+      "phase": "before",
+      "established": 0,
+      "listeners": 1,
+      "closewait": 0
+    },
+    {
+      "phase": "after",
+      "established": 0,
+      "listeners": 1,
+      "closewait": 0
+    }
+  ],
+  "cleanup": {
+    "established": 0,
+    "listeners": 0,
+    "closewait": 0
+  }
+}

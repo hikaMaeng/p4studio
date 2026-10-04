@@ -1,0 +1,102 @@
+
+> p4studio-root@0.1.0 test
+> turbo run test
+
+• turbo 2.10.12
+
+   • Packages in scope: @p4studio/p4-protocol, @p4studio/studio, @p4studio/studio_domain
+   • Running test in 3 packages
+   • Remote caching disabled, using shared worktree cache
+
+@p4studio/p4-protocol:build: cache miss, executing 7c22e75198c26ae0
+@p4studio/p4-protocol:test: cache hit, replaying logs f83783a911d2c4be
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:test: > @p4studio/p4-protocol@0.1.0 test
+@p4studio/p4-protocol:test: > vitest run src
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:test:  RUN  v5.0.0 F:/dev/p4studio-connection-teardown/packages/p4-protocol
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:test:  ✓ src/event/lifecycle.test.ts (12 tests) 8ms
+@p4studio/p4-protocol:test:  ✓ src/event/agent-inspection.test.ts (8 tests) 8ms
+@p4studio/p4-protocol:test:  ✓ src/index.test.ts (4 tests) 5ms
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:test:  Test Files  3 passed (3)
+@p4studio/p4-protocol:test:       Tests  24 passed (24)
+@p4studio/p4-protocol:test:    Start at  04:12:13
+@p4studio/p4-protocol:test:    Duration  284ms (transform 65%, import 23%, tests 7%, worker 4%)
+@p4studio/p4-protocol:test: 
+@p4studio/p4-protocol:build: 
+@p4studio/p4-protocol:build: > @p4studio/p4-protocol@0.1.0 build
+@p4studio/p4-protocol:build: > tsc -p tsconfig.json
+@p4studio/p4-protocol:build: 
+@p4studio/studio_domain:test: cache miss, executing f5141c5f311cbe44
+@p4studio/studio_domain:build: cache miss, executing 8e9fc15d3c7d745e
+@p4studio/studio_domain:test: 
+@p4studio/studio_domain:test: > @p4studio/studio_domain@0.1.0 test
+@p4studio/studio_domain:test: > vitest run src
+@p4studio/studio_domain:test: 
+@p4studio/studio_domain:build: 
+@p4studio/studio_domain:build: > @p4studio/studio_domain@0.1.0 build
+@p4studio/studio_domain:build: > tsc -p tsconfig.json
+@p4studio/studio_domain:build: 
+@p4studio/studio_domain:test: 
+@p4studio/studio_domain:test:  RUN  v5.0.0 F:/dev/p4studio-connection-teardown/packages/studio_domain
+@p4studio/studio_domain:test: 
+@p4studio/studio:test: cache miss, executing 13772580feefbdf8
+@p4studio/studio_domain:test:  ✓ src/front/model/inference/store.test.ts (1 test) 65ms
+@p4studio/studio_domain:test:  ✓ src/front/model/inference/telemetry.test.ts (2 tests) 9ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/inference/telemetry.test.ts (11 tests) 18ms
+@p4studio/studio_domain:test:  ✓ src/front/model/modelRender.test.ts (1 test) 3ms
+@p4studio/studio_domain:test:  ✓ src/front/model/inference/timing.test.ts (6 tests) 5ms
+@p4studio/studio_domain:test:  ✓ src/front/model/agents/removal.test.ts (2 tests) 5ms
+@p4studio/studio_domain:test:  ✓ src/front/model/inference/monitoring-summary.test.ts (7 tests) 11ms
+@p4studio/studio_domain:test:  ✓ src/front/model/deployments/reconcile.test.ts (14 tests) 11ms
+@p4studio/studio_domain:test:  ✓ src/front/model/inference/observability.test.ts (10 tests) 18ms
+@p4studio/studio_domain:test:  ✓ src/server/deployments/plan.test.ts (4 tests) 5ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/deployments/resource-profile.test.ts (5 tests) 5ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/inference/input.test.ts (2 tests) 5ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/inference/run-settings.test.ts (2 tests) 7ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/inference/output.test.ts (6 tests) 10ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/agent-groups/routing.test.ts (1 test) 4ms
+@p4studio/studio_domain:test:  ✓ src/front/model/graph-inventory/store.test.ts (2 tests) 7ms
+@p4studio/studio_domain:test:  ✓ src/server/deployments/presets.test.ts (6 tests) 22ms
+@p4studio/studio_domain:test:  ✓ src/common/protocol/deployments/runtime.test.ts (21 tests) 32ms
+@p4studio/studio_domain:test: 
+@p4studio/studio_domain:test:  Test Files  18 passed (18)
+@p4studio/studio_domain:test:       Tests  103 passed (103)
+@p4studio/studio_domain:test:    Start at  04:25:22
+@p4studio/studio_domain:test:    Duration  575ms (transform 49%, import 41%, tests 7%, worker 3%)
+@p4studio/studio_domain:test: 
+@p4studio/studio:test: 
+@p4studio/studio:test: > @p4studio/studio@0.1.0 test
+@p4studio/studio:test: > vitest run --config vitest.config.ts
+@p4studio/studio:test: 
+@p4studio/studio:test: 
+@p4studio/studio:test:  RUN  v5.0.0 F:/dev/p4studio-connection-teardown/apps/studio
+@p4studio/studio:test: 
+@p4studio/studio:test:  ✓ src/front/features/inference/pagination.test.ts (1 test) 4ms
+@p4studio/studio:test:  ✓ src/front/features/inference/prompt.test.ts (4 tests) 4ms
+@p4studio/studio:test:  ✓ src/front/shell/routes.test.ts (3 tests) 4ms
+@p4studio/studio:test:  ✓ src/server/agent-socket/routes.test.ts (1 test) 28ms
+@p4studio/studio:test:  ✓ src/server/agent-socket/finish.test.ts (1 test) 71ms
+@p4studio/studio:test:  ✓ src/server/agent-socket/inspection/client.test.ts (1 test) 85ms
+@p4studio/studio:test:  ✓ src/front/p4/connection.test.ts (4 tests) 38ms
+@p4studio/studio:test:  ✓ src/server/agent-socket/browser-bridge.test.ts (6 tests) 95ms
+@p4studio/studio:test:  ✓ src/front/p4/reception.test.ts (6 tests) 59ms
+@p4studio/studio:test:  ✓ src/server/api/agent-removal.test.ts (3 tests) 64ms
+@p4studio/studio:test:  ✓ src/server/api/agent-groups.test.ts (1 test) 84ms
+@p4studio/studio:test:  ✓ src/server/api/graph-inventory.test.ts (3 tests) 88ms
+@p4studio/studio:test:  ✓ src/server/api/deployments.test.ts (1 test) 101ms
+@p4studio/studio:test:  ✓ src/server/app.test.ts (12 tests) 594ms
+@p4studio/studio:test: 
+@p4studio/studio:test:  Test Files  14 passed (14)
+@p4studio/studio:test:       Tests  47 passed (47)
+@p4studio/studio:test:    Start at  04:25:23
+@p4studio/studio:test:    Duration  1.32s (import 47%, transform 29%, tests 23%, worker 1%)
+@p4studio/studio:test: 
+
+ Tasks:    5 successful, 5 total
+Cached:    1 cached, 5 total
+  Time:    4.242s 
+
