@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "历史记录",
   "inference.title.text": "运行推理",
   "inference.history.title.text": "推理记录",
+  "inference.history.agents.label": "代理",
+  "inference.history.rowSummary.text": "完成 {progress} · {tokens} 令牌 · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "已就绪模型 {count} 个",
   "inference.model.label": "Model",
   "inference.concurrency.label": "Concurrent requests",

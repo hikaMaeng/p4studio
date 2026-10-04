@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "기록",
   "inference.title.text": "질의 실행",
   "inference.history.title.text": "질의 기록",
+  "inference.history.agents.label": "에이전트",
+  "inference.history.rowSummary.text": "{progress} 완료 · 토큰 {tokens} · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "준비 모델 {count}개",
   "inference.model.label": "모델",
   "inference.concurrency.label": "동시 질의 수",

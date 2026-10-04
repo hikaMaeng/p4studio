@@ -1,6 +1,8 @@
 export enum RSC {
   INFERENCE_TITLE_TEXT = "inference.title.text",
   INFERENCE_HISTORY_TITLE_TEXT = "inference.history.title.text",
+  INFERENCE_HISTORY_AGENTS_LABEL = "inference.history.agents.label",
+  INFERENCE_HISTORY_ROW_SUMMARY_TEXT = "inference.history.rowSummary.text",
   INFERENCE_READY_COUNT_TEXT = "inference.ready.count.text",
   INFERENCE_MODEL_LABEL = "inference.model.label",
   INFERENCE_CONCURRENCY_LABEL = "inference.concurrency.label",

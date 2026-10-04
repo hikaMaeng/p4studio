@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "Historique",
   "inference.title.text": "Exécuter l’inférence",
   "inference.history.title.text": "Historique d’inférence",
+  "inference.history.agents.label": "Agents",
+  "inference.history.rowSummary.text": "{progress} terminées · {tokens} jetons · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "{count} modèles prêts",
   "inference.model.label": "Model",
   "inference.concurrency.label": "Concurrent requests",

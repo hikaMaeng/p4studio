@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "History",
   "inference.title.text": "Run inference",
   "inference.history.title.text": "Inference history",
+  "inference.history.agents.label": "Agents",
+  "inference.history.rowSummary.text": "{progress} complete · {tokens} tokens · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "{count} models ready",
   "inference.model.label": "Model",
   "inference.concurrency.label": "Concurrent requests",

@@ -152,7 +152,39 @@ function StageSummary({ summary }: { summary: InferenceMonitoringSummary }) {
 
 function HistoryListPage({ onOpen }: { onOpen: (runId: string) => void }) {
   const { t } = useTranslation(); const runs = useModel(inference.runs).value;
-  return <Box sx={{ display: "grid", gap: 1.5 }}>{runs.length === 0 ? <Paper variant="outlined" sx={{ p: 2 }}><Typography color="text.secondary">{t[RSC.INFERENCE_HISTORY_EMPTY_MESSAGE]}</Typography></Paper> : <Box component="section" aria-label={t[RSC.INFERENCE_HISTORY_LIST_LABEL]} sx={{ display: "grid", gap: 1.5 }}>{runs.map(run => { const summary = monitoringSummaryFor(run); const question = run.requests[0]?.prompt || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT]; return <Paper component="article" data-testid="inference-history-row" key={run.id} variant="outlined" sx={{ p: 2 }}><Box sx={{ display: "flex", alignItems: "start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}><Box sx={{ minWidth: 0 }}><Typography>{run.modelName}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", overflowWrap: "anywhere" }}>{run.id}</Typography><Typography variant="caption" color="text.secondary">{new Date(run.createdAt).toLocaleString()}</Typography><Box sx={{ mt: .75 }}><Chip size="small" label={t[runState[run.state] ?? RSC.INFERENCE_UNKNOWN_STATUS]} /></Box></Box><Button onClick={() => onOpen(run.id)}>{t[RSC.INFERENCE_HISTORY_OPEN_BUTTON]}</Button></Box><Box sx={{ mt: 1.5 }}><Typography variant="caption" color="text.secondary">{t[RSC.INFERENCE_QUESTION_LABEL]}</Typography><Typography data-testid="inference-history-question" sx={{ mt: .25, lineHeight: 1.4, overflowWrap: "anywhere", overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3 }}>{question}</Typography></Box><Box sx={{ mt: 2 }}><SummaryOverview run={run} summary={summary} /></Box></Paper>; })}</Box>}</Box>;
+  return <Box sx={{ minWidth: 0 }}>
+    {runs.length === 0 ? <Paper variant="outlined" sx={{ p: 2 }}><Typography color="text.secondary">{t[RSC.INFERENCE_HISTORY_EMPTY_MESSAGE]}</Typography></Paper> : <Box component="section" aria-label={t[RSC.INFERENCE_HISTORY_LIST_LABEL]} sx={{ display: "grid", gap: .6, minWidth: 0 }}>
+      {runs.map(run => {
+        const summary = monitoringSummaryFor(run);
+        const performance = requestMetrics(run);
+        const question = run.requests[0]?.prompt || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT];
+        const agentNames = [...new Set([
+          ...summary.stages.map(stage => stage.agentName),
+          ...run.requests.flatMap(request => request.telemetry.stages.map(stage => stage.agentName)),
+          ...run.monitoring.flatMap(snapshot => snapshot.agents.map(agent => agent.agentName)),
+        ])].sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" })).join(", ") || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT];
+        const rowSummary = formatMessage(t[RSC.INFERENCE_HISTORY_ROW_SUMMARY_TEXT], {
+          progress: `${run.completed}/${run.submitted}`,
+          tokens: performance.totalTokens,
+          ttft: metric(performance.ttftP50Ms, " ms"),
+          tps: metric(performance.finalTpsP50),
+        });
+        return <Box key={run.id} sx={{ minWidth: 0, overflowX: "auto" }}>
+          <Paper component="article" data-testid="inference-history-row" variant="outlined" sx={{ px: 1, py: .45, minWidth: 1008, overflow: "hidden" }}>
+          <Box sx={{ display: "grid", alignItems: "center", gap: .75, minWidth: 0, gridTemplateColumns: "76px 125px 190px minmax(155px, 1fr) minmax(215px, 1.4fr) 130px 76px" }}>
+            <Chip data-testid="inference-history-status" size="small" label={t[runState[run.state] ?? RSC.INFERENCE_UNKNOWN_STATUS]} color={run.state === "completed" ? "success" : ["failed", "unknown"].includes(run.state) ? "warning" : "default"} sx={{ justifySelf: "start", maxWidth: "100%", height: 21, fontSize: ".68rem", fontWeight: 400, "& .MuiChip-label": { px: .75 } }} />
+            <Typography data-testid="inference-history-agents" variant="caption" color="text.secondary" aria-label={t[RSC.INFERENCE_HISTORY_AGENTS_LABEL]} title={agentNames} noWrap sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", borderLeft: 1, borderColor: "divider", pl: .75, fontSize: ".7rem", fontWeight: 400 }}>{agentNames}</Typography>
+            <Button data-testid="inference-history-model" onClick={() => onOpen(run.id)} title={run.modelName} sx={{ typography: "body2", fontSize: ".76rem", lineHeight: 1.3, fontWeight: 400, width: "100%", justifyContent: "flex-start", minWidth: 0, p: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "text.primary", textTransform: "none", borderLeft: 1, borderColor: "divider", pl: .75, "&:hover": { bgcolor: "transparent", textDecoration: "underline" } }}>{run.modelName}</Button>
+            <Typography data-testid="inference-history-question" variant="caption" color="text.secondary" title={question} noWrap sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", borderLeft: 1, borderColor: "divider", pl: .75, fontSize: ".7rem", fontWeight: 400 }}>{question}</Typography>
+            <Typography data-testid="inference-history-summary" variant="caption" title={rowSummary} noWrap sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", borderLeft: 1, borderColor: "divider", pl: .75, fontSize: ".68rem", fontWeight: 400 }}>{rowSummary}</Typography>
+            <Typography variant="caption" color="text.secondary" title={new Date(run.createdAt).toLocaleString()} noWrap sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", borderLeft: 1, borderColor: "divider", pl: .75, fontSize: ".66rem", fontWeight: 400 }}>{new Date(run.createdAt).toLocaleString()}</Typography>
+            <Button data-testid="inference-history-open" size="small" onClick={() => onOpen(run.id)} sx={{ minWidth: 0, px: .5, fontSize: ".7rem", fontWeight: 400, whiteSpace: "nowrap" }}>{t[RSC.INFERENCE_HISTORY_OPEN_BUTTON]}</Button>
+          </Box>
+          </Paper>
+        </Box>;
+      })}
+    </Box>}
+  </Box>;
 }
 
 function HistoryDetailPage({ runId, onBack, onOpenRequest }: { runId: string; onBack: () => void; onOpenRequest: (requestId: string, runId: string) => void }) {

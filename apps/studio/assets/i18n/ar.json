@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "السجل",
   "inference.title.text": "تشغيل الاستدلال",
   "inference.history.title.text": "سجل الاستدلال",
+  "inference.history.agents.label": "الوكلاء",
+  "inference.history.rowSummary.text": "{progress} مكتمل · {tokens} رمز · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "نماذج جاهزة {count}",
   "inference.model.label": "Model",
   "inference.concurrency.label": "Concurrent requests",

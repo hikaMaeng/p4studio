@@ -319,6 +319,8 @@
   "shell.navigation.history.button": "इतिहास",
   "inference.title.text": "इन्फ़रेंस चलाएँ",
   "inference.history.title.text": "अनुमान इतिहास",
+  "inference.history.agents.label": "एजेंट",
+  "inference.history.rowSummary.text": "{progress} पूर्ण · {tokens} टोकन · TTFT p50 {ttft} · TPS p50 {tps}",
   "inference.ready.count.text": "{count} मॉडल तैयार",
   "inference.model.label": "Model",
   "inference.concurrency.label": "Concurrent requests",
