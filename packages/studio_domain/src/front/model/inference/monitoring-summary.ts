@@ -30,6 +30,8 @@ const stageSummary = (summary: InferenceMonitoringSummary, stage: StageIdentity)
     batchObservations: 0,
     stageSpans: 0,
     physicalBatches: 0,
+    capacityRows: 0,
+    fallbackCapacityRows: 0,
     mixedPhysicalBatches: 0,
     rows: 0,
     prefillRows: 0,
@@ -67,6 +69,10 @@ export function recordBatchSummary(run: InferenceRun, stage: StageIdentity, valu
   const firstObservation = target.batchObservations === 0;
   target.batchObservations += 1;
   target.physicalBatches += value.physical_batches.length;
+  const issueLimit = value.scheduling?.max_issue_rows ?? 0;
+  const capacityRows = issueLimit > 0 ? issueLimit : run.nUbatch;
+  target.capacityRows += capacityRows * value.physical_batches.length;
+  if (issueLimit <= 0) target.fallbackCapacityRows += capacityRows * value.physical_batches.length;
   // Wire meaning: physical batches mixing prefill and decode/verify/replay phases (phase-mixed), not multi-request.
   target.mixedPhysicalBatches += value.mixed_physical_batches;
   target.rows += total("rows");
@@ -104,6 +110,9 @@ const addProjectedBatch = (target: InferenceStageMonitoringSummary, batch: Infer
   const firstObservation = target.batchObservations === 0;
   target.batchObservations += 1;
   target.physicalBatches += batch.physicalBatchCount;
+  const scheduling = batch.scheduling && typeof batch.scheduling === "object" ? batch.scheduling as Record<string, unknown> : null;
+  const issueLimit = typeof scheduling?.max_issue_rows === "number" ? scheduling.max_issue_rows : 0;
+  if (issueLimit > 0) target.capacityRows += issueLimit * batch.physicalBatchCount;
   target.mixedPhysicalBatches += batch.mixedPhysicalBatches;
   target.rows += batch.rows;
   target.prefillRows += batch.prefillRows;
@@ -146,8 +155,74 @@ export function summarizeLegacyMonitoring(snapshots: InferenceMonitoring[]): Inf
   return summary;
 }
 
-export const monitoringSummaryFor = (run: InferenceRun): InferenceMonitoringSummary =>
-  run.monitoringSummary ?? summarizeLegacyMonitoring(run.monitoring);
+export function monitoringSummaryFor(run: InferenceRun): InferenceMonitoringSummary {
+  const summary = run.monitoringSummary ?? summarizeLegacyMonitoring(run.monitoring);
+  if (!run.telemetrySeries.batches.length || summary.stages.every(stage => stage.capacityRows > 0 || stage.physicalBatches === 0)) return summary;
+  const capacities = new Map<number, { capacityRows: number; fallbackCapacityRows: number }>();
+  for (const point of run.telemetrySeries.batches) {
+    const value = capacities.get(point.stageIndex) ?? { capacityRows: 0, fallbackCapacityRows: 0 };
+    value.capacityRows += point.capacityRows;
+    value.fallbackCapacityRows += point.fallbackCapacityRows;
+    capacities.set(point.stageIndex, value);
+  }
+  return {
+    ...summary,
+    stages: summary.stages.map(stage => {
+      if (stage.capacityRows > 0 || stage.physicalBatches === 0) return stage;
+      const observed = capacities.get(stage.stageIndex);
+      return observed ? { ...stage, ...observed } : stage;
+    }),
+  };
+}
+
+export function batchUsageMetrics(run: InferenceRun, summary = monitoringSummaryFor(run)) {
+  const totals = summary.stages.reduce((value, stage) => ({
+    physicalBatches: value.physicalBatches + stage.physicalBatches,
+    rows: value.rows + stage.rows,
+    prefillRows: value.prefillRows + stage.prefillRows,
+    decodeRows: value.decodeRows + stage.decodeRows,
+    verifyRows: value.verifyRows + stage.verifyRows,
+    replayRows: value.replayRows + stage.replayRows,
+    capacityRows: value.capacityRows + stage.capacityRows,
+    fallbackCapacityRows: value.fallbackCapacityRows + stage.fallbackCapacityRows,
+  }), { physicalBatches: 0, rows: 0, prefillRows: 0, decodeRows: 0, verifyRows: 0, replayRows: 0, capacityRows: 0, fallbackCapacityRows: 0 });
+  const seriesCapacity = run.telemetrySeries.batches.reduce((value, point) => ({
+    capacityRows: value.capacityRows + point.capacityRows,
+    fallbackCapacityRows: value.fallbackCapacityRows + point.fallbackCapacityRows,
+  }), { capacityRows: 0, fallbackCapacityRows: 0 });
+  // Older persisted summaries predate cumulative capacity fields; use their retained one-second series when available.
+  const capacityRows = totals.capacityRows > 0 ? totals.capacityRows : seriesCapacity.capacityRows;
+  const fallbackCapacityRows = totals.capacityRows > 0 ? totals.fallbackCapacityRows : seriesCapacity.fallbackCapacityRows;
+  const stageIndexes = new Set(summary.stages.map(stage => stage.stageIndex));
+  const observedStageIndexes = new Set(summary.stages.filter(stage => stage.batchObservations > 0).map(stage => stage.stageIndex));
+  return {
+    ...totals,
+    capacityRows,
+    fallbackCapacityRows,
+    configuredUbatch: run.nUbatch,
+    observedStages: observedStageIndexes.size,
+    totalStages: stageIndexes.size,
+    fillPercent: capacityRows > 0 ? totals.rows * 100 / capacityRows : null,
+  };
+}
+
+/** Aggregate approved output token events by wall-clock second across every concurrent request. */
+export function outputTpsMetrics(run: InferenceRun) {
+  const tokensBySecond = new Map<number, number>();
+  for (const point of run.telemetrySeries.output) {
+    const second = Math.floor(point.atUnixMs / 1000) * 1000;
+    tokensBySecond.set(second, (tokensBySecond.get(second) ?? 0) + point.tokens);
+  }
+  if (!tokensBySecond.size) return { averageTps: null, peakTps: null };
+
+  const seconds = [...tokensBySecond.keys()].sort((left, right) => left - right);
+  const firstSecond = seconds[0]!;
+  const lastSecond = seconds.at(-1)!;
+  const sliceCount = Math.floor((lastSecond - firstSecond) / 1000) + 1;
+  const totalTokens = [...tokensBySecond.values()].reduce((sum, count) => sum + count, 0);
+  const peakTokensPerSecond = Math.max(...tokensBySecond.values());
+  return { averageTps: totalTokens / sliceCount, peakTps: peakTokensPerSecond };
+}
 
 const percentile = (values: number[], fraction: number) => {
   if (!values.length) return null;
@@ -158,29 +233,52 @@ const percentile = (values: number[], fraction: number) => {
 export function requestMetrics(run: InferenceRun) {
   const totalTokens = run.requests.reduce((sum, request) => sum + request.receivedTokens, 0);
   const ttft = run.requests.map(request => request.ttftMs).filter((value): value is number => value !== null);
-  const finalTps = run.requests.map(request => request.finalTps).filter((value): value is number => value !== null);
+  const outputTps = outputTpsMetrics(run);
   return {
     totalTokens,
     ttftP50Ms: percentile(ttft, .5),
     ttftP95Ms: percentile(ttft, .95),
     ttftMaxMs: ttft.length ? Math.max(...ttft) : null,
-    finalTpsP50: percentile(finalTps, .5),
+    outputTpsAverage: outputTps.averageTps,
+    outputTpsPeak: outputTps.peakTps,
   };
 }
 
-export function waveMetrics(run: InferenceRun) {
-  const indexes = [...new Set(run.requests.map(request => request.waveIndex).filter((value): value is number => value !== null))].sort((left, right) => left - right);
-  return indexes.map(waveIndex => {
-    const requests = run.requests.filter(request => request.waveIndex === waveIndex);
+export function groupInferenceWaves(run: InferenceRun) {
+  const groups = new Map<number | null, InferenceRun["requests"]>();
+  for (const request of run.requests) {
+    const requests = groups.get(request.waveIndex) ?? [];
+    requests.push(request);
+    groups.set(request.waveIndex, requests);
+  }
+  return [...groups.entries()].sort(([left], [right]) => left === null ? 1 : right === null ? -1 : left - right).map(([waveIndex, requests]) => {
     const ttft = requests.map(request => request.ttftMs).filter((value): value is number => value !== null);
+    const prefillTps = requests.map(request => request.prefillTps).filter((value): value is number => value !== null);
+    const generationTps = requests.map(request => request.generationTps).filter((value): value is number => value !== null);
+    const finalTps = requests.map(request => request.finalTps).filter((value): value is number => value !== null);
+    const submittedAt = requests.map(request => Date.parse(request.submittedAt)).filter(Number.isFinite);
+    const completedAt = requests.map(request => request.completedAt === null ? Number.NaN : Date.parse(request.completedAt)).filter(Number.isFinite);
     return {
       waveIndex,
+      requests,
       submitted: requests.length,
       completed: requests.filter(request => request.state === "completed").length,
       sentAt: requests.map(request => request.submittedAt).sort()[0] ?? null,
       ttftP50Ms: percentile(ttft, .5),
       ttftP95Ms: percentile(ttft, .95),
       ttftMaxMs: ttft.length ? Math.max(...ttft) : null,
+      prefillTpsP50: percentile(prefillTps, .5),
+      generationTpsP50: percentile(generationTps, .5),
+      finalTpsP50: percentile(finalTps, .5),
+      elapsedMs: requests.length > 0 && submittedAt.length === requests.length && completedAt.length === requests.length
+        ? Math.max(...completedAt) - Math.min(...submittedAt)
+        : null,
     };
   });
+}
+
+export type InferenceWave = ReturnType<typeof groupInferenceWaves>[number];
+
+export function waveMetrics(run: InferenceRun) {
+  return groupInferenceWaves(run).filter(wave => wave.waveIndex !== null).map(({ requests: _requests, ...metrics }) => ({ ...metrics, waveIndex: metrics.waveIndex! }));
 }

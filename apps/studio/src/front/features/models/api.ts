@@ -100,4 +100,12 @@ async function operateInBrowser(id: string, action: "load" | "unload"): Promise<
   catch (error) { record.status = "unknown"; record.error = error instanceof Error ? error.message : String(error); await receipt(record, serverRevision); }
   return record;
 }
-export const startModels = () => deployments.start(gateway);
+let restartReconciliation: Promise<void> | undefined;
+export const startModels = () => {
+  deployments.start(gateway);
+  restartReconciliation ??= gateway.list().then(async records => {
+    for (const record of records.filter(value => value.status === "unknown" && value.loadGeneration > 0 && value.reports.some(report => !report.observation))) {
+      await deployments.reconcile(record.id);
+    }
+  }).catch(() => { /* The normal deployment refresh reports API errors; P4 reconciliation is best-effort. */ });
+};

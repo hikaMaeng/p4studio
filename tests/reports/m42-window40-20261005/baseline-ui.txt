@@ -1,0 +1,630 @@
+- complementary:
+  - generic: P4
+  - paragraph: P4 Studio
+  - text: 컨트롤 플레인
+  - button "언어 변경":
+  - separator
+  - navigation "주 탐색":
+    - generic: 워크스페이스
+    - button "운영 개요":
+      - generic: 운영 개요
+    - button "에이전트":
+      - generic: 에이전트
+    - button "모델":
+      - generic: 모델
+    - button "인퍼런스" [active]:
+      - generic: 인퍼런스
+    - button "기록":
+      - generic: 기록
+  - button "설정":
+    - generic: 설정
+- main:
+  - region "질의 실행":
+    - heading "질의 실행" [level=1]
+    - generic: 준비 모델 5개
+    - text: 모델
+    - generic: "*"
+    - combobox "모델": Gemma 4 12B QAT Q4_0 · HIKATR RTX 3090
+    - textbox: 8b92b1f1-4aff-450c-a1ac-108f70a50488
+    - generic: 모델 *
+    - generic: 동시 질의 수
+    - spinbutton "동시 질의 수": "1"
+    - generic: 동시 질의 수
+    - generic: 반복 횟수
+    - spinbutton "반복 횟수": "1"
+    - generic: 반복 횟수
+    - generic: 반복 간격 (초)
+    - spinbutton "반복 간격 (초)": "0"
+    - generic: 반복 간격 (초)
+    - generic: 최대 생성 토큰 (최대 4000)
+    - spinbutton "최대 생성 토큰 (최대 4000)": "4000"
+    - generic: 최대 생성 토큰 (최대 4000)
+    - text: 프롬프트
+    - generic: "*"
+    - textbox "프롬프트"
+    - generic: 프롬프트 *
+    - button "질의 전송" [disabled]
+    - region "스트리밍 질의 결과":
+      - heading "스트리밍 질의 결과" [level=6]
+      - article "Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 · d3d0659c-5fee-44a5-9748-c368d2aeddc0":
+        - button "통계와 요청 상세 열기/닫기" [expanded]:
+        - paragraph: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+        - generic: 결과 미확인
+        - generic: 80 · 2026. 10. 5. 오전 1:12:46
+        - generic "동시 10 · 반복 10 · 간격 5초 · 최대 4000 토큰"
+        - button "실행 기록 삭제":
+        - paragraph: 질의 진행률
+        - paragraph: 70 / 80
+        - paragraph: 수신 토큰
+        - paragraph: "67802"
+        - paragraph: TTFT p50
+        - paragraph: 1084 ms
+        - paragraph: TTFT p95
+        - paragraph: 5395 ms
+        - paragraph: 최대 TTFT
+        - paragraph: 5400 ms
+        - paragraph: 출력 TPS 평균 / 최고
+        - paragraph: 29.62 / 468.00
+        - paragraph: 관련 모니터링
+        - paragraph: 배치 34093건 · 구간 68185건
+        - paragraph: 스테이지 처리 행
+        - paragraph: "69405"
+        - paragraph: 전체 단계별 처리 행
+        - paragraph: 프리필 1680 · 디코드 67725 · 검증 0 · 재실행 0
+        - paragraph: 설정 UBATCH / 물리 배치
+        - paragraph: UBATCH 128 · 물리 배치 34093회
+        - paragraph: 누적 처리 용량 / 채움률
+        - paragraph: 4363904행 · 채움 1.6% · UBATCH 대체 4363904행
+        - generic: 동시 요청의 출력 토큰을 1초 구간마다 합산합니다. 평균은 첫 출력 초부터 마지막 출력 초까지의 무출력 초를 포함하고, 최고는 가장 큰 1초 합계입니다.
+        - generic: 전체는 2개 중 1개 단계에서 관측된 배치 행만 합산합니다. 같은 작업이 단계마다 중복될 수 있어 고유 토큰 수가 아닙니다. 용량은 P4의 실측 발행 행 제한을 우선 사용하고, 없으면 설정 UBATCH를 대체값으로 씁니다. 관측 용량이 없으면 채움률은 계산하지 않습니다.
+        - separator
+        - region "통합 운영 모니터링":
+          - heading "통합 운영 모니터링" [level=2]
+          - paragraph: 이 실행의 요청·배치·파이프라인·자원 증거를 같은 시간축으로 집약합니다.
+          - paragraph:
+            - text: P4 증거가 있는 요청
+            - strong: 80/80
+          - paragraph:
+            - text: 배치 관측
+            - strong: "34093"
+          - paragraph:
+            - text: 스테이지 구간
+            - strong: "68185"
+          - paragraph:
+            - text: 자원 표본
+            - strong: "237"
+          - figure "출력 속도와 활성 요청":
+            - generic: 출력 속도와 활성 요청
+            - paragraph: 1초 구간 출력 토큰 수와 아직 대기·스트리밍 중인 요청 수입니다.
+            - paragraph: 출력 토큰/s
+            - paragraph: 활성 요청
+            - img "출력 속도와 활성 요청. 1초 구간 출력 토큰 수와 아직 대기·스트리밍 중인 요청 수입니다.":
+              - generic: "505"
+              - generic: "379"
+              - generic: "253"
+              - generic: "126"
+              - generic: "0.0"
+              - generic "출력 토큰/s"
+              - generic "활성 요청"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:50:55
+          - figure "시간별 발행 행과 배치 용량":
+            - generic: 시간별 발행 행과 배치 용량
+            - paragraph: 세로축은 초당 실제 행 수입니다. 발행된 행과 물리 배치별 제한을 합산한 사용 가능 용량을 함께 표시합니다.
+            - paragraph: 발행 행
+            - paragraph: 사용 가능 용량
+            - img "시간별 발행 행과 배치 용량. 세로축은 초당 실제 행 수입니다. 발행된 행과 물리 배치별 제한을 합산한 사용 가능 용량을 함께 표시합니다.":
+              - generic: "32348"
+              - generic: "24261"
+              - generic: "16174"
+              - generic: "8087"
+              - generic: "0.0"
+              - generic "발행 행"
+              - generic "사용 가능 용량"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:50:55
+          - figure "페이즈별 발행 작업":
+            - generic: 페이즈별 발행 작업
+            - paragraph: 1초 구간마다 물리 배치당 평균 프리필·디코드 행을 표시하며, 배치가 없던 구간은 평균에서 제외합니다.
+            - paragraph: 프리필 행 (물리 배치 평균)
+            - paragraph: 디코드 행 (물리 배치 평균)
+            - img "페이즈별 발행 작업. 1초 구간마다 물리 배치당 평균 프리필·디코드 행을 표시하며, 배치가 없던 구간은 평균에서 제외합니다.":
+              - generic: "30"
+              - generic: "23"
+              - generic: "15"
+              - generic: "7.6"
+              - generic: "0.0"
+              - generic "프리필 행 (물리 배치 평균)"
+              - generic "디코드 행 (물리 배치 평균)"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:50:55
+          - figure "대기열 준비 행":
+            - generic: 대기열 준비 행
+            - paragraph: 1초 구간별 최대 준비 행입니다. 발행 작업 그래프와 축을 분리했습니다.
+            - paragraph: 준비 행 (최대)
+            - img "대기열 준비 행. 1초 구간별 최대 준비 행입니다. 발행 작업 그래프와 축을 분리했습니다.":
+              - generic: "183"
+              - generic: "137"
+              - generic: "91"
+              - generic: "46"
+              - generic: "0.0"
+              - generic "준비 행 (최대)"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:50:55
+          - figure "스테이지 처리 시간":
+            - generic: 스테이지 처리 시간
+            - paragraph: 관측 구간별 공유 배치 처리 시간 평균입니다. 스테이지마다 색과 선 모양을 다르게 표시합니다.
+            - paragraph: 스테이지 1
+            - paragraph: 스테이지 2
+            - img "스테이지 처리 시간. 관측 구간별 공유 배치 처리 시간 평균입니다. 스테이지마다 색과 선 모양을 다르게 표시합니다.":
+              - generic: "203"
+              - generic: "152"
+              - generic: "102"
+              - generic: "51"
+              - generic: "0.0"
+              - generic "스테이지 1"
+              - generic "스테이지 2"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:50:55
+          - figure "GPU 활성률과 VRAM":
+            - generic: GPU 활성률과 VRAM
+            - paragraph: P4 INSPECT에서 얻은 표본의 평균입니다. GPU 활성률은 SM 점유율이 아닙니다.
+            - paragraph: GPU 활성률 34.0%
+            - paragraph: VRAM 사용률 36.3%
+            - img "GPU 활성률과 VRAM. P4 INSPECT에서 얻은 표본의 평균입니다. GPU 활성률은 SM 점유율이 아닙니다.":
+              - generic: 100%
+              - generic: 75%
+              - generic: 50%
+              - generic: 25%
+              - generic: 0%
+              - generic "GPU 활성률"
+              - generic "VRAM 사용률"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:14:27
+          - figure "노드 retained 항목":
+            - generic: 노드 retained 항목
+            - paragraph: P4 INSPECT에서 측정한 노드 입력 및 완료 retained 개수의 합계입니다.
+            - paragraph: 노드 입력 retained 0
+            - paragraph: 노드 완료 retained 30
+            - img "노드 retained 항목. P4 INSPECT에서 측정한 노드 입력 및 완료 retained 개수의 합계입니다.":
+              - generic: "32"
+              - generic: "24"
+              - generic: "16"
+              - generic: "8.1"
+              - generic: "0.0"
+              - generic "노드 입력 retained"
+              - generic "노드 완료 retained"
+              - generic: 오전 1:12:47
+              - generic: 오전 1:14:27
+        - region "웨이브별 타이밍":
+          - heading "웨이브별 타이밍" [level=6]
+          - generic: 웨이브 TPS p50은 해당 웨이브 요청별 속도의 중앙값이며, 실행 전체 출력 TPS 평균/최고와는 다른 통계입니다.
+          - paragraph: 웨이브 1
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:12:47
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 906 ms
+          - generic: TTFT p95
+          - generic: 1512 ms
+          - generic: 최대 TTFT
+          - generic: 1512 ms
+          - generic: 프리필 TPS p50
+          - generic: "20.79"
+          - generic: 생성 TPS p50
+          - generic: "4.19"
+          - generic: 최종 TPS p50
+          - generic: "4.19"
+          - generic: 전체 응답 시간
+          - generic: 216333 ms
+          - paragraph: 웨이브 2
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:16:28
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 669 ms
+          - generic: TTFT p95
+          - generic: 1255 ms
+          - generic: 최대 TTFT
+          - generic: 1255 ms
+          - generic: 프리필 TPS p50
+          - generic: "30.66"
+          - generic: 생성 TPS p50
+          - generic: "4.09"
+          - generic: 최종 TPS p50
+          - generic: "4.09"
+          - generic: 전체 응답 시간
+          - generic: 221546 ms
+          - paragraph: 웨이브 3
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:20:18
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 892 ms
+          - generic: TTFT p95
+          - generic: 1397 ms
+          - generic: 최대 TTFT
+          - generic: 1397 ms
+          - generic: 프리필 TPS p50
+          - generic: "23.52"
+          - generic: 생성 TPS p50
+          - generic: "3.86"
+          - generic: 최종 TPS p50
+          - generic: "3.86"
+          - generic: 전체 응답 시간
+          - generic: 242115 ms
+          - paragraph: 웨이브 4
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:24:25
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 1084 ms
+          - generic: TTFT p95
+          - generic: 2568 ms
+          - generic: 최대 TTFT
+          - generic: 2568 ms
+          - generic: 프리필 TPS p50
+          - generic: "19.35"
+          - generic: 생성 TPS p50
+          - generic: "3.62"
+          - generic: 최종 TPS p50
+          - generic: "3.62"
+          - generic: 전체 응답 시간
+          - generic: 248231 ms
+          - paragraph: 웨이브 5
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:28:41
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 759 ms
+          - generic: TTFT p95
+          - generic: 1569 ms
+          - generic: 최대 TTFT
+          - generic: 1569 ms
+          - generic: 프리필 TPS p50
+          - generic: "26.18"
+          - generic: 생성 TPS p50
+          - generic: "3.42"
+          - generic: 최종 TPS p50
+          - generic: "3.42"
+          - generic: 전체 응답 시간
+          - generic: 263380 ms
+          - paragraph: 웨이브 6
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:33:10
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 5394 ms
+          - generic: TTFT p95
+          - generic: 5400 ms
+          - generic: 최대 TTFT
+          - generic: 5400 ms
+          - generic: 프리필 TPS p50
+          - generic: "3.89"
+          - generic: 생성 TPS p50
+          - generic: "3.13"
+          - generic: 최종 TPS p50
+          - generic: "3.13"
+          - generic: 전체 응답 시간
+          - generic: 291879 ms
+          - paragraph: 웨이브 7
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:38:06
+          - generic: 진행률
+          - generic: 10 / 10
+          - generic: TTFT p50
+          - generic: 916 ms
+          - generic: TTFT p95
+          - generic: 1506 ms
+          - generic: 최대 TTFT
+          - generic: 1506 ms
+          - generic: 프리필 TPS p50
+          - generic: "22.90"
+          - generic: 생성 TPS p50
+          - generic: "2.12"
+          - generic: 최종 TPS p50
+          - generic: "2.12"
+          - generic: 전체 응답 시간
+          - generic: 432868 ms
+          - paragraph: 웨이브 8
+          - paragraph: 첫 전송 시각
+          - paragraph: 2026. 10. 5. 오전 1:45:24
+          - generic: 진행률
+          - generic: 0 / 10
+          - generic: TTFT p50
+          - generic: 1144 ms
+          - generic: TTFT p95
+          - generic: 3506 ms
+          - generic: 최대 TTFT
+          - generic: 3506 ms
+          - generic: 프리필 TPS p50
+          - generic: "18.32"
+          - generic: 생성 TPS p50
+          - generic: "1.67"
+          - generic: 최종 TPS p50
+          - generic: —
+          - generic: 전체 응답 시간
+          - generic: —
+        - region "스테이지별 집계":
+          - heading "스테이지별 집계" [level=6]
+          - paragraph: 스테이지 1 · M42 RTX 3090 ×2 · gemma12b-m42-head
+          - paragraph: 2026. 10. 5. 오전 1:50:55
+          - paragraph: 관측 이벤트
+          - paragraph: 배치 34093건 · 구간 34093건
+          - paragraph: 처리 행
+          - paragraph: 프리필 1680 · 디코드 67725 · 검증 0 · 재실행 0
+          - paragraph: 물리 작업
+          - paragraph: 물리 배치 34093개 · 페이즈 혼합 56개 · 실행 34093개 · 69405행 · 준비 최대 169/9 · 용량 4363904행 (UBATCH 대체 4363904)
+          - paragraph: 누적 시간
+          - paragraph: 배치 1490745ms · 실행 중 유휴 595291ms · 첫 발행 전 유휴 0ms · 게이트 29681회 · 구간 1507969 / 전체 1532722ms
+          - paragraph: 스테이지 2 · M42 RTX 3090 ×2 · gemma12b-m42-tail
+          - paragraph: 2026. 10. 5. 오전 1:50:55
+          - paragraph: 관측 이벤트
+          - paragraph: 배치 0건 · 구간 34092건
+          - paragraph: 처리 행
+          - paragraph: 배치 관측 없음 · 스테이지 구간 34092건
+          - paragraph: 물리 작업
+          - paragraph: 배치 관측 없음 · 스테이지 구간 34092건
+          - paragraph: 누적 시간
+          - paragraph: 배치 0ms · 실행 중 유휴 0ms · 첫 발행 전 유휴 0ms · 게이트 0회 · 구간 1634095 / 전체 1837179ms
+        - heading "스트리밍 질의 결과" [level=6]
+        - table "스트리밍 질의 결과":
+          - rowgroup:
+            - row "질의 상태 질문 TTFT 최종 TPS 전체 응답 시간 시작 시각":
+              - columnheader "질의"
+              - columnheader "상태"
+              - columnheader "질문"
+              - columnheader "TTFT"
+              - columnheader "최종 TPS"
+              - columnheader "전체 응답 시간"
+              - columnheader "시작 시각"
+          - rowgroup:
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-1 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 628 ms 4.27 215280 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-1 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-1
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "628 ms"
+              - cell "4.27"
+              - cell "215280 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-2 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 671 ms 4.25 214340 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-2 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-2
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "671 ms"
+              - cell "4.25"
+              - cell "214340 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-3 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 754 ms 4.19 213458 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-3 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-3
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "754 ms"
+              - cell "4.19"
+              - cell "213458 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-4 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 754 ms 4.13 204145 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-4 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-4
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "754 ms"
+              - cell "4.13"
+              - cell "204145 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-5 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 906 ms 4.16 211253 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-5 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-5
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "906 ms"
+              - cell "4.16"
+              - cell "211253 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-6 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1010 ms 4.15 207294 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-6 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-6
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1010 ms"
+              - cell "4.15"
+              - cell "207294 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-7 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1133 ms 4.28 215283 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-7 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-7
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1133 ms"
+              - cell "4.28"
+              - cell "215283 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-8 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1254 ms 4.18 213284 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-8 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-8
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1254 ms"
+              - cell "4.18"
+              - cell "213284 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-9 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1391 ms 4.19 213095 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-9 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-9
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1391 ms"
+              - cell "4.19"
+              - cell "213095 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-10 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1512 ms 4.46 216332 ms 2026. 10. 5. 오전 1:12:47":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-10 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-1-10
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1512 ms"
+              - cell "4.46"
+              - cell "216332 ms"
+              - cell "2026. 10. 5. 오전 1:12:47"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-1 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 361 ms 4.18 219452 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-1 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-1
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "361 ms"
+              - cell "4.18"
+              - cell "219452 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-2 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 365 ms 4.15 219445 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-2 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-2
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "365 ms"
+              - cell "4.15"
+              - cell "219445 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-3 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 424 ms 4.10 217854 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-3 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-3
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "424 ms"
+              - cell "4.10"
+              - cell "217854 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-4 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 424 ms 4.03 209205 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-4 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-4
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "424 ms"
+              - cell "4.03"
+              - cell "209205 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-5 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 669 ms 4.08 215288 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-5 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-5
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "669 ms"
+              - cell "4.08"
+              - cell "215288 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-6 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 685 ms 4.01 214031 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-6 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-6
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "685 ms"
+              - cell "4.01"
+              - cell "214031 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-7 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 829 ms 4.19 219453 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-7 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-7
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "829 ms"
+              - cell "4.19"
+              - cell "219453 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-8 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 964 ms 4.09 217851 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-8 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-8
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "964 ms"
+              - cell "4.09"
+              - cell "217851 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-9 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1134 ms 4.09 217848 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-9 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-9
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1134 ms"
+              - cell "4.09"
+              - cell "217848 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+            - button "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-10 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03 완료 타입스크립트에 대해 설명하라 1255 ms 4.35 221545 ms 2026. 10. 5. 오전 1:16:28":
+              - cell "d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-10 Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03":
+                - generic: d3d0659c-5fee-44a5-9748-c368d2aeddc0-2-10
+                - generic: Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03
+              - cell "완료":
+                - generic: 완료
+              - cell "타입스크립트에 대해 설명하라":
+                - paragraph: 타입스크립트에 대해 설명하라
+              - cell "1255 ms"
+              - cell "4.35"
+              - cell "221545 ms"
+              - cell "2026. 10. 5. 오전 1:16:28"
+        - button "이전" [disabled]
+        - generic: 1 / 4 페이지
+        - button "다음"

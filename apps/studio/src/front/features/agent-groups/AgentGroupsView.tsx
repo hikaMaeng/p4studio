@@ -1,9 +1,10 @@
-import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, FormControlLabel, IconButton, MenuItem, Paper, TextField, Tooltip, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { agentGroups } from "@p4studio/studio_domain/front";
 import { useModel } from "../../model/useModel.js";
 import { useTranslation } from "../../i18n/useTranslation.js";
 import { navigate } from "../../shell/routes.js";
+import { Icon } from "../../shared/components/Icon.js";
 import { startAgentGroups } from "./api.js";
 import { RSC } from "./resource.js";
 
@@ -43,10 +44,15 @@ export function AgentGroupsView({ groupId, editor }: { groupId?: string; editor?
       {!groupId && <Button sx={{ justifySelf: "start" }} variant="contained" onClick={() => navigate({ kind: "agent-group-new" })}>{t[RSC.GROUPS_CREATE_BUTTON]}</Button>}
       {!topology.groups.length && activity.loaded && <Typography>{t[RSC.GROUPS_EMPTY_MESSAGE]}</Typography>}
       {(group ? [group] : topology.groups).map(value => <Paper key={value.id} data-testid="agent-group" variant="outlined" sx={{ p: 2, display: "grid", gap: 1 }}>
-        <Typography component="h2" variant="h2"><Button onClick={() => navigate({ kind: "agent-group-detail", groupId: value.id })}>{value.name}</Button></Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, minWidth: 0 }}>
+          <Typography component="h2" variant="h2" noWrap sx={{ minWidth: 0 }}><Button onClick={() => navigate({ kind: "agent-group-detail", groupId: value.id })}>{value.name}</Button></Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flex: "0 0 auto" }}>
+            <Button onClick={() => navigate({ kind: "agent-group-edit", groupId: value.id })}>{t[RSC.GROUPS_EDIT_BUTTON]}</Button>
+            <Tooltip title={t[RSC.GROUPS_REMOVE_BUTTON]}><span><IconButton data-testid="agent-group-delete" aria-label={t[RSC.GROUPS_REMOVE_BUTTON]} size="small" color="error" disabled={activity.busy} onClick={() => void agentGroups.remove(value.id).then(removed => { if (removed && groupId) back(); })}><Icon name="delete" fontSize="small" /></IconButton></span></Tooltip>
+          </Box>
+        </Box>
         <Typography>{t[RSC.GROUPS_GATEWAY_LABEL]}: {name(value.gatewayAgentId)}</Typography>
         <Typography>{t[RSC.GROUPS_MEMBERS_LABEL]}: {value.memberAgentIds.map(name).join(", ")}</Typography>
-        <Box><Button onClick={() => navigate({ kind: "agent-group-edit", groupId: value.id })}>{t[RSC.GROUPS_EDIT_BUTTON]}</Button>{groupId && <Button disabled={activity.busy} onClick={() => void agentGroups.remove(value.id).then(removed => { if (removed) back(); })}>{t[RSC.GROUPS_REMOVE_BUTTON]}</Button>}</Box>
         {groupId && <Typography variant="caption" color="text.secondary">{t[RSC.GROUPS_REMOVE_MESSAGE]}</Typography>}
       </Paper>)}
       {groupId && <Button sx={{ justifySelf: "start" }} onClick={back}>{t[RSC.GROUPS_BACK_BUTTON]}</Button>}

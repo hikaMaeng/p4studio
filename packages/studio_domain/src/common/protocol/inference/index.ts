@@ -137,6 +137,9 @@ export const inferenceStageMonitoringSummarySchema = z.object({
   batchObservations: nonNegative,
   stageSpans: nonNegative,
   physicalBatches: nonNegative,
+  // Sum of measured per-physical-batch issue limits, falling back to configured n_ubatch only when P4 has no positive limit.
+  capacityRows: nonNegative.default(0),
+  fallbackCapacityRows: nonNegative.default(0),
   // P4 wire `mixed_physical_batches`: physical batches mixing prefill with decode/verify/replay phases (phase-mixed),
   // not batches shared by several requests (see request telemetry `multiRequestPhysicalBatches`).
   mixedPhysicalBatches: nonNegative,

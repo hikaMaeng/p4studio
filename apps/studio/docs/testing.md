@@ -3,7 +3,7 @@
 - 모델 카드 `article`은 모델 이름으로 식별하며 `상태 새로고침` 버튼은 해당 카드에 범위 지정한다. 조회 중 `상태 확인 중…` 버튼이 disabled이고 같은 이름의 progressbar가 표시된다. 실제 노드 상태·확인 시각은 `status`다. [시나리오](../../../test/20260915/175300_model-refresh/scenario.mjs)와 [보고서](../../../test/20260915/175300_model-refresh/report.json)는 배포 화면에서 모의 HTTP/P4 응답으로 loaded 세대 미확인, absent/empty, 부분 장애, reload, 409 충돌을 검사한다. SQLite 저장과 충돌 거부는 [API 시험](../src/server/api/deployments.test.ts)이 검사한다.
 - [reception.test.ts](../src/front/p4/reception.test.ts)의 모델 새로고침 시험은 실제 model gateway→INSPECT 경로에서 최신 그룹 대표로만 bridge를 열고 원래 worker target을 유지하는지 검사한다. 예전 model ingress는 접수 선택에 쓰지 않으며 게이트웨이 장애 시 worker 직접 접속으로 우회하지 않는다. [실제 브라우저 접수 보고서](../../../test/20260915/175300_model-refresh/cluster-live-report.json)는 MI250 모델의 WebSocket open 요청 대상 ID를 검증한다.
 
-통합 테스트는 in-memory SQLite와 Express app factory를 사용한다. inspector를 주입해 registration success/error와 machine/node DTO를 검사하고, 여러 agent 조회의 최대 동시성을 검증한다. 브라우저 acceptance는 실제 P4 agent를 등록하고 named machine/P4 node/Studio declaration section을 확인한다.
+통합 테스트는 in-memory SQLite와 Express app factory를 사용한다. inspector를 주입해 registration success/error와 machine/node DTO를 검사하고, 여러 agent 조회의 최대 동시성을 검증한다. 브라우저 acceptance는 실제 P4 조회의 named machine/P4 node section을 확인한다. 노드 탭은 `agent-node-card` list item과 `node-value-capsule`을 사용하며 선언 기록은 표시하지 않는다. [NodeCards](../src/front/features/agents/nodes/NodeCards.tsx)의 일반 어댑터 JSON·긴 값·배열 순서·빈 값·미조회·0개 조회·reload 동선은 [시나리오](../../../test/20261005/node-cards/scenario.mjs)와 [보고서](../../../test/20261005/node-cards/report.json)에서 검사한다. 모의 상태와 실제 관측 렌더링은 별도 결과다.
 
 [deployments.test.ts](../src/server/api/deployments.test.ts)는 실제 Express/SQLite/길이-prefix TCP 소비 경로에서 원격 target 보존, 부분 완료, 중복 실행 차단, 오래된 load generation, 단절, 재시작, 실패 원문 보존을 검사한다. 응답 서버는 모의 어댑터이며 GPU 적재 증거가 아니다.
 

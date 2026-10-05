@@ -1,0 +1,169 @@
+- complementary:
+  - generic: P4
+  - paragraph: P4 Studio
+  - text: 컨트롤 플레인
+  - button "언어 변경":
+  - separator
+  - navigation "주 탐색":
+    - generic: 워크스페이스
+    - button "운영 개요":
+      - generic: 운영 개요
+    - button "에이전트":
+      - generic: 에이전트
+    - button "모델":
+      - generic: 모델
+    - button "인퍼런스":
+      - generic: 인퍼런스
+    - button "기록":
+      - generic: 기록
+  - button "설정":
+    - generic: 설정
+- main:
+  - region "질의 실행":
+    - heading "질의 실행" [level=1]
+    - generic: 준비 모델 2개
+    - button "← 결과 목록"
+    - heading "질의 상세" [level=2]
+    - heading "Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03" [level=2]
+    - generic: 7588c07e-bbdb-4875-9bf5-b02dfdac1d55-10-10
+    - paragraph: "시작 시각: 2026. 10. 5. 오후 1:48:47"
+    - generic: 완료
+    - text: TTFT
+    - paragraph: 556 ms
+    - text: 전체 응답 시간
+    - paragraph: 47988 ms
+    - text: 최종 TPS
+    - paragraph: "19.14"
+    - text: 생성 TPS
+    - paragraph: "19.14"
+    - text: 평균 관측 채움률
+    - paragraph: 3.80%
+    - text: 소유 issue
+    - paragraph: "909"
+    - text: 다중 요청 물리 배치
+    - paragraph: "909"
+    - text: 관측 프리필 행
+    - paragraph: "21"
+    - text: 관측 디코드 행
+    - paragraph: "908"
+    - heading "질문" [level=2]
+    - generic: 타입스크립트에 대해 설명하라
+    - heading "답변" [level=2]
+    - paragraph:
+      - text: "**타입스크립트(TypeScript)**는 마이크로소프트(Microsoft)에서 개발한"
+      - strong: 자바스크립트(JavaScript)의 상위 집합(Superset)
+      - text: 언어입니다.
+    - paragraph: 쉽게 말해, **"자바스크립트에 '타입(Type)' 시스템을 추가한 언어"**라고 이해하면 됩니다. 자바스크립트의 모든 문법을 그대로 사용할 수 있으면서, 그 위에 강력한 타입 체크 기능을 얹은 것입니다.
+    - paragraph: 주요 특징과 장점은 다음과 같습니다.
+    - separator
+    - 'heading "1. 핵심 개념: 정적 타입 시스템 (Static Typing)" [level=3]'
+    - paragraph:
+      - text: 자바스크립트는
+      - strong: 동적 타입
+      - text: 언어입니다. 즉, 변수를 선언할 때 타입을 지정하지 않고 실행 중에 값이 결정됩니다. 반면, 타입스크립트는
+      - strong: 정적 타입
+      - text: 언어입니다.
+    - list:
+      - strong: "JavaScript:"
+      - code: let a = 10; a = "hello";
+      - text: (실행 중에 오류가 발생할 수 있음)
+      - strong: "TypeScript:"
+      - code: "let a: number = 10; a = \"hello\";"
+      - text: (코드를 작성하는 단계에서 에러를 잡아줌)
+    - heading "2. 주요 특징 및 장점" [level=3]
+    - heading "① 컴파일 타임 에러 체크 (Early Error Detection)" [level=4]
+    - paragraph: 코드를 실행하기 전, 개발 단계에서 오류를 미리 발견할 수 있습니다. 오타, 잘못된 변수 참조, 타입 불일치 등을 IDE(VS Code 등)에서 즉시 빨간 줄로 표시해주기 때문에 버그를 획기적으로 줄여줍니다.
+    - heading "② 강력한 자동 완성 및 인텔리센스 (IntelliSense)" [level=4]
+    - paragraph: 타입이 정의되어 있기 때문에, IDE가 변수나 함수가 어떤 속성을 가지고 있는지 정확히 알고 있습니다. 이를 통해 자동 완성 기능이 매우 강력해지며, 개발 속도가 빨라지고 생산성이 높아집니다.
+    - heading "③ 유지보수 용이성 (Scalability)" [level=4]
+    - paragraph: 프로젝트 규모가 커질수록 자바스크립트만으로는 코드의 흐름을 파악하기 어렵습니다. 타입스크립트는 코드의 구조를 명확하게 정의해주기 때문에, 협업 시 다른 사람이 작성한 코드를 이해하기 훨씬 쉽고 리팩토링(코드 구조 개선)이 안전합니다.
+    - heading "④ 자바스크립트와의 호환성" [level=4]
+    - paragraph:
+      - text: 타입스크립트는 자바스크립트의 상위 집합이므로, 기존 자바스크립트 프로젝트에 도입하기 쉽습니다. 또한, 브라우저는 타입스크립트를 직접 실행할 수 없지만,
+      - strong: 컴파일(Transpile)
+      - text: 과정을 거쳐 순수한 자바스크립트로 변환되어 실행됩니다.
+    - heading "3. 주요 개념 예시" [level=3]
+    - list:
+      - strong: "기본 타입:"
+      - code: string
+      - text: ","
+      - code: number
+      - text: ","
+      - code: boolean
+      - text: ","
+      - code: array
+      - text: ","
+      - code: "null"
+      - text: ","
+      - code: undefined
+      - text: 등
+      - strong: "인터페이스(Interface) & 타입 별칭(Type Alias):"
+      - text: 객체의 구조를 정의할 때 사용합니다.
+      - strong: "제네릭(Generics):"
+      - text: 타입을 마치 함수의 매개변수처럼 다루어, 재사용성을 높이면서도 타입을 안전하게 유지하게 해줍니다.
+      - strong: "유니온 타입(Union Types):"
+      - text: "변수가 여러 타입 중 하나가 될 수 있음을 정의합니다. (예:"
+      - code: string | number
+      - text: )
+    - 'heading "4. 요약: 왜 사용하는가?" [level=3]'
+    - table:
+      - rowgroup:
+        - row "특징 JavaScript TypeScript":
+          - columnheader "특징"
+          - columnheader "JavaScript"
+          - columnheader "TypeScript"
+      - rowgroup:
+        - row "타입 체크 동적 (실행 시 확인) 정적 (컴파일 시 확인)":
+          - cell "타입 체크":
+            - strong: 타입 체크
+          - cell "동적 (실행 시 확인)"
+          - cell "정적 (컴파일 시 확인)"
+        - row "에러 발견 실행 중에 발견 (Runtime) 코드 작성 중에 발견 (Compile time)":
+          - cell "에러 발견":
+            - strong: 에러 발견
+          - cell "실행 중에 발견 (Runtime)"
+          - cell "코드 작성 중에 발견 (Compile time)"
+        - row "생산성 초기 개발 속도 빠름 초기 설정 필요하나 대규모 프로젝트에 유리":
+          - cell "생산성":
+            - strong: 생산성
+          - cell "초기 개발 속도 빠름"
+          - cell "초기 설정 필요하나 대규모 프로젝트에 유리"
+        - row "유지보수 어려움 (규모가 커질수록) 쉬움 (구조가 명확함)":
+          - cell "유지보수":
+            - strong: 유지보수
+          - cell "어려움 (규모가 커질수록)"
+          - cell "쉬움 (구조가 명확함)"
+    - paragraph:
+      - strong: 결론적으로,
+      - text: 타입스크립트는
+      - strong: "\"더 안전하고, 더 예측 가능하며, 더 협업하기 좋은\""
+      - text: 코드를 작성하기 위한 도구입니다. 최근 현대적인 웹 개발(React, Vue, Node.js 등)에서는 사실상 표준(De facto standard)으로 자리 잡고 있습니다.
+    - region "요청별 모니터링":
+      - heading "요청별 모니터링" [level=2]
+      - paragraph: 관측 스테이지 구간
+      - paragraph: 스테이지 1
+      - generic: 47716 ms
+      - paragraph: 스테이지 2
+      - generic: 47611 ms
+      - table "요청별 스테이지 증거":
+        - rowgroup:
+          - row "스테이지 실행 유입 대기 공유 스테이지 시간 전달 시간":
+            - columnheader "스테이지"
+            - columnheader "실행"
+            - columnheader "유입 대기"
+            - columnheader "공유 스테이지 시간"
+            - columnheader "전달 시간"
+        - rowgroup:
+          - row "M42 RTX 3090 ×2 · gemma12b-m42-head 909 263 ms 13813 ms 592 ms":
+            - cell "M42 RTX 3090 ×2 · gemma12b-m42-head"
+            - cell "909"
+            - cell "263 ms"
+            - cell "13813 ms"
+            - cell "592 ms"
+          - row "M42 RTX 3090 ×2 · gemma12b-m42-tail 909 2155 ms 18974 ms 2357 ms":
+            - cell "M42 RTX 3090 ×2 · gemma12b-m42-tail"
+            - cell "909"
+            - cell "2155 ms"
+            - cell "18974 ms"
+            - cell "2357 ms"
+      - generic: 스테이지 시간은 이 요청이 포함된 공유 배치의 시간이며, 요청 하나의 전용 연산 시간이 아닙니다.

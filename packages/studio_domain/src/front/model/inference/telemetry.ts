@@ -72,6 +72,10 @@ export function appendMonitoring(run: InferenceRun, snapshot: InferenceMonitorin
   const previous = run.monitoring.at(-1);
   const changed = !previous || JSON.stringify([previous.nodes, previous.agents]) !== JSON.stringify([snapshot.nodes, snapshot.agents]);
   if (!changed) return false;
+  return appendMonitoringSample(run, snapshot);
+}
+
+export function appendMonitoringSample(run: InferenceRun, snapshot: InferenceMonitoring) {
   run.monitoring.push(structuredClone(snapshot));
   if (run.monitoring.length > HISTORY_LIMIT) run.monitoring.splice(0, run.monitoring.length - HISTORY_LIMIT);
   return true;

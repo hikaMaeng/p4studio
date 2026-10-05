@@ -19,6 +19,12 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 
 - [ModelEditorPage](../src/front/features/models/ModelEditorPage.tsx) 헤더에 현재 모델 이름·모델로 돌아가기·기본 구성·저장을 둔다. 기본 구성은 헤더에서 펼치며 노드 설정은 12px 본문/입력과 13px 소제목을 사용한다. 초기 fit은 배치 소속 에이전트를 기준으로 하며 나머지 에이전트는 캔버스를 이동해 탐색한다.
 
+## Agent nodes
+
+- `/agents/:id/nodes`의 [NodeCards](../src/front/features/agents/nodes/NodeCards.tsx)는 마지막 P4 조회의 노드를 개별 카드로 표시한다. 공통 identity·수명 상태, 어댑터 상태, 전달·보관 상태, 최근 수명 작업 결과를 구분하며 이전 Studio 노드 선언은 표시하지 않는다.
+- 어댑터 JSON은 원본 키와 중첩 구조·배열 순서를 유지한 `키: 값` 캡슐로 표현한다. 특정 어댑터 설정을 공통 형식으로 강제하지 않는다. 현재 조회가 `loaded` 등의 요약 문자열만 반환하면 상세 적재 설정의 부재를 안내한다. 저장된 계획이나 과거 LOAD 인자를 현재 설정으로 대신 표시하지 않는다.
+- 헤더의 P4 관측 시각은 현재 상태의 보증이 아니다. 새로고침 실패 시 마지막 관측을 보존하고 오류를 표시하며, 미조회와 조회 성공 후 노드 없음은 구별한다.
+
 ## Agent removal
 
 - 에이전트 목록의 휴지통과 상세의 삭제 버튼은 [AgentRemovalDialog](../src/front/features/agents/AgentRemovalDialog.tsx)를 연다. 대상 이름과 삭제 범위를 확인하며 취소/진행 중 중복 요청을 차단한다. 확인창은 일시적 동작이며 별도 URL을 만들지 않는다.

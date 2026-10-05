@@ -9,5 +9,5 @@ P4 engine/KV 내부 계산을 이 패키지로 가져오지 않는 이유와 원
 
 - 로딩은 노드별 Agent-target LOAD이며 생성이 포함된다. UNLOAD 성공은 자원·노드 제거 완료다. SESSION과 추론 연결은 생성하지 않는다. 성공한 모든 노드의 Loaded와 llama.cpp build identity 합의가 있어야 전체 ready다.
 - timeout/소켓 단절은 unknown이다. 부분 성공과 최초 실패를 보존하고, 이전 작업을 정리하기 전 재로딩/편집을 거부한다. LOAD를 전송하지 않은 노드에 UNLOAD를 보내지 않는다.
-- 각 로딩 시점의 agent 주소를 동결한다. 등록 주소 수정 뒤에도 UNLOAD는 원래 endpoint를 대상으로 한다. 서버 재시작 시 ready/loading/unloading 관측은 unknown으로 낮춘다.
+- 각 로딩 시점의 agent 주소를 동결한다. 등록 주소 수정 뒤에도 UNLOAD는 원래 endpoint를 대상으로 한다. 배포 영수증과 마지막 관측 상태는 SQLite에 그대로 유지한다. 재시작으로 상태를 unknown으로 덮어쓰지 않으며, 이는 마지막으로 저장된 증거이지 현재 P4 상태의 보증은 아니다. 이전 버전이 unknown으로 낮춘 관측 없는 기록은 브라우저가 모델 목록을 시작할 때 P4 INSPECT로 재조정한다. 추론 전 SESSION_READY도 세션 준비를 다시 검증한다.
 - 현재 명령 전송은 대상별 게이트웨이 접수를 통해 순차 처리한다. 회수 시 새 OUTER channel을 사용하며 LOAD를 재전송하지 않는다. UI GET은 2초 주기이며 native 세부 진행률을 만들어 내지 않는다.

@@ -35,13 +35,17 @@ P4 로드맵도 `ready_rows`가 다음 계획 순간의 ready set이며 남은 p
 | --- | --- |
 | [telemetry.ts](../packages/studio_domain/src/common/protocol/inference/telemetry.ts)가 owner/execution 상세까지 strict decode | 새 실행 수신 시 요청 귀속 원자료는 존재함 |
 | [front telemetry cache](../packages/studio_domain/src/front/model/inference/telemetry.ts)는 stage별 최신 projection을 유지하고, [observability.ts](../packages/studio_domain/src/front/model/inference/observability.ts)는 수신 즉시 `owned_requests`와 `executions`를 요청별 합계와 1초 run series로 투영 | 새 실행은 요청별 batch·phase·stage 귀속과 run-wide 그래프를 저장함. 원시 이벤트 전체를 복제하지 않음. "발행 작업과 준비 행" 그래프는 1초 bucket 합이 아니라 bucket의 `physicalBatches`로 나눈 physical batch당 평균 prefill/decode row이며(폭 10 발행은 bucket에 1건이든 2건이든 10) ready row는 bucket 최대 snapshot이다. physical batch가 없는 bucket은 phase 점을 만들지 않는다 |
-| [monitoring-summary.ts](../packages/studio_domain/src/front/model/inference/monitoring-summary.ts)가 stage totals를 별도 누적 | 회계용 stage 합계는 보조 상세로 계속 제공함 |
-| browser-owned inference가 실행 중 INSPECT 변경 snapshot을 최대 240개 보존하고, P4 protocol decoder가 node delivery와 broker receipt를 구조화함 | GPU/VRAM과 input/completion retained, broker allocated/evicted/known bytes 그래프를 만듦. 긴 실행은 앞 표본이 잘릴 수 있음 |
-| OUTPUT 수신마다 1초 output token·active request bucket을 저장 | 실행 전체 output rate는 가능. 개별 token timestamp 전부를 보존하지 않으므로 정확한 ITL 분포는 아직 불가능함 |
+| [monitoring-summary.ts](../packages/studio_domain/src/front/model/inference/monitoring-summary.ts)가 stage totals와 물리 배치 용량을 별도 누적 | 실행 상세에는 UBATCH, 물리 배치 수, 프리필/디코드/검증/재실행 행, 용량, 채움률을 제공함. 행 합계는 stage마다 반복 계상될 수 있어 고유 prompt/output token 수로 해석하지 않음. 용량은 P4의 양수 `max_issue_rows`를 우선하고 없으면 설정 `n_ubatch`를 fallback으로 사용하며 fallback 행 수를 따로 표시함 |
+| browser-owned inference는 실행 생성 직후부터 실행 중 500ms 대기 간격으로 P4 INSPECT를 반복 호출하고 실제 표본을 최대 240개 보존하며, P4 protocol decoder가 node delivery와 broker receipt를 구조화함 | GPU/VRAM과 input/completion retained, broker allocated/evicted/known bytes 그래프를 만듦. INSPECT는 각 호출 완료 뒤 다음 주기를 시작하므로 에이전트 수와 조회 지연에 따라 실제 표본 간격이 길어질 수 있고, 짧은 추론은 한 표본만 가질 수 있음. 자원·retained 그래프 범례에는 마지막 측정값을 함께 표시함 |
+| OUTPUT 수신마다 1초 output token·active request bucket을 저장 | 실행 전체 출력 TPS 평균은 첫 출력 초부터 마지막 출력 초까지의 모든 초(빈 초 포함)에서 계산하고, 최고 TPS는 최대 초당 합계로 계산함. 개별 token timestamp 전부를 보존하지 않으므로 정확한 ITL 분포는 아직 불가능함 |
+
+배치 그래프의 세로축은 비율 대신 실제 행 수를 사용하고, 관측된 발행 행과 physical batch별 issue 용량 합계를 함께 그린다. Prefill/decode는 물리 배치당 평균을 한 그래프로 비교하고, 순간 준비행 최대값은 별도 그래프와 축으로 표시해 큰 대기열 피크가 발행 작업을 눌러 숨기지 않게 한다. 스테이지 처리 시간은 고정된 서로 다른 색과 선 모양으로 구분한다. 실행 전체 합계와 시계열 capacity는 P4 관측을 중복 제거한 stage 실행 단위로 합산한다.
 
 과거 기록은 버린 owner/execution/token 시각을 복원하지 않는다. 새 schema 이후 실행부터 요청별 관측을 제공하고 이전 기록은 coverage를 `unavailable`로 표시한다.
 
 ## 운영자 화면에 제공할 지표
+
+질의 실행 결과와 기록 상세는 [웨이브 목록](../apps/studio/src/front/features/inference/InferenceWaveResults.tsx)으로 표시한다. 한 페이지는 최대20개 웨이브이며 세션 수는 페이지 경계를 바꾸지 않는다. 접힌 웨이브에도 첫 전송 시각·완료/전체 세션 수·TTFT p50/p95/최대와 프리필/생성/최종 TPS p50·전체 응답 시간이 두 줄로 표시된다. 펼치면 해당 웨이브의 모든 세션을 표시하고 기존 세션 상세 URL로 진입한다. 별도 세션 페이징은 없다. 웨이브 번호가 없는 과거 세션은 별도 마지막 그룹으로 보존하며 통계도 그 그룹 안에서만 계산한다. 집계와 소속의 단일 계산 경로는 [groupInferenceWaves](../packages/studio_domain/src/front/model/inference/monitoring-summary.ts)가 소유하며, 미완료 세션이 있으면 전체 응답 시간은 미확정이다. 펼침과 페이지는 일시적인 목록 상호작용으로 유지한다.
 
 ### 서비스와 실행 전체
 

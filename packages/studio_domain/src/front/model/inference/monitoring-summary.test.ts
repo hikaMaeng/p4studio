@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { inferenceStageMonitoringSummarySchema, type InferenceMonitoring, type InferenceRun, type P4BatchObservation, type P4StageSpan } from "../../../common/protocol/inference/index.js";
-import { monitoringSummaryFor, recordBatchSummary, recordSpanSummary, requestMetrics, summarizeLegacyMonitoring, waveMetrics } from "./monitoring-summary.js";
+import { batchUsageMetrics, groupInferenceWaves, monitoringSummaryFor, outputTpsMetrics, recordBatchSummary, recordSpanSummary, requestMetrics, summarizeLegacyMonitoring, waveMetrics } from "./monitoring-summary.js";
 import { emptyRequestTelemetry } from "./observability.js";
 
 const run = (): InferenceRun => ({
@@ -64,6 +64,8 @@ describe("inference monitoring summary", () => {
       batchObservations: 1,
       stageSpans: 1,
       physicalBatches: 1,
+      capacityRows: 8,
+      fallbackCapacityRows: 8,
       rows: 7,
       prefillRows: 2,
       decodeRows: 5,
@@ -132,11 +134,58 @@ describe("inference monitoring summary", () => {
 
   it("summarizes request percentiles by each dispatch wave and falls back for old history", () => {
     const value = run();
-    expect(requestMetrics(value)).toEqual({ totalTokens: 8, ttftP50Ms: 100, ttftP95Ms: 300, ttftMaxMs: 300, finalTpsP50: 4 });
+    expect(requestMetrics(value)).toEqual({ totalTokens: 8, ttftP50Ms: 100, ttftP95Ms: 300, ttftMaxMs: 300, outputTpsAverage: null, outputTpsPeak: null });
     expect(waveMetrics(value)).toEqual([
-      { waveIndex: 1, submitted: 1, completed: 1, sentAt: "2026-09-15T00:00:00.000Z", ttftP50Ms: 100, ttftP95Ms: 100, ttftMaxMs: 100 },
-      { waveIndex: 2, submitted: 1, completed: 0, sentAt: "2026-09-15T00:00:03.000Z", ttftP50Ms: 300, ttftP95Ms: 300, ttftMaxMs: 300 },
+      { waveIndex: 1, submitted: 1, completed: 1, sentAt: "2026-09-15T00:00:00.000Z", ttftP50Ms: 100, ttftP95Ms: 100, ttftMaxMs: 100, prefillTpsP50: 20, generationTpsP50: 4, finalTpsP50: 4, elapsedMs: 1000 },
+      { waveIndex: 2, submitted: 1, completed: 0, sentAt: "2026-09-15T00:00:03.000Z", ttftP50Ms: 300, ttftP95Ms: 300, ttftMaxMs: 300, prefillTpsP50: null, generationTpsP50: 2, finalTpsP50: null, elapsedMs: null },
     ]);
     expect(monitoringSummaryFor(value)).toEqual({ batchObservations: 0, stageSpans: 0, stages: [] });
+  });
+
+  it("keeps every session in its own wave, including legacy sessions, and isolates wave statistics", () => {
+    const value = run();
+    const first = value.requests[0]!;
+    const streaming = value.requests[1]!;
+    value.requests = [streaming, { ...first, id: "legacy", waveIndex: null, ttftMs: 9000 }, first, { ...first, id: "third", ttftMs: 200, completedAt: "2026-09-15T00:00:02.000Z" }];
+    const groups = groupInferenceWaves(value);
+    expect(groups.map(group => [group.waveIndex, group.requests.map(request => request.id)])).toEqual([[1, ["one", "third"]], [2, ["two"]], [null, ["legacy"]]]);
+    expect(groups[0]).toMatchObject({ submitted: 2, completed: 2, ttftP50Ms: 100, ttftP95Ms: 200, ttftMaxMs: 200, elapsedMs: 2000 });
+    expect(groups[1]).toMatchObject({ submitted: 1, completed: 0, finalTpsP50: null, elapsedMs: null });
+    expect(groups[2]).toMatchObject({ submitted: 1, completed: 1, ttftP50Ms: 9000 });
+    value.requests[1]!.state = "unknown";
+    value.requests[1]!.completedAt = null;
+    expect(groupInferenceWaves(value)[2]).toMatchObject({ completed: 0, elapsedMs: null });
+    expect(groupInferenceWaves({ ...value, requests: [] })).toEqual([]);
+  });
+
+  it("sums concurrent output in one-second slices and includes empty slices in average TPS", () => {
+    const value = run();
+    value.telemetrySeries.output = [
+      { atUnixMs: 1_789_430_401_000, tokens: 6, completed: 0, queued: 0, streaming: 2 },
+      { atUnixMs: 1_789_430_403_000, tokens: 9, completed: 1, queued: 0, streaming: 1 },
+    ];
+    expect(outputTpsMetrics(value)).toEqual({ averageTps: 5, peakTps: 9 });
+    expect(requestMetrics(value)).toMatchObject({ outputTpsAverage: 5, outputTpsPeak: 9 });
+  });
+
+  it("aggregates phase work and measured issue capacity across all stages", () => {
+    const value = run();
+    recordBatchSummary(value, stage, { ...batch, scheduling: { max_issue_rows: 10 } }, "2026-09-15T00:00:01.000Z");
+    recordBatchSummary(value, { stageIndex: 2, agentName: "agent-c", nodeId: "node-c" }, { ...batch, observation_id: "run:5:13", scheduling: null }, "2026-09-15T00:00:02.000Z");
+    expect(batchUsageMetrics(value)).toEqual({
+      physicalBatches: 2, rows: 14, prefillRows: 4, decodeRows: 10, verifyRows: 0, replayRows: 0,
+      capacityRows: 18, fallbackCapacityRows: 8, configuredUbatch: 8, fillPercent: 14 * 100 / 18,
+      observedStages: 2, totalStages: 2,
+    });
+  });
+
+  it("uses retained one-second capacity for histories whose cumulative summary predates capacity fields", () => {
+    const value = run();
+    value.monitoringSummary = { batchObservations: 1, stageSpans: 0, stages: [
+      { stageIndex: 0, agentName: "a", nodeId: "n", batchObservations: 1, stageSpans: 0, physicalBatches: 2, capacityRows: 0, fallbackCapacityRows: 0, mixedPhysicalBatches: 0, rows: 12, prefillRows: 4, decodeRows: 8, verifyRows: 0, replayRows: 0, executionCount: 1, batchStageMs: 1, idleMs: 0, initialIdleMs: 0, idleGated: 0, spanStageMs: 0, spanTotalMs: 0, maxReadyRows: 0, maxReadySequences: 0, lastObservedAt: null },
+    ] };
+    value.telemetrySeries.batches = [{ atUnixMs: 1000, stageIndex: 0, observations: 1, physicalBatches: 2, capacityRows: 16, fallbackCapacityRows: 0, rows: 12, readyRowsMax: 0, prefillRows: 4, decodeRows: 8, verifyRows: 0, replayRows: 0, stageMs: 1, idleMs: 0 }];
+    expect(monitoringSummaryFor(value).stages[0]).toMatchObject({ capacityRows: 16, fallbackCapacityRows: 0 });
+    expect(batchUsageMetrics(value)).toMatchObject({ capacityRows: 16, fillPercent: 75 });
   });
 });

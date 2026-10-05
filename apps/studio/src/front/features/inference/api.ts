@@ -5,7 +5,7 @@ import {
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
 } from "@p4studio/studio_domain/common";
 import {
-  appendMonitoring,
+  appendMonitoringSample,
   inference,
   InferenceTelemetryCache,
   invalidateLegacyDispatchTiming,
@@ -34,6 +34,8 @@ const runs = new Map<string, InferenceRun>();
 const listeners = new Map<string, Set<(run: InferenceRun) => void>>();
 const telemetry = new InferenceTelemetryCache();
 const monitoringRequests = new Map<string, Promise<InferenceMonitoring>>();
+const monitoringLoops = new Map<string, object>();
+let monitoringInspectionInFlight = false;
 const HISTORY_KEY = "p4studio.inference.history.v1";
 const publishTimers = new Map<string, number>();
 let persistTimer: number | undefined;
@@ -43,6 +45,9 @@ type Inspection = { snapshot: P4AgentSnapshot | null; observedAt: string; error:
 
 export const MAX_OUTPUT_TOKENS = 4000;
 const DEFAULT_MAX_TOKENS = MAX_OUTPUT_TOKENS;
+const RUN_PUBLISH_INTERVAL_MS = 250;
+const PERSIST_INTERVAL_MS = 3000;
+const MONITORING_SAMPLE_INTERVAL_MS = 2000;
 
 function wireMaxTokens(model: DeploymentRecord, maxTokens: number): number {
   const limits = llamaDispatchLimits(model.stages);
@@ -92,8 +97,8 @@ const publish = (run: InferenceRun) => {
   if (!publishTimers.has(run.id)) publishTimers.set(run.id, window.setTimeout(() => {
     publishTimers.delete(run.id);
     listeners.get(run.id)?.forEach(listener => listener(structuredClone(run)));
-  }, 100));
-  if (persistTimer === undefined) persistTimer = window.setTimeout(() => { persistTimer = undefined; persist(); }, 1000);
+  }, RUN_PUBLISH_INTERVAL_MS));
+  if (persistTimer === undefined) persistTimer = window.setTimeout(() => { persistTimer = undefined; persist(); }, PERSIST_INTERVAL_MS);
 };
 const now = () => new Date().toISOString();
 const rate = (rows: number, elapsedMs: number) => rows > 0 && elapsedMs > 0 ? rows * 1000 / elapsedMs : null;
@@ -155,8 +160,43 @@ async function inspectModel(modelId: string): Promise<InferenceMonitoring> {
     catch (error) { inspections.set(agentId, { snapshot: null, observedAt, error: error instanceof Error ? error.message : String(error) }); }
   }
   const snapshot = monitoringSnapshot(model, stages, inspections, now());
-  for (const run of runs.values()) if (run.modelId === model.id && ["preparing", "running"].includes(run.state) && appendMonitoring(run, snapshot)) publish(run);
+  for (const run of runs.values()) if (run.modelId === model.id && ["preparing", "running"].includes(run.state)) {
+    appendMonitoringSample(run, snapshot);
+    publish(run);
+  }
   return snapshot;
+}
+
+async function inspectModelWithinBudget(modelId: string) {
+  // Model inspections are browser-owned polling work. Skip a tick if another model is still
+  // being inspected instead of allowing slow agents to accumulate concurrent polling load.
+  if (monitoringInspectionInFlight) return;
+  monitoringInspectionInFlight = true;
+  try { await inspectModel(modelId); }
+  finally { monitoringInspectionInFlight = false; }
+}
+
+function hasActiveRun(modelId: string) {
+  return [...runs.values()].some(run => run.modelId === modelId && ["preparing", "running"].includes(run.state));
+}
+
+function ensureMonitoringLoop(modelId: string) {
+  if (monitoringLoops.has(modelId)) return;
+  const loop = {};
+  monitoringLoops.set(modelId, loop);
+  void (async () => {
+    while (hasActiveRun(modelId)) {
+      try { await inspectModelWithinBudget(modelId); } catch {
+        // Monitoring is best-effort and must not change the inference result.
+      }
+      if (!hasActiveRun(modelId)) break;
+      await new Promise<void>(resolve => window.setTimeout(resolve, MONITORING_SAMPLE_INTERVAL_MS));
+    }
+  })().finally(() => {
+    if (monitoringLoops.get(modelId) !== loop) return;
+    monitoringLoops.delete(modelId);
+    if (hasActiveRun(modelId)) ensureMonitoringLoop(modelId);
+  });
 }
 
 const gateway: InferenceGateway = {
@@ -176,7 +216,7 @@ const gateway: InferenceGateway = {
     const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
     if (input.maxTokens > maxAllowed) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
     const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
-    runs.set(run.id, run); publish(run); void execute(run, model, input); return run;
+    runs.set(run.id, run); publish(run); ensureMonitoringLoop(model.id); void execute(run, model, input); return run;
   },
   subscribe: (id, onRun) => {
     const set = listeners.get(id) ?? new Set(); set.add(onRun); listeners.set(id, set); const run = runs.get(id); if (run) onRun(structuredClone(run));
@@ -258,7 +298,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
             telemetry.recordSpan(model.id, stage.address, stage.nodeId, stage.generation, value, observedAt);
             if (recordSpanSummary(run, stage, value, observedAt)) recordSpanObservability(run, stage, value, observedAt);
           }
-          appendMonitoring(run, monitoringSnapshot(model, stages, new Map(), observedAt)); publish(run); return;
+          publish(run); return;
         }
         const outputKind = classifyP4Output(event.contentType);
         if (outputKind === "unsupported") throw new Error(`Unsupported P4 output contract ${event.contentType}`);
