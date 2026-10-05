@@ -1,5 +1,17 @@
 # P4 참조 안내
 
+2026-10-05 연결 수명 피드백 대조: P4 d77e630f8/4fbf257f3와 Studio4a74af2. Studio는 raw P4E3 클라이언트이며 event-v3가 같다는 판정만으로 transport 종료 계약이 같다고 판정하지 않는다. 정상 종료의 FINISH/ACK는 구현됐지만 P4의 raw half-close 보존 때문에 서버 강제 종료·OOM·다른 raw 클라이언트 EOF 누적은 여전히 열린 위험이다. P4Studio의2초 모니터링은 현재 별도 미커밋 작업의 api.ts에 있으며 최초 배포 시점을 이 감사로 확정하지 않는다.
+
+### 연결 계약 대조 체크리스트
+
+- 첫 frame/hop Hello 유무와 실제 raw/hop 선택, OUTER channel/generation 생성·재접속 정책.
+- 출력·pending operation 소비, connection FINISH/ACK 순서, 기한·분할/병합 프레임, 기대하지 않은 출력 보존.
+- 브라우저 close, 서버 정상 shutdown, 프로세스 강제 종료/OOM, 입력 EOF/reset/잘린 프레임을 별도로 검사한다. 정상 FINISH만으로 abrupt 종료를 승인하지 않는다.
+- exact agent PID의 socket·slot·반환 경로와 stage 송신 영향. 요청 terminal·TCP 수명·native/KV 회수는 별도 판정한다.
+- P4의 Ping/Pong은 protocol-outer.md의 목표이며 현재 event runtime wire/reader에 없다는 점을 기록한다. 모니터링 INSPECT나 TCP 연결 가능을 heartbeat 회수 증거로 바꾸지 않는다.
+- 컴파일된 adapter 종류와 host-approved native 경로, 실제 LOAD/SESSION 성공을 구분한다. listener/INSPECT만으로 기동 구성을 승인하지 않는다.
+
+
 이 문서는 P4 Studio가 OUTER로 구현해야 할 책임과 `F:/dev/p4`에서 계약을 찾는 경로를 정리한다. 작업 규칙은 [AGENTS.md](../AGENTS.md), Studio 내부 구조는 [architecture.md](architecture.md)가 소유한다. P4 명세를 복제하는 문서가 아니다.
 
 2026-10-03 경량 브로커 계약 대조: P4 HEAD `4b62e3e4aef1f265de0235dd0141f95feb3a1338`, clean. 직전 대조(`945fc359`) 이후 Studio가 소비하는 계약의 변경과 적용은 다음과 같다. 이 HEAD로 빌드한 agent에 대한 실기 결과는 [검증 보고서](../tests/reports/p4-latest-contract/20261003_135500.md)가 소유한다.
@@ -126,3 +138,9 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 | p4studio / P4 프로토콜 기반 모델 메뉴 재구축 | `01a08c4a-781b-75c1-8582-5a09e11de1c1` | 실행 모델은 여러 agent의 node별 레이어 적재로 실체화하며 완료 보고가 OUTER로 돌아온다는 요구; 진행 중 구현은 검증 사실에서 제외 |
 
 새 세션은 전체 대화를 다시 읽지 않고 작업별 소스표부터 시작한다. 계약 의도가 모호할 때 위 task를 `read_thread`로 읽고 필요한 이전 페이지로 내려간다.
+
+### 2026-10-05 확정 연결 수명 후속
+
+대조 소스: P4 `0daad9977` ([실행 기록](../../p4/tests/reports/connection-teardown/20261005_132657.md)). M42 원격 기본 agent112PASS와3개 독립 변이가 통과했다. 전체 workspace는 같은 환경의 기준선과 후보 모두21FAIL이며 새 실패는0이다.
+
+OUTER↔agent 실제 수신·송신 바이트가 같은 마지막 활동 시각을 갱신하며, 양방향 무통신40분이면 agent 수신 TCP와 해당 live 반환 경로/슬롯을 회수한다. raw half-close 출력 수신은 기한까지 허용한다. 개별 inference 완료는 TCP 종료가 아니며 FINISH/ACK는 정상 연결 종료다. PING 신설·요청 payload 해석은 하지 않는다. agent 수신과 peer 송신은 각256개 독립 pool이고 peer별 TCP owner 하나를 재사용한다. Studio는 여전히 정상 종료 FINISH/ACK를 지켜 불필요한40분 보유를 피한다. 이 후속 소스의 fleet/Studio bridge 강제 종료 수용과 기존 배포된 d77e630f8/Chrome120회 증거는 구별한다.
