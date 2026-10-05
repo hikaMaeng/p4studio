@@ -1,0 +1,4 @@
+{
+  "errors": [],
+  "text": "P4\n\nP4 Studio\n\n컨트롤 플레인\n워크스페이스\n운영 개요\n에이전트\n모델\n인퍼런스\n기록\n설정\n등록 에이전트\n총 1대\n게이트웨이 그룹\n등록\n에이전트 이름 *\n에이전트 이름 *\n127.0.0.1:52000\nGPU\n\nGPU 없음\n\nRAM\n\n0 GiB / 0 GiB\n\nP4 노드\n\n2\n\n지연\n\n1 ms\n\n연결 가능"
+}

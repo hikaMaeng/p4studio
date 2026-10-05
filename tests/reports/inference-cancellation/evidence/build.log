@@ -1,0 +1,59 @@
+
+> p4studio-root@0.1.0 build
+> turbo run build
+
+• turbo 2.10.12
+
+   • Packages in scope: @p4studio/p4-protocol, @p4studio/studio, @p4studio/studio_domain
+   • Running build in 3 packages
+   • Remote caching disabled
+
+@p4studio/p4-protocol:build: cache hit, replaying logs 7c22e75198c26ae0
+@p4studio/p4-protocol:build:
+@p4studio/p4-protocol:build: > @p4studio/p4-protocol@0.1.0 build
+@p4studio/p4-protocol:build: > tsc -p tsconfig.json
+@p4studio/p4-protocol:build:
+@p4studio/studio_domain:build: cache hit, replaying logs 2bf5ee97b384f11d
+@p4studio/studio_domain:build:
+@p4studio/studio_domain:build: > @p4studio/studio_domain@0.1.0 build
+@p4studio/studio_domain:build: > tsc -p tsconfig.json
+@p4studio/studio_domain:build:
+@p4studio/studio:build: cache miss, executing f63c02842b9d617c
+@p4studio/studio:build:
+@p4studio/studio:build: > @p4studio/studio@0.1.0 build
+@p4studio/studio:build: > npm run build:front && npm run build:server
+@p4studio/studio:build:
+@p4studio/studio:build:
+@p4studio/studio:build: > @p4studio/studio@0.1.0 build:front
+@p4studio/studio:build: > vite build
+@p4studio/studio:build:
+@p4studio/studio:build: vite v8.2.2 building client environment for production...
+@p4studio/studio:build: transforming...
+@p4studio/studio:build: ✓ 1499 modules transformed.
+@p4studio/studio:build: rendering chunks...
+@p4studio/studio:build: computing gzip size...
+@p4studio/studio:build: dist/front/index.html                             0.38 kB │ gzip:   0.25 kB
+@p4studio/studio:build: dist/front/assets/index-DETrNKpo.css             16.00 kB │ gzip:   2.81 kB
+@p4studio/studio:build: dist/front/assets/lib-actehevX.js                 4.14 kB │ gzip:   1.79 kB
+@p4studio/studio:build: dist/front/assets/remark-gfm-_4t0_jFw.js         38.30 kB │ gzip:  11.55 kB
+@p4studio/studio:build: dist/front/assets/react-markdown-D4L7dpFQ.js    112.21 kB │ gzip:  33.89 kB
+@p4studio/studio:build: dist/front/assets/index-BwWZ80yt.js           1,358.53 kB │ gzip: 389.27 kB
+@p4studio/studio:build:
+@p4studio/studio:build: ✓ built in 532ms
+@p4studio/studio:build: [plugin builtin:vite-reporter]
+@p4studio/studio:build: (!) Some chunks are larger than 500 kB after minification. Consider:
+@p4studio/studio:build: - Using dynamic import() to code-split the application
+@p4studio/studio:build: - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+@p4studio/studio:build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+@p4studio/studio:build:
+@p4studio/studio:build: > @p4studio/studio@0.1.0 build:server
+@p4studio/studio:build: > esbuild src/server/index.ts --bundle --platform=node --format=cjs --target=node24 --outfile=dist/server/index.cjs
+@p4studio/studio:build:
+@p4studio/studio:build:
+@p4studio/studio:build:   dist\server\index.cjs  2.0mb
+@p4studio/studio:build:
+@p4studio/studio:build: Done in 89ms
+
+ Tasks:    3 successful, 3 total
+Cached:    2 cached, 3 total
+  Time:    3.276s

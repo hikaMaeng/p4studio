@@ -1,4 +1,8 @@
 export enum RSC {
+  INFERENCE_RUN_STOP_BUTTON = "inference.run.stop.button",
+  INFERENCE_CANCELLING_STATUS = "inference.cancelling.status",
+  INFERENCE_CANCELLED_STATUS = "inference.cancelled.status",
+  INFERENCE_CANCELLED_MESSAGE = "inference.cancelled.message",
   INFERENCE_TITLE_TEXT = "inference.title.text",
   INFERENCE_HISTORY_TITLE_TEXT = "inference.history.title.text",
   INFERENCE_HISTORY_AGENTS_LABEL = "inference.history.agents.label",

@@ -25,7 +25,7 @@ export const inferenceRunSettingsSchema = z.object({
 
 export const inferenceRequestSchema = z.object({
   id: identifier,
-  state: z.enum(["queued", "streaming", "completed", "failed", "unknown"]),
+  state: z.enum(["queued", "streaming", "completed", "cancelled", "failed", "unknown"]),
   prompt: z.string(),
   text: z.string(),
   receivedTokens: nonNegative,
@@ -216,7 +216,7 @@ export const inferenceRunSchema = z.object({
   id: identifier,
   modelId: identifier,
   modelName: identifier,
-  state: z.enum(["preparing", "running", "completed", "failed", "unknown"]),
+  state: z.enum(["preparing", "running", "cancelling", "cancelled", "completed", "failed", "unknown"]),
   submitted: nonNegative,
   completed: nonNegative,
   createdAt: z.string(),

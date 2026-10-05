@@ -9,7 +9,7 @@ import { paginateResults } from "./pagination.js";
 import { RSC } from "./resource.js";
 
 const metric = (value: number | null, suffix = "") => value === null ? "—" : `${value.toFixed(suffix.trim() === "ms" ? 0 : 2)}${suffix}`;
-const requestState: Record<string, RSC> = { queued: RSC.INFERENCE_QUEUED_STATUS, streaming: RSC.INFERENCE_STREAMING_STATUS, completed: RSC.INFERENCE_COMPLETED_STATUS, failed: RSC.INFERENCE_FAILED_STATUS, unknown: RSC.INFERENCE_UNKNOWN_STATUS };
+const requestState: Record<string, RSC> = { cancelled: RSC.INFERENCE_CANCELLED_STATUS, queued: RSC.INFERENCE_QUEUED_STATUS, streaming: RSC.INFERENCE_STREAMING_STATUS, completed: RSC.INFERENCE_COMPLETED_STATUS, failed: RSC.INFERENCE_FAILED_STATUS, unknown: RSC.INFERENCE_UNKNOWN_STATUS };
 const cellSx = { minWidth: 0, overflowWrap: "anywhere", wordBreak: "break-word" };
 const metricCellSx = { ...cellSx, fontVariantNumeric: "tabular-nums", textAlign: "right" };
 

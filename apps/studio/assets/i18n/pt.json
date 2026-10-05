@@ -168,7 +168,7 @@
   "agents.node.unload.button": "Unload model",
   "agents.node.unloading.status": "Unloading…",
   "agents.node.unload.title.text": "Unload node model",
-  "agents.node.unload.confirm.message": "Unload the model from {node}, generation {generation}? P4 will reject this while the node is busy.",
+  "agents.node.unload.confirm.message": "Descarregar o modelo do nó {node} (geração {generation})? Primeiro a inferência relacionada neste navegador será cancelada e as próximas ondas serão interrompidas.",
   "agents.node.unload.receipt.message": "Only a node with one exact Studio load receipt can be unloaded here. A successful result marks its model deployment as requiring recovery.",
   "models.empty.title.text": "Nenhum modelo distribuído configurado",
   "models.empty.detail.message": "Registre um agente, planeje e carregue as etapas do modelo.",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "Texto vazio",
   "agents.node.value.true.text": "Verdadeiro",
   "agents.node.value.false.text": "Falso",
-  "agents.node.value.items.text": "itens"
+  "agents.node.value.items.text": "itens",
+  "inference.run.stop.button": "Parar execução",
+  "inference.cancelling.status": "Parando",
+  "inference.cancelled.status": "Cancelado",
+  "inference.cancelled.message": "As próximas ondas foram interrompidas. As respostas recebidas são preservadas."
 }

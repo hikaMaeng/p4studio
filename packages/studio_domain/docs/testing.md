@@ -1,5 +1,7 @@
 # Testing
 
+- [cancellation/control.test.ts](../src/front/model/inference/cancellation/control.test.ts): 정확한 PREFILL당 단일 CANCEL, 완료 요청 보존, RELEASE/terminal 역순·늦은 OUTPUT prefix, 큐 취소 거부, stale identity 거부, 정산 불명, 자연 완료 경합, 공유 노드 UNLOAD barrier와 SESSION proof 저장 경합을 검사한다. [store.test.ts](../src/front/model/inference/store.test.ts)는 진행 중 삭제 금지와 취소 중 구독 유지의 소비 경로를 검사한다. [계획](../../../tests/plans/inference-cancellation-20261005.md).
+
 - [reconcile.test.ts](../src/front/model/deployments/reconcile.test.ts): INSPECT의 loaded를 ready로 승격하지 않음, absent/empty 미적재, 부분 접속 실패, 노드 세대·adapter 불일치, 전환 상태, worker 정지, 이전 LOAD 근거 보존. [상태 조회 계약](api.md#model-refresh).
 
 [presets.test.ts](../src/server/deployments/presets.test.ts)는 HY3 6노드와 Step 16노드의 원본 인자 보존, JSON/plan 수정·재해석, 오래된 요약 거부, 기존 구성 변환, 이종 backend ABI 대조를 검사한다. 원본과 전용 페이지의 연결은 [model configurations](model-configurations.md)에 기록한다.

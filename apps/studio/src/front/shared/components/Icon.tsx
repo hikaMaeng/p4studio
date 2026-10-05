@@ -1,10 +1,11 @@
 import { SvgIcon, type SvgIconProps } from "@mui/material";
 
-export type IconName = "add" | "arrow" | "bolt" | "chevron" | "delete" | "dns" | "edit" | "globe" | "grid" | "history" | "hub" | "lan" | "memory" | "pipeline" | "refresh" | "settings";
+export type IconName = "add" | "arrow" | "bolt" | "chevron" | "delete" | "dns" | "edit" | "globe" | "grid" | "history" | "hub" | "lan" | "memory" | "pipeline" | "refresh" | "settings" | "stop";
 
 /** Small code-native icon set used by the Studio shell. */
 export const Icon = ({ name, ...props }: SvgIconProps & { name: IconName }) => {
   const paths: Record<IconName, React.ReactNode> = {
+    stop: <rect x="6" y="6" width="12" height="12" rx="1" />,
     add: <path d="M12 5v14M5 12h14" />,
     arrow: <path d="M5 12h13m-5-5 5 5-5 5" />,
     bolt: <path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z" />,

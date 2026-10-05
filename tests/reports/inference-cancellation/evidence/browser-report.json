@@ -1,0 +1,236 @@
+{
+  "status": "passed",
+  "url": "http://127.0.0.1:43121",
+  "evidence": "scenario-based; P4 binary WebSocket responses mocked; no native GPU execution",
+  "results": [
+    {
+      "name": "streaming-stop",
+      "status": "passed",
+      "sent": [
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192689760,
+          "eventId": "dee22ed1-98fe-4699-ba2a-2b1680a4abf3"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192689763,
+          "eventId": "d46e3c89-12c4-4efc-81fa-aafc2861145c"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192689764,
+          "eventId": "82025e84-3185-438c-908d-4d171aa6d326"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192689777,
+          "eventId": "0ddf2a40-b485-43a2-ae74-9c560c18755d"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192689777,
+          "eventId": "3f831a03-526d-4976-bb8e-a72cb681ff71"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192690039,
+          "eventId": "f6fb2ca9-6994-4680-b220-96842fc121f6"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192690041,
+          "eventId": "b7ccdd01-c44b-4a63-8ad2-1df10306b6d8"
+        }
+      ]
+    },
+    {
+      "name": "interval-stop",
+      "status": "passed",
+      "sent": [
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192692197,
+          "eventId": "e201598f-ca09-49a8-8e6a-f04fff09f09c"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192692201,
+          "eventId": "966fae27-4078-44ee-8044-0f27721f2e93"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192692201,
+          "eventId": "a299d71f-f4e0-4cd3-b3aa-6c02436b1dc1"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192692213,
+          "eventId": "b7e3d4f9-9b29-4c82-98c3-28a2a00911ec"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192692214,
+          "eventId": "974e4518-cf99-483f-9b9b-20a1d61c7b12"
+        }
+      ]
+    },
+    {
+      "name": "preparing-stop",
+      "status": "passed",
+      "sent": [
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192693705,
+          "eventId": "0aab762c-7b87-47c1-b20f-770d4375b1ef"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192693705,
+          "eventId": "e2ff15d9-07c7-4f0a-9f9d-7645affa7cb4"
+        }
+      ]
+    },
+    {
+      "name": "model-unload",
+      "status": "passed",
+      "sent": [
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192695018,
+          "eventId": "aa0bfe4e-6b5b-48e0-b50d-6b73c9d456a8"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192695022,
+          "eventId": "62a96be1-c309-4238-8a62-2bee771a8b7b"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192695022,
+          "eventId": "6b0e45d9-8ee6-40a8-9b56-ed3242cefcac"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192695034,
+          "eventId": "9534e511-3a78-4030-a839-d8316aec8bd4"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192695035,
+          "eventId": "efe1698d-da3b-4cc6-b273-beaeba808436"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192695264,
+          "eventId": "ecc23181-c7c2-49f7-8bbf-451e709bec1f"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192695265,
+          "eventId": "369cde80-4d1f-4e98-925a-e1b6772dc99c"
+        },
+        {
+          "contentType": "application/vnd.p4.node.unload-v1",
+          "class": 0,
+          "at": 1791192695957,
+          "eventId": "449e2c0f-047f-4010-ac7b-9090e2f1052f"
+        },
+        {
+          "contentType": "application/vnd.p4.node.unload-v1",
+          "class": 0,
+          "at": 1791192695966,
+          "eventId": "cf02e3b2-153e-40a8-bb56-51c1257940d3"
+        }
+      ]
+    },
+    {
+      "name": "node-unload",
+      "status": "passed",
+      "sent": [
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192697385,
+          "eventId": "bfec5b9b-7711-4848-8fe8-073bb49e6eb0"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+          "class": 0,
+          "at": 1791192697387,
+          "eventId": "48f4a827-cf7b-400e-9cd9-12fc9d297306"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192697390,
+          "eventId": "48118708-5e8f-4104-9d79-2cd217fdccad"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192697400,
+          "eventId": "dc3e49ff-6de7-45e3-8a37-c4e92a3a4ef8"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+          "class": 1,
+          "at": 1791192697400,
+          "eventId": "f8ccb30d-5da6-4861-a82d-b9cfd19bff56"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192697908,
+          "eventId": "0be46eec-0097-499b-9315-e2303b579859"
+        },
+        {
+          "contentType": "application/vnd.p4.llamacpp.cancel-v1+json",
+          "class": 0,
+          "at": 1791192697909,
+          "eventId": "f2759178-d1c4-4454-ab12-be9549604b8e"
+        },
+        {
+          "contentType": "application/vnd.p4.node.unload-v1",
+          "class": 0,
+          "at": 1791192698596,
+          "eventId": "5d4a66de-8a00-44b8-94e2-f9974f18d79b"
+        },
+        {
+          "contentType": "application/vnd.p4.agent.inspect-v1+json",
+          "class": 0,
+          "at": 1791192698656,
+          "eventId": "18424138-dcb6-4678-934f-85c817e29d5b"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    "tests\\reports\\inference-cancellation\\evidence\\streaming-stop-running.png",
+    "tests\\reports\\inference-cancellation\\evidence\\streaming-stop-cancelling.png",
+    "tests\\reports\\inference-cancellation\\evidence\\streaming-stop-cancelled.png",
+    "tests\\reports\\inference-cancellation\\evidence\\model-unload-unloaded.png",
+    "tests\\reports\\inference-cancellation\\evidence\\node-unload-unloaded.png"
+  ]
+}

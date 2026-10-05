@@ -168,7 +168,7 @@
   "agents.node.unload.button": "모델 언로드",
   "agents.node.unloading.status": "언로드 중…",
   "agents.node.unload.title.text": "노드 모델 언로드",
-  "agents.node.unload.confirm.message": "{node} 노드(세대 {generation})에서 모델을 언로드할까요? 노드가 사용 중이면 P4가 거부합니다.",
+  "agents.node.unload.confirm.message": "{node} 노드(세대 {generation})의 모델을 언로드할까요? 이 브라우저의 관련 추론을 먼저 취소하고 후속 웨이브를 중지합니다.",
   "agents.node.unload.receipt.message": "정확히 일치하는 Studio LOAD receipt가 하나인 노드만 여기서 언로드할 수 있습니다. 성공하면 해당 모델 배치는 복구가 필요한 상태로 기록됩니다.",
   "models.empty.title.text": "구성한 분산 모델이 없습니다",
   "models.empty.detail.message": "에이전트를 등록한 뒤 모델 stage를 계획하고 적재하세요.",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "빈 문자열",
   "agents.node.value.true.text": "참",
   "agents.node.value.false.text": "거짓",
-  "agents.node.value.items.text": "개 항목"
+  "agents.node.value.items.text": "개 항목",
+  "inference.run.stop.button": "질의 중지",
+  "inference.cancelling.status": "중지 중",
+  "inference.cancelled.status": "취소됨",
+  "inference.cancelled.message": "추가 웨이브를 중지했습니다. 지금까지 받은 응답은 보존됩니다."
 }

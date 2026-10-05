@@ -1,5 +1,7 @@
 # Testing
 
+- [추론 취소 계획](../../../tests/plans/inference-cancellation-20261005.md), [gateway 시험](../src/front/features/inference/api.test.ts), [브라우저 시나리오](../../../tests/reports/inference-cancellation/tools/browser-check.mjs): 스트리밍·웨이브 대기·SESSION 준비 중지, 모델/노드 UNLOAD 전 취소와 RELEASE 대기를 검사한다. `inference-run-group` 안의 `inference-run-stop`과 `inference-run-delete`를 범위 지정한다. 취소 중 중지/삭제 disabled, 부분 답변 보존, 종료 후 삭제 가능을 확인한다. 실제 앱 UI와 P4E3 binary frame을 사용하지만 P4 응답은 모의이며 GPU 정지 수용 시험이 아니다.
+
 - 모델 카드 `article`은 모델 이름으로 식별하며 `상태 새로고침` 버튼은 해당 카드에 범위 지정한다. 조회 중 `상태 확인 중…` 버튼이 disabled이고 같은 이름의 progressbar가 표시된다. 실제 노드 상태·확인 시각은 `status`다. [시나리오](../../../test/20260915/175300_model-refresh/scenario.mjs)와 [보고서](../../../test/20260915/175300_model-refresh/report.json)는 배포 화면에서 모의 HTTP/P4 응답으로 loaded 세대 미확인, absent/empty, 부분 장애, reload, 409 충돌을 검사한다. SQLite 저장과 충돌 거부는 [API 시험](../src/server/api/deployments.test.ts)이 검사한다.
 - [reception.test.ts](../src/front/p4/reception.test.ts)의 모델 새로고침 시험은 실제 model gateway→INSPECT 경로에서 최신 그룹 대표로만 bridge를 열고 원래 worker target을 유지하는지 검사한다. 예전 model ingress는 접수 선택에 쓰지 않으며 게이트웨이 장애 시 worker 직접 접속으로 우회하지 않는다. [실제 브라우저 접수 보고서](../../../test/20260915/175300_model-refresh/cluster-live-report.json)는 MI250 모델의 WebSocket open 요청 대상 ID를 검증한다.
 

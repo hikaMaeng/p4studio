@@ -15,3 +15,5 @@
 그룹 관리: [common agent-groups](../src/common/protocol/agent-groups/index.ts)는 그룹 schema·접수 선택, [front AgentGroupsStore](../src/front/model/agent-groups/store.ts)는 topology·편집·저장 상태를 소유한다. 소비자와 불변식은 [constraints](constraints.md#agent-group-consumers), 실행 경로는 [api](api.md#agent-groups)를 따른다.
 
 수명 조율은 [runtime.ts](../src/common/protocol/deployments/runtime.ts), allocation·재사용 정책은 [lifecycle.ts](../src/common/protocol/deployments/lifecycle.ts)가 소유하며 browser gateway가 소비한다. [계약](../../../docs/node-lifecycle.md).
+
+추론 취소의 adapter payload는 [common cancellation](../src/common/protocol/inference/cancellation.ts), 진행 상태·정산과 UNLOAD barrier는 [front cancellation](../src/front/model/inference/cancellation/control.ts)와 [execution registry](../src/front/model/inference/cancellation/executions.ts)가 소유한다. 앱은 같은 registry에 browser transport와 모델/노드 UNLOAD를 연결한다. [API·소비자](api.md#inference-cancellation).

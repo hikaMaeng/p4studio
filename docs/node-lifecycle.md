@@ -31,6 +31,8 @@ P4 감사 기준: `56c203b6d70dc91be46e399b6d68f85ebc53cda1` (2026-09-16, clean)
 
 ## UI and migration
 
+- 모델 및 노드 UI UNLOAD는 [browser-local inference cancellation](../packages/studio_domain/docs/api.md#inference-cancellation)을 먼저 실행한다. 다음 웨이브 차단 → 미완료 PREFILL의 원래 연결에서 CANCEL → terminal/RELEASE 대기 → 최신 LOAD 소유권 검증 → Agent-target UNLOAD 순서다. 확인되지 않은 취소는 `unknown`을 보존하고, 실제 자원 제거는 UNLOAD lifecycle result로 별도 판정한다. 다른 브라우저 실행의 취소 완료나 즉각적인 GPU 정지를 이 순서로 주장하지 않는다.
+
 - `/models/new`, `/models/:id/edit`: agent별 **적재 stage 추가**로 새 ID를 계획하고 계획된 stage끼리만 순서를 연결한다. 기존 관측 노드는 조회 전용이다. 동일 agent/GPU에 여러 stage를 계획할 수 있다.
 - legacy `createNode` 입력은 schema가 제거한다. `creating` 과거 상태는 이력 표시용이며 새 실행에서 만들지 않는다.
 - 단독 노드 선언 API `POST /api/agents/:id/nodes`는 410이다. 이전 노드 등록 deep URL은 수명 설명과 모델 배치 진입을 제공한다. 과거 SQLite 선언·파이프라인 데이터는 삭제하지 않는다.

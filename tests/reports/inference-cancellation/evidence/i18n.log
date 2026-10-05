@@ -1,0 +1,16 @@
+check name=languages:studio status=ok detail=8 bundles
+check name=key-parity:studio status=ok detail=all bundles agree
+check name=map:studio/src/front/features/agent-groups/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/agents/nodes/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/agents/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/dashboard/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/inference/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/models/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/features/pipelines/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/shared/components/resource.ts status=ok detail=keys defined and named mechanically
+check name=map:studio/src/front/shell/resource.ts status=ok detail=keys defined and named mechanically
+check name=raw-key-lookup status=ok detail=no t["..."] lookups
+check name=direct-bundle-import status=ok detail=no component imports a language bundle
+check name=literal-attribute status=ok detail=no literal user-visible attributes
+check name=literal-text status=ok detail=no literal JSX text
+i18n-check status=ok violations=0 root=/f/dev/p4studio

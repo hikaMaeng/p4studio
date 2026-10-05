@@ -1,6 +1,6 @@
 import { decodeLifecycleMetadata, encodeLifecycleMetadata, NODE_LIFECYCLE_RESULT_CONTENT_TYPE, NODE_UNLOAD_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE, parseLifecycleRequest, parseLifecycleResult, sameEndpoint, type P4Endpoint } from "@p4studio/p4-protocol";
 import { agentAddress, deploymentRoutes, LLAMA_TYPES, parseDeploymentList, type DeploymentRecord } from "@p4studio/studio_domain/common";
-import { nodeUnload, type NodeUnloadTarget } from "@p4studio/studio_domain/front";
+import { nodeUnload, inferenceExecutions, type NodeUnloadTarget } from "@p4studio/studio_domain/front";
 import { BrowserP4Reception, readAgentTopology } from "./reception.js";
 
 async function request(path: string, method: string, body?: unknown): Promise<unknown> {
@@ -24,7 +24,16 @@ function matchingDeployment(records: DeploymentRecord[], target: NodeUnloadTarge
 
 async function unload(target: NodeUnloadTarget) {
   const records = parseDeploymentList(await request(deploymentRoutes.list.path, deploymentRoutes.list.method)).deployments;
-  const { record, stageId } = matchingDeployment(records, target);
+  const { record } = matchingDeployment(records, target);
+  return inferenceExecutions.unload(record, async () => {
+    const current = matchingDeployment(parseDeploymentList(await request(deploymentRoutes.list.path, deploymentRoutes.list.method)).deployments, target);
+    if (current.record.id !== record.id || current.record.loadGeneration !== record.loadGeneration) throw new Error("Node load ownership changed while stopping inference; inspect before unloading");
+    return unloadPrepared(target, current.record, current.stageId);
+  });
+}
+
+async function unloadPrepared(target: NodeUnloadTarget, record: DeploymentRecord, stageId: string) {
+  const expectedUpdatedAt = record.updatedAt;
   const topology = await readAgentTopology();
   const agent = topology.agents.find(value => value.id === target.agentId);
   if (!agent) throw new Error("Target agent is no longer registered");
@@ -45,6 +54,7 @@ async function unload(target: NodeUnloadTarget) {
     report.state = "unloaded"; report.resourceState = "absent"; report.lifecycle = { operation: "unload", status: "succeeded", resourceState: "absent", firstError: null, cleanupError: null }; report.detail = ""; report.updatedAt = new Date().toISOString();
     record.status = "failed"; record.error = `Stage ${target.nodeId} was unloaded individually; unload or recover the remaining stages before loading again.`; record.updatedAt = new Date().toISOString();
     await request(deploymentRoutes.receipt.path.replace(":id", encodeURIComponent(record.id)), deploymentRoutes.receipt.method, {
+      expectedUpdatedAt,
       status: record.status, loadGeneration: record.loadGeneration, operationId: record.operationId, error: record.error, reports: record.reports,
       resolvedAddresses: record.resolvedAddresses, stageGenerations: Object.fromEntries(record.stages.map(stage => [stage.id, stage.nodeGeneration])),
     });

@@ -168,7 +168,7 @@
   "agents.node.unload.button": "Unload model",
   "agents.node.unloading.status": "Unloading…",
   "agents.node.unload.title.text": "Unload node model",
-  "agents.node.unload.confirm.message": "Unload the model from {node}, generation {generation}? P4 will reject this while the node is busy.",
+  "agents.node.unload.confirm.message": "卸载节点 {node}（代次 {generation}）上的模型？将先取消此浏览器中的相关推理并停止后续批次。",
   "agents.node.unload.receipt.message": "Only a node with one exact Studio load receipt can be unloaded here. A successful result marks its model deployment as requiring recovery.",
   "models.empty.title.text": "尚未配置分布式模型",
   "models.empty.detail.message": "注册代理，然后规划并加载模型阶段。",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "空字符串",
   "agents.node.value.true.text": "真",
   "agents.node.value.false.text": "假",
-  "agents.node.value.items.text": "项"
+  "agents.node.value.items.text": "项",
+  "inference.run.stop.button": "停止运行",
+  "inference.cancelling.status": "正在停止",
+  "inference.cancelled.status": "已取消",
+  "inference.cancelled.message": "后续批次已停止。已收到的响应将保留。"
 }

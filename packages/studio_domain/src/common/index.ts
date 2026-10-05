@@ -9,4 +9,5 @@ export * from "./protocol/deployments/runtime.js";
 export * from "./protocol/deployments/lifecycle.js";
 export * from "./protocol/inference/index.js";
 export * from "./protocol/inference/output.js";
+export * from "./protocol/inference/cancellation.js";
 export * from "./protocol/p4-tunnel/index.js";

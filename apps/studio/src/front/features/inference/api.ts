@@ -3,6 +3,7 @@ import {
   canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
   classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
+  P4_CANCEL_CONTENT_TYPE,
 } from "@p4studio/studio_domain/common";
 import {
   appendMonitoringSample,
@@ -19,6 +20,7 @@ import {
   emptyRequestTelemetry,
   type InferenceGateway,
   type RequestTiming,
+  InferenceCancellation, inferenceExecutions, isActiveInference,
 } from "@p4studio/studio_domain/front";
 import { BrowserP4Reception, readAgentTopology } from "../../p4/reception.js";
 import { inspectGraphAgent } from "../../p4/inspection.js";
@@ -67,9 +69,9 @@ const restore = () => {
     for (const run of parseInferenceRuns(stored).runs) {
       if (version < 2) run.requests.forEach(migrateLegacyTiming);
       if (version < 3) run.requests.forEach(invalidateLegacyDispatchTiming);
-      if (["preparing", "running"].includes(run.state)) {
+      if (isActiveInference(run)) {
         run.state = "unknown"; run.error ??= "The browser inference session ended before all results arrived";
-        run.requests.forEach(request => { if (["queued", "streaming"].includes(request.state)) { request.state = "unknown"; request.error ??= run.error; } });
+        run.requests.forEach(request => { if (["queued", "streaming", "cancelled"].includes(request.state)) { request.state = "unknown"; request.error ??= run.error; } });
       }
       runs.set(run.id, run);
     }
@@ -88,7 +90,7 @@ async function request(path: string, method = "GET"): Promise<unknown> {
 }
 // Coalesce rendering/persistence, never token accounting or arrival timestamps.
 const publish = (run: InferenceRun) => {
-  const terminal = !["preparing", "running"].includes(run.state);
+  const terminal = !isActiveInference(run);
   if (terminal) {
     window.clearTimeout(publishTimers.get(run.id)); publishTimers.delete(run.id);
     window.clearTimeout(persistTimer); persistTimer = undefined;
@@ -160,7 +162,7 @@ async function inspectModel(modelId: string): Promise<InferenceMonitoring> {
     catch (error) { inspections.set(agentId, { snapshot: null, observedAt, error: error instanceof Error ? error.message : String(error) }); }
   }
   const snapshot = monitoringSnapshot(model, stages, inspections, now());
-  for (const run of runs.values()) if (run.modelId === model.id && ["preparing", "running"].includes(run.state)) {
+  for (const run of runs.values()) if (run.modelId === model.id && isActiveInference(run)) {
     appendMonitoringSample(run, snapshot);
     publish(run);
   }
@@ -177,7 +179,7 @@ async function inspectModelWithinBudget(modelId: string) {
 }
 
 function hasActiveRun(modelId: string) {
-  return [...runs.values()].some(run => run.modelId === modelId && ["preparing", "running"].includes(run.state));
+  return [...runs.values()].some(run => run.modelId === modelId && isActiveInference(run));
 }
 
 function ensureMonitoringLoop(modelId: string) {
@@ -201,7 +203,9 @@ function ensureMonitoringLoop(modelId: string) {
 
 const gateway: InferenceGateway = {
   list: async () => [...runs.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+  cancel: runId => inferenceExecutions.cancel(runId),
   remove: runId => {
+    const run = runs.get(runId); if (run && isActiveInference(run)) return;
     if (!runs.delete(runId)) return;
     window.clearTimeout(publishTimers.get(runId));
     publishTimers.delete(runId);
@@ -216,7 +220,10 @@ const gateway: InferenceGateway = {
     const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
     if (input.maxTokens > maxAllowed) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
     const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
-    runs.set(run.id, run); publish(run); ensureMonitoringLoop(model.id); void execute(run, model, input); return run;
+    const cancellation = new InferenceCancellation(run, model.loadGeneration, () => publish(run), model.timeoutMs);
+    const unregister = inferenceExecutions.register(model, cancellation);
+    runs.set(run.id, run); publish(run); ensureMonitoringLoop(model.id);
+    void execute(run, model, input, cancellation).finally(unregister); return run;
   },
   subscribe: (id, onRun) => {
     const set = listeners.get(id) ?? new Set(); set.add(onRun); listeners.set(id, set); const run = runs.get(id); if (run) onRun(structuredClone(run));
@@ -240,15 +247,20 @@ function recordBatchTiming(run: InferenceRun, value: P4BatchObservation, timings
   }
 }
 
-async function execute(run: InferenceRun, model: DeploymentRecord, input: InferenceRunInput) {
+async function execute(run: InferenceRun, model: DeploymentRecord, input: InferenceRunInput, cancellation: InferenceCancellation) {
   let connection: BrowserP4Reception | undefined; const timings = new Map<string, RequestTiming>();
+  let stop: (() => void) | undefined;
   // Keyed by request ID and by PREFILL event ID; one entry per submitted request, dropped with this execution.
   const outputs = new Map<string, OutputOrdinalBuffer>(); const submissions = new Map<string, string>();
   try {
     const topology = await readAgentTopology();
+    if (cancellation.requested) return;
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
     connection = new BrowserP4Reception(topology, new Map(Object.entries(model.resolvedAddresses)));
+    cancellation.connect(command => connection!.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", P4_CANCEL_CONTENT_TYPE, command, 0).event, () => { void connection?.close(); });
+    cancellation.signal.signal.addEventListener("abort", () => { if (!run.submitted) void connection?.close(); }, { once: true });
     for (const stage of stages) {
+      if (cancellation.requested) return;
       const event = await connection.exchange({ kind: "node", address: stage.address, nodeId: stage.nodeId, generation: stage.generation }, "llamacpp", SESSION,
         { load_generation: model.loadGeneration, session_id: run.id, stages: stages.map(value => ({ agent: value.address, node: value.nodeId, generation: value.generation })), stage_index: stage.stageIndex }, [SESSION_READY, ERROR], model.timeoutMs);
       if (event.contentType === ERROR) throw new Error(new TextDecoder().decode(event.payload));
@@ -260,16 +272,20 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         throw new Error("P4 SESSION_READY does not prove the active session and load generation");
       }
     }
+    if (cancellation.requested) return;
     try {
-      await recordSessionProof(model.id, run.id, now(), model.loadGeneration,
+      cancellation.preparationWrite = recordSessionProof(model.id, run.id, now(), model.loadGeneration,
         Object.fromEntries(model.stages.map(stage => [stage.id, stage.nodeGeneration])));
+      await cancellation.preparationWrite;
     } catch {
       // P4 has already confirmed this exact session on every captured stage.
       // Studio's receipt is observability; a temporary persistence failure must
       // not discard the live, generation-bound P4 session before PREFILL.
     }
+    if (cancellation.requested) return;
     run.state = "running"; publish(run); const expected = input.concurrency * input.repetitions;
-    const stop = connection.onEvent((event, receivedAtMs) => {
+    stop = connection.onEvent((event, receivedAtMs) => {
+      if (!isActiveInference(run)) return;
       if (!connection!.owns(event.target)) return;
       if (event.contentType === P4_DELIVERY_FAILURE_CONTENT_TYPE) {
         // A transport diagnostic. Only a PREFILL that provably never left ends its request as failed.
@@ -280,8 +296,9 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         return;
       }
       if (event.adapterKind !== "llamacpp") return;
-      if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload), "failed"); return; }
       try {
+        if (cancellation.consume(event)) return;
+        if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload), "failed"); return; }
         const stage = stageFor(event, stages);
         const telemetryKind = classifyP4Telemetry(event.contentType);
         if (telemetryKind === "unsupported") throw new Error(`Unsupported P4 telemetry contract ${event.contentType}`);
@@ -303,37 +320,52 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         const outputKind = classifyP4Output(event.contentType);
         if (outputKind === "unsupported") throw new Error(`Unsupported P4 output contract ${event.contentType}`);
         if (outputKind !== "output") return;
+        if (stageFor(event, stages)?.stageIndex !== 0 || event.correlationId !== connection!.operationId || event.class !== 2) throw new Error("P4 OUTPUT route does not match the run head");
         const approved = parseP4ApprovedOutput(JSON.parse(new TextDecoder().decode(event.payload)));
         if (approved.load_generation !== model.loadGeneration || approved.session_id !== run.id) throw new Error("P4 output identity does not match the active run");
         const item = run.requests.find(value => value.id === approved.request_id); const timing = timings.get(approved.request_id); const buffer = outputs.get(approved.request_id);
         if (!item || !timing || !buffer) throw new Error("P4 output references an unknown request");
         if (submissions.get(approved.submission_event_id) !== item.id) throw new Error("P4 output does not name the PREFILL submission of its request");
         // Arrival order is not delivery order: consume by the head-approved ordinal only.
-        for (const output of buffer.accept(approved)) {
+        const ready = buffer.accept(approved);
+        cancellation.output(approved, buffer.heldCount);
+        for (const output of ready) {
           const terminal = output.stop !== null;
-          item.state = "streaming"; item.text += output.text;
+          if (["queued", "streaming"].includes(item.state)) item.state = "streaming"; item.text += output.text;
           recordOutputTiming(item, timing, receivedAtMs, terminal);
-          if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; if (run.completed === expected) { run.state = "completed"; stop(); connection?.close(); } }
+          if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; if (run.completed === expected && !cancellation.requested) run.state = "completed"; }
           recordOutputObservability(run, Date.now(), terminal);
         }
         publish(run);
       } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); }
     });
     for (let repetition = 0; repetition < input.repetitions; repetition += 1) {
-      if (repetition && input.intervalMs) await new Promise(resolve => window.setTimeout(resolve, input.intervalMs));
+      if (cancellation.requested || run.state !== "running") break;
+      if (repetition && input.intervalMs) await new Promise<void>(resolve => {
+        const finish = () => { window.clearTimeout(timer); cancellation.signal.signal.removeEventListener("abort", finish); resolve(); };
+        const timer = window.setTimeout(finish, input.intervalMs);
+        cancellation.signal.signal.addEventListener("abort", finish, { once: true });
+      });
+      if (cancellation.requested || run.state !== "running") break;
       for (let lane = 0; lane < input.concurrency; lane += 1) {
+        if (cancellation.requested || run.state !== "running") break;
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
         const maxTokens = wireMaxTokens(model, input.maxTokens);
         outputs.set(id, new OutputOrdinalBuffer(maxTokens));
         const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: wireOptions(model), max_tokens: maxTokens }, 1);
         submissions.set(receipt.event.eventId, id);
+        cancellation.submitted(id, receipt.event);
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };
         run.requests.push(item); run.submitted += 1; timings.set(id, { sentAtMs: receipt.sentAtMs, firstOutputAtMs: null, prefillRows: 0 });
       }
       publish(run);
       await waitForWave(run, repetition + 1);
     }
-  } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); connection?.close(); }
+  } catch (error) { if (!cancellation.requested) fail(run, error instanceof Error ? error.message : String(error)); }
+  finally {
+    if (cancellation.requested) await cancellation.cancel();
+    stop?.(); await connection?.close();
+  }
 }
 
 function waitForWave(run: InferenceRun, waveIndex: number): Promise<void> {
@@ -353,8 +385,8 @@ function waitForWave(run: InferenceRun, waveIndex: number): Promise<void> {
 }
 
 function fail(run: InferenceRun, detail: string, disposition: "failed" | "unknown" = "unknown") {
-  if (!["preparing", "running"].includes(run.state)) return;
-  run.error = detail; run.state = disposition === "failed" ? "failed" : run.requests.some(item => item.state === "streaming") ? "unknown" : "failed";
+  if (!isActiveInference(run)) return;
+  run.error = detail; run.state = disposition === "failed" ? "failed" : run.submitted > 0 ? "unknown" : "failed";
   run.requests.forEach(item => { if (["queued", "streaming"].includes(item.state)) { item.state = run.state === "failed" ? "failed" : "unknown"; item.error = detail; } }); publish(run);
 }
 export const startInference = () => inference.start(gateway);

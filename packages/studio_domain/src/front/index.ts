@@ -6,6 +6,8 @@ export * from "./language/model/index.js";
 export * from "./model/deployments/store.js";
 export * from "./model/graph-inventory/store.js";
 export * from "./model/inference/store.js";
+export * from "./model/inference/cancellation/control.js";
+export * from "./model/inference/cancellation/executions.js";
 export * from "./model/inference/telemetry.js";
 export * from "./model/inference/monitoring-summary.js";
 export * from "./model/inference/timing.js";

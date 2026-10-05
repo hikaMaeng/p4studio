@@ -1,5 +1,7 @@
 # Constraints
 
+- [취소 계약](api.md#inference-cancellation)의 소비자는 browser inference gateway와 두 UNLOAD gateway다. 취소 의도만으로 P4 terminal·RELEASE·native/KV 회수를 승인하지 않는다. `cancelling` 동안 실행 구독과 원래 연결을 유지하며 삭제를 금지한다. 공유 node ID/agent ID를 사용하는 실행도 UNLOAD 전에 멈추고 현재 LOAD 소유권을 다시 검증한다. registry 범위는 현재 브라우저 메모리이며 다른 탭의 실행 정산을 증명하지 않는다.
+
 - `front`의 [AgentRemovalStore](../src/front/model/agents/removal.ts)는 [AgentRemovalDialog](../../../apps/studio/src/front/features/agents/AgentRemovalDialog.tsx)와 목록/상세 삭제 버튼이 소비한다. 진행 중 대상 교체·중복 요청을 차단하고 거부/전송 실패 시 대상을 보존한다.
 
 | Subpath | Consumers | Invariants |

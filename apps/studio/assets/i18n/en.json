@@ -168,7 +168,7 @@
   "agents.node.unload.button": "Unload model",
   "agents.node.unloading.status": "Unloading…",
   "agents.node.unload.title.text": "Unload node model",
-  "agents.node.unload.confirm.message": "Unload the model from {node}, generation {generation}? P4 will reject this while the node is busy.",
+  "agents.node.unload.confirm.message": "Unload the model from node {node} (generation {generation})? Related inference in this browser will be cancelled and further waves stopped first.",
   "agents.node.unload.receipt.message": "Only a node with one exact Studio load receipt can be unloaded here. A successful result marks its model deployment as requiring recovery.",
   "models.empty.title.text": "No distributed models configured",
   "models.empty.detail.message": "Register an agent, then plan and load model stages.",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "Empty string",
   "agents.node.value.true.text": "True",
   "agents.node.value.false.text": "False",
-  "agents.node.value.items.text": "items"
+  "agents.node.value.items.text": "items",
+  "inference.run.stop.button": "Stop run",
+  "inference.cancelling.status": "Stopping",
+  "inference.cancelled.status": "Cancelled",
+  "inference.cancelled.message": "Further waves stopped. Responses received so far are preserved."
 }

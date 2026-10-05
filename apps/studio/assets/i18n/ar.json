@@ -168,7 +168,7 @@
   "agents.node.unload.button": "Unload model",
   "agents.node.unloading.status": "Unloading…",
   "agents.node.unload.title.text": "Unload node model",
-  "agents.node.unload.confirm.message": "Unload the model from {node}, generation {generation}? P4 will reject this while the node is busy.",
+  "agents.node.unload.confirm.message": "هل تريد إلغاء تحميل النموذج من العقدة {node} (الجيل {generation})؟ سيتم أولاً إلغاء الاستدلال المرتبط في هذا المتصفح وإيقاف الموجات التالية.",
   "agents.node.unload.receipt.message": "Only a node with one exact Studio load receipt can be unloaded here. A successful result marks its model deployment as requiring recovery.",
   "models.empty.title.text": "لا توجد نماذج موزعة معدّة",
   "models.empty.detail.message": "سجّل وكيلاً ثم خطّط مراحل النموذج وحمّلها.",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "نص فارغ",
   "agents.node.value.true.text": "صحيح",
   "agents.node.value.false.text": "خطأ",
-  "agents.node.value.items.text": "عناصر"
+  "agents.node.value.items.text": "عناصر",
+  "inference.run.stop.button": "إيقاف التشغيل",
+  "inference.cancelling.status": "جارٍ الإيقاف",
+  "inference.cancelled.status": "تم الإلغاء",
+  "inference.cancelled.message": "توقفت الموجات التالية. يتم الاحتفاظ بالردود المستلمة."
 }

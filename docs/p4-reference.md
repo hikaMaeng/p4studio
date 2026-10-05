@@ -27,7 +27,9 @@
 | `resource_profile` version 2: OUTER footprint 3종과 `outer_token_issue_window` 필수, completion store가 모든 예약을 동시에 담아야 한다 | [resource_profile.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/resource_profile.rs), [lifecycle.rs](../../p4/tools/event-drive/src/run/lifecycle.rs) | [resource-profile.ts](../packages/studio_domain/src/common/protocol/deployments/resource-profile.ts)가 LOAD 직전에 검증하고 `retained_bytes`를 산정한다. [노드 수명](node-lifecycle.md) |
 | LOAD의 `binary`는 agent의 `P4_STAGED_SERVER_BINARY`와 같은 경로여야 한다 | [event-protocol-v2.md](../../p4/docs/event-protocol-v2.md) Load | Studio는 agent 설정을 읽을 수 없으므로 검증하지 않는다. 불일치는 P4의 LOAD 거부로 드러난다 |
 
-미적용: 요청별 취소 `cancel-v1`(`CancelCommand`)은 Studio가 발행하지 않는다. `SchedulingSnapshot.outer_token`은 passthrough로 보존만 한다. event ID는 이전부터 `crypto.randomUUID()`이며 P4는 형식을 검사하지 않는다.
+2026-10-05 요청 취소 대조: P4 HEAD `ee4979a3c2f6f92c048ca70d5d8b1238e39876c2`의 현재 [CancelCommand](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs), [worker cancel](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/cancel.rs), [completion payload](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs)와 `tools/event-drive` 생산자·시험을 확인했다. Studio는 원래 PREFILL의 OUTER 연결에서 first-stage node로 `cancel-v1`을 발행하고 `error-v2` 및 `release-receipt-v1`을 소비한다. `LLAMA_REQUEST_CANCELLED`의 `native_kv_stop_proven=false`는 즉각적인 native/KV 정지 증명이 아니다. [Studio 적용·소비자](../packages/studio_domain/docs/api.md#inference-cancellation), [검증 계획](../tests/plans/inference-cancellation-20261005.md). 이번 대조는 실제 GPU 취소 시험이 아니다.
+
+`SchedulingSnapshot.outer_token`은 passthrough로 보존만 한다. event ID는 이전부터 `crypto.randomUUID()`이며 P4는 형식을 검사하지 않는다.
 
 2026-09-19 계약 대조: P4 HEAD `4df7496b92c9c84efddb4a908ab56ea0b5c6e77f`, clean. event-v3/inspection schema v1은 유지되고, agent inspection의 `transport.transfer`에 누적 `hop_data_writes`·`hop_data_bytes`가 추가됐다. Studio는 이를 agent-wide 관측값으로만 보존·표시하며 request/edge별 bytes나 MB/s로 바꾸지 않는다. `tools/event-drive`의 Release A source-grounded oracle·측정 barrier·증거 봉인은 benchmark driver의 수용 계약이지 P4 agent의 새 browser/Studio API가 아니다. [Studio 적용 계약](node-lifecycle.md). 아래 최초 조사 기록은 역사다.
 

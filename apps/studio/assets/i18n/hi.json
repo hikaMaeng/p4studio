@@ -168,7 +168,7 @@
   "agents.node.unload.button": "Unload model",
   "agents.node.unloading.status": "Unloading…",
   "agents.node.unload.title.text": "Unload node model",
-  "agents.node.unload.confirm.message": "Unload the model from {node}, generation {generation}? P4 will reject this while the node is busy.",
+  "agents.node.unload.confirm.message": "नोड {node} (जनरेशन {generation}) से मॉडल अनलोड करें? पहले इस ब्राउज़र की संबंधित इन्फरेंस रद्द होगी और आगे की वेव रुकेंगी।",
   "agents.node.unload.receipt.message": "Only a node with one exact Studio load receipt can be unloaded here. A successful result marks its model deployment as requiring recovery.",
   "models.empty.title.text": "कोई वितरित मॉडल कॉन्फ़िगर नहीं है",
   "models.empty.detail.message": "एजेंट पंजीकृत करें, फिर मॉडल के चरण तय करके लोड करें।",
@@ -521,5 +521,9 @@
   "agents.node.value.empty.text": "खाली स्ट्रिंग",
   "agents.node.value.true.text": "सत्य",
   "agents.node.value.false.text": "असत्य",
-  "agents.node.value.items.text": "आइटम"
+  "agents.node.value.items.text": "आइटम",
+  "inference.run.stop.button": "प्रक्रिया रोकें",
+  "inference.cancelling.status": "रोक रहे हैं",
+  "inference.cancelled.status": "रद्द किया गया",
+  "inference.cancelled.message": "आगे की वेव रोक दी गई हैं। अब तक मिले उत्तर सुरक्षित हैं।"
 }

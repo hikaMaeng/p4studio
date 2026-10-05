@@ -1,4 +1,5 @@
 import { SliceModel } from "../SliceModel.js";
+import { isActiveInference } from "./cancellation/control.js";
 import type { InferenceMonitoring, InferenceRun, InferenceRunInput } from "../../../common/protocol/inference/index.js";
 
 export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries" | "monitoring" | "monitoringSummary"> & {
@@ -19,6 +20,7 @@ export interface InferenceGateway {
   list(): Promise<InferenceRun[]>;
   create(input: InferenceRunInput): Promise<InferenceRun>;
   remove(runId: string): void;
+  cancel(runId: string): Promise<void>;
   subscribe(runId: string, onRun: (run: InferenceRun) => void, onError: (error: Error) => void): () => void;
   monitoring(modelId: string): Promise<InferenceMonitoring>;
 }
@@ -69,7 +71,7 @@ export class InferenceStore {
         if (!currentIds.has(id)) { model.set(null); this.observabilityModels.delete(id); this.observabilityPublishedAt.delete(id); }
       }
       for (const run of runs) { this.runModel(run.id).set(run); this.publishObservability(run); }
-      runs.filter(run => ["preparing", "running"].includes(run.state)).forEach(run => this.listen(run));
+      runs.filter(isActiveInference).forEach(run => this.listen(run));
     }
     catch (error) { this.activity.mutate(value => { value.error = String(error); }); }
   }
@@ -81,6 +83,8 @@ export class InferenceStore {
     finally { this.activity.mutate(value => { value.busy = false; }); }
   }
   remove(runId: string) {
+    const run = this.runModel(runId).value;
+    if (run && isActiveInference(run)) return;
     this.stop(runId);
     this.gateway?.remove(runId);
     this.runs.set(values => values.filter(run => run.id !== runId));
@@ -91,6 +95,10 @@ export class InferenceStore {
     this.observabilityModels.delete(runId);
     this.observabilityPublishedAt.delete(runId);
   }
+  async cancel(runId: string) {
+    try { await this.gateway?.cancel(runId); }
+    catch (error) { this.activity.mutate(value => { value.error = String(error); }); }
+  }
   async refreshMonitoring(modelId: string) {
     if (!this.gateway) return;
     try { const snapshot = await this.gateway.monitoring(modelId); this.monitoring.set(snapshot); }
@@ -98,7 +106,7 @@ export class InferenceStore {
   }
   private listen(run: InferenceRun) {
     if (!this.gateway || this.subscriptions.has(run.id)) return;
-    this.subscriptions.set(run.id, this.gateway.subscribe(run.id, value => { this.upsert(value); const latest = value.monitoring.at(-1); if (latest) this.monitoring.set(latest); if (!["preparing", "running"].includes(value.state)) this.stop(value.id); }, error => this.activity.mutate(value => { value.error = error.message; })));
+    this.subscriptions.set(run.id, this.gateway.subscribe(run.id, value => { this.upsert(value); const latest = value.monitoring.at(-1); if (latest) this.monitoring.set(latest); if (!isActiveInference(value)) this.stop(value.id); }, error => this.activity.mutate(value => { value.error = error.message; })));
   }
   private stop(id: string) { this.subscriptions.get(id)?.(); this.subscriptions.delete(id); }
   private upsert(run: InferenceRun) {
@@ -117,7 +125,7 @@ export class InferenceStore {
     const model = this.observabilityModels.get(run.id);
     if (!model) return;
     const current = Date.now();
-    const terminal = !["preparing", "running"].includes(run.state);
+    const terminal = !isActiveInference(run);
     if (!terminal && current - (this.observabilityPublishedAt.get(run.id) ?? 0) < OBSERVABILITY_PUBLISH_INTERVAL_MS) return;
     model.set(observabilitySnapshot(run));
     this.observabilityPublishedAt.set(run.id, current);
