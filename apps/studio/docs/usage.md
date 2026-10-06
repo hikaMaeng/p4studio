@@ -1,9 +1,11 @@
 # Usage
 
-- 진행 중 스트리밍 실행의 휴지통 옆 `중지` 버튼은 준비·현재 웨이브·웨이브 간 대기를 중단한다. 취소 확인 중에는 버튼이 비활성화되고, 종료 후 부분 답변과 완료 요청을 유지한다. 실행 중 삭제는 비활성화한다. 기록 목록·실행 상세에서도 같은 실행을 중지할 수 있다.
+- 스트리밍 질의의 `동시 질의 수 10 · 반복 횟수 10 · 반복 간격 5초`는 첫 회차부터 0·5·10·…·45초에 각각 10개씩 총 100개를 전송한다. 이전 응답이 진행 중이어도 다음 회차를 전송하며, 전체 응답 완료까지 결과를 수신한다. 간격 0은 모든 회차 즉시 전송이다. [전송 계약](api.md#browser-owned-inference).
+
+- 진행 중 실행의 `질의 중지` 버튼은 인퍼런스 하단 결과 카드, 기록 목록의 해당 행, 기록 상세 상단 오른쪽에 표시된다. 준비·현재 웨이브·웨이브 간 대기를 중단하고, 겹친 회차의 미완료 요청 전체를 취소한다. 취소 확인 중에는 버튼이 `중지 중`으로 비활성화되고, 종료 후 부분 답변과 완료 요청을 유지한다. 실행 중 삭제는 비활성화한다. 인퍼런스 하단은 최신 실행과 모든 활성 실행을 표시하므로 더 최근 실행이 먼저 끝나도 이전 실행을 중지할 수 있다.
 - 모델 언로드 또는 노드 상세의 모델 언로드는 현재 브라우저의 관련 실행과 이후 웨이브를 자동으로 먼저 취소한다. P4 정산이 확인되지 않으면 실행은 결과 불명으로 남으며 자원 제거는 UNLOAD 결과에 따른다. [취소 계약](../../../packages/studio_domain/docs/api.md#inference-cancellation).
 
-- 모델 카드의 `상태 새로고침`은 현재 게이트웨이 그룹을 통해 대상 에이전트별 INSPECT를 보내고 노드의 실제 상태·확인 시각을 DB에 저장한다. 상단 새로고침은 저장된 목록만 갱신한다. 노드 부재는 현재 관측으로 기록하며 미해결 LOAD는 계속 불명이다. 빈 adapter 문자열은 node 제거가 아니다. 접속 실패·세대 불일치는 미확인으로 표시한다. 현재 P4의 `loaded` 조회에는 로딩 세대가 없어 이 배치의 로딩 완료로 확정하지 않는다. 조회 중 중복 클릭을 차단하고 다른 작업이 기록을 바꾸면 오래된 결과의 저장을 거부한다. [상태 판정 계약](../../../packages/studio_domain/docs/api.md#model-refresh).
+- 모델 카드의 `상태 새로고침`은 현재 게이트웨이 그룹을 통해 대상 에이전트별 INSPECT를 보내고 노드의 실제 상태·확인 시각을 DB에 저장한다. 상단 `목록 새로고침`도 목록을 읽은 뒤 모델별 P4 조회를 순차 실행한다(모델 상세에서는 해당 모델만 조회). 한 모델의 조회 저장 실패가 다른 모델의 갱신을 막지 않는다. 배경의 2초 갱신은 저장 목록만 읽는다. 접힌 행에도 조회·로딩·언로딩 진행, 실패 이유와 마지막 관측 시각을 표시한다. 언로딩 전 추론 취소·연결 준비 중에도 진행을 표시하며 중복 동작을 차단한다. 노드 부재는 현재 관측으로 기록하며 미해결 LOAD는 계속 불명이다. 빈 adapter 문자열은 node 제거가 아니다. 접속 실패·세대 불일치는 미확인으로 표시한다. 현재 P4의 `load_generation`과 감독된 LOAD 완료 결과를 대조하며, 과거 agent의 세대 없는 `loaded` 문자열만으로 완료를 확정하지 않는다. 다른 작업이 기록을 바꾸면 오래된 결과의 저장을 거부한다. 삭제된 agent 등록을 참조하는 배치는 미확인 상태와 원인을 보존하며 다른 agent로 자동 변경하지 않는다. [상태 판정 계약](../../../packages/studio_domain/docs/api.md#model-refresh).
 
 - 개발: `npm run dev --workspace @p4studio/studio` (Vite `43121`, API `43122`; `P4STUDIO_DEV_PORT`로 API 포트만 변경)
 - 빌드: `npm run build --workspace @p4studio/studio`
@@ -61,3 +63,13 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 - `register-recorded-models.mjs`는 기록된 주소 또는 같은 호스트·관리 이름의 현재 등록을 재사용한다. 운영 포트 변경 후에도 기존 ID·모델 참조를 보존한다.
 
 모델 LOAD/UNLOAD·부분 실패·재적재와 이전 노드 등록 URL의 이행은 [노드 수명](../../../docs/node-lifecycle.md)을 따른다.
+
+## Approved Windows recovery
+
+에이전트 상세의 자원 회수 화면에서 영향 모델, 전후 PID·birth·실행 경로·listener·hash를 검토한다. 강제 회수 뒤 새 agent의 P4 INSPECT를 확인해야 완료된다. 정상 UNLOAD 거부 이력은 성공으로 바꾸지 않는다. 일부 stop 실패는 현재 자원 다시 검토 후 계속할 수 있고, stop 성공/start 실패는 재기동만 재개한다. 브라우저 reload는 같은 operation URL을 복원한다.
+
+P4STUDIO_AGENT_MANAGEMENT는 기본[]인 private JSON 설정이다. 각 항목은 {agentId,host,port,sshHost,sshPort,sshUser,root,task,agentHash,nativeHash,launchHash,identityName}. 등록 agent 좌표와 승인 installation이 정확히 일치해야 한다. root는 전용 Windows 폴더이며 task action은 cmd.exe /c <root>\run-agent.cmd, S4U다. 해시는 관리자 검토 후 환경에 넣는다. client는 원격 shell을 입력하지 않는다.
+
+승인 키는 apps/studio/docker/volumes/ssh/<identityName>, 기본 management_identity에 두며 Git 제외·read-only mount한다. known_hosts는 이미 검증된 host key를 사용한다. 비밀키·credential은 보고서나 evidence archive에 포함하지 않는다. 인증·승인 hash가 바뀌면 자동 우회하지 않고 실패를 표시한다.
+
+MiMo 같은 대형 모델은 대상 agent에서 실제 접근 가능한 local/remote path를 설정한다. Studio 서버나 SSH user에서의 파일 존재를 다른 실행 identity의 사용 가능 증거로 바꾸지 않는다. mapped drive는 세션에 따라 없을 수 있다. retained request budget과 execution sequence slots는 별개이며 LOAD profile 변경 후 재적재가 필요하다.

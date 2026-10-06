@@ -1,6 +1,9 @@
 import { decodeLifecycleMetadata, parseLifecycleResult, NODE_LOAD_CONTENT_TYPE, NODE_UNLOAD_CONTENT_TYPE, NODE_LIFECYCLE_RESULT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE, sameEndpoint, type P4Endpoint, type P4Event } from "@p4studio/p4-protocol";
 import type { DeploymentInput, DeploymentRecord, PlacementStage, StageReport } from "./index.js";
 import { buildLoadPayload, LLAMA_TYPES, llamaPlanSummary } from "./payload.js";
+import { buildNodeLifecyclePayload, stageNeedsRecovery } from "./lifecycle.js";
+import { checkBuilds } from "./compatibility.js";
+import { stageResourceProfile } from "./resource-profile.js";
 
 export interface BrowserOwnedDeploymentTransport {
   exchange(target: P4Endpoint, adapter: string, contentType: string, payload: unknown, terminalTypes: string[], timeoutMs: number): Promise<P4Event>;
@@ -8,9 +11,16 @@ export interface BrowserOwnedDeploymentTransport {
   close(): void;
 }
 export class UncertainP4Delivery extends Error {}
-import { buildNodeLifecyclePayload, stageNeedsRecovery } from "./lifecycle.js";
-import { checkBuilds } from "./compatibility.js";
-import { stageResourceProfile } from "./resource-profile.js";
+/** The exchange failed before command bytes were handed to the P4 bridge. */
+export class P4RequestNotSent extends Error {
+  readonly deliveryState = "not_sent" as const;
+  constructor(message: string) { super(message); this.name = "P4RequestNotSent"; }
+}
+// Model LOAD can legitimately need a long warm-up; UNLOAD should never leave
+// the browser showing an active operation for the model's full load timeout.
+// Once this bounded wait expires, the result remains unknown until INSPECT or
+// a later lifecycle receipt proves whether the resource was removed.
+export const DEPLOYMENT_UNLOAD_TIMEOUT_MS = 120_000;
 
 /** Validation owned by the OUTER before it starts an irreversible P4 load. */
 export function validateDeployment(plan: DeploymentInput): void {
@@ -60,6 +70,7 @@ export function validateDeploymentLoad(plan: DeploymentInput): void {
 /** Agent terminal results own readiness/removal; browser owns multi-stage recovery. */
 export async function runBrowserDeployment(record: DeploymentRecord, action: "load" | "unload", addresses: Map<string, string>, wire: BrowserOwnedDeploymentTransport, persist: () => Promise<void>): Promise<void> {
   const types = record.adapter === "llamacpp" ? LLAMA_TYPES : record;
+  if (action === "load") for (const stage of record.stages) if (!record.reports.some(report => report.stageId === stage.id)) record.reports.push({ stageId: stage.id, state: "pending", detail: "", failureDetail: "", loadRequested: false, telemetry: null, updatedAt: new Date().toISOString() });
   let persistenceError = "";
   const save = async () => {
     record.updatedAt = new Date().toISOString();
@@ -82,7 +93,8 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
       const target: P4Endpoint = { kind: "agent", address };
       sent = true;
       const reply = await wire.exchange(target, record.adapter, operation === "load" ? NODE_LOAD_CONTENT_TYPE : NODE_UNLOAD_CONTENT_TYPE,
-        payload, [NODE_LIFECYCLE_RESULT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE], record.timeoutMs);
+        payload, [NODE_LIFECYCLE_RESULT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE], operation === "unload"
+          ? Math.min(record.timeoutMs, DEPLOYMENT_UNLOAD_TIMEOUT_MS) : record.timeoutMs);
       if (!sameEndpoint(reply.source, target) || reply.adapterKind !== null) throw new UncertainP4Delivery("Lifecycle agent identity mismatch");
       if (reply.contentType !== NODE_LIFECYCLE_RESULT_CONTENT_TYPE) throw new UncertainP4Delivery("Agent returned no lifecycle resource result");
       const decoded = decodeLifecycleMetadata(reply.payload), metadata = parseLifecycleResult(decoded.metadata);
@@ -104,8 +116,11 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
         report.detail = metadata.first_error!;
         if (operation === "load") report.failureDetail ||= metadata.first_error!;
         report.cleanupError ||= metadata.cleanup_error ?? (operation === "unload" ? metadata.first_error! : "");
-        if (operation === "unload" && metadata.resource_state === "absent" && report.loadOutcome === "unknown") {
-          report.resourceState = "unknown"; report.state = "unknown";
+        // rejected/absent is not a successful UNLOAD receipt, but it is an
+        // authoritative current absence result. Keep the old LOAD outcome as
+        // history without claiming the node is still registered.
+        if (operation === "unload" && metadata.resource_state === "absent") {
+          report.state = "absent";
         }
         // A rejected absent UNLOAD proves absence only; it is not a successful UNLOAD receipt.
         await save(); return false;
@@ -114,10 +129,20 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
       if (operation === "load") report.telemetry = body;
       await save(); return true;
     } catch (error) {
-      report.state = sent ? "unknown" : "failed";
-      if (sent) report.resourceState = "unknown";
+      const definitelyNotSent = error instanceof P4RequestNotSent
+        || !!error && typeof error === "object" && "deliveryState" in error && error.deliveryState === "not_sent";
+      const uncertain = sent && !definitelyNotSent;
+      report.state = uncertain ? "unknown" : "failed";
+      if (uncertain) report.resourceState = "unknown";
       report.detail = error instanceof Error ? error.message : String(error);
-      if (operation === "load") { report.failureDetail ||= report.detail; if (!sent) report.loadOutcome = "failed"; }
+      if (operation === "load") {
+        report.failureDetail ||= report.detail;
+        if (definitelyNotSent || !sent) {
+          report.loadRequested = false;
+          report.loadOutcome = "failed";
+          report.resourceState = "absent";
+        }
+      }
       else report.cleanupError ||= report.detail;
       await save(); return false;
     }
@@ -151,9 +176,14 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
     // Successfully loaded/ready stages still own resources (so a new LOAD is
     // blocked), but that known ownership is not an unresolved outcome.
     const unresolved = record.reports.some(report => stageNeedsRecovery(report) && !["loaded", "ready"].includes(report.state));
+    const allAbsent = record.reports.length === record.stages.length && record.reports.every(report => report.resourceState === "absent");
+    const allNormallyUnloaded = allAbsent && record.reports.every(report => report.state === "unloaded"
+      && report.lifecycle?.operation === "unload" && report.lifecycle.status === "succeeded" && report.lifecycle.resourceState === "absent");
     record.status = unresolved ? (record.reports.some(r => r.state === "unknown") ? "unknown" : "failed")
-      : action === "load" ? (failed ? "failed" : "loaded") : "unloaded";
-    if (action === "unload" && !failed && record.reports.length === record.stages.length && record.reports.every(r => r.state === "unloaded")) record.sessionProof = null;
+      : allAbsent && failed ? "absent"
+        : action === "load" ? (failed ? "failed" : "loaded")
+          : !failed && allNormallyUnloaded ? "unloaded" : allAbsent ? "absent" : "failed";
+    if (action === "unload" && allAbsent) record.sessionProof = null;
     if (persistenceError) { record.error ||= persistenceError; if (["loaded", "ready"].includes(record.status)) record.status = "unknown"; }
   } finally { wire.close(); await save(); }
 }

@@ -19,7 +19,7 @@ const observabilitySnapshot = (run: InferenceRun): InferenceObservabilitySnapsho
 export interface InferenceGateway {
   list(): Promise<InferenceRun[]>;
   create(input: InferenceRunInput): Promise<InferenceRun>;
-  remove(runId: string): void;
+  remove(runId: string): void | Promise<void>;
   cancel(runId: string): Promise<void>;
   subscribe(runId: string, onRun: (run: InferenceRun) => void, onError: (error: Error) => void): () => void;
   monitoring(modelId: string): Promise<InferenceMonitoring>;
@@ -28,6 +28,7 @@ export interface InferenceGateway {
 export class InferenceStore {
   readonly runs = new SliceModel<InferenceRun[]>([]);
   readonly runIds = new SliceModel<string[]>([]);
+  readonly activeRunIds = new SliceModel<string[]>([]);
   readonly monitoring = new SliceModel<InferenceMonitoring | null>(null);
   readonly activity = new SliceModel({ busy: false, error: "" });
   private gateway?: InferenceGateway;
@@ -63,6 +64,7 @@ export class InferenceStore {
       const runs = await this.gateway.list();
       this.runs.set(runs);
       this.runIds.set(runs.map(run => run.id));
+      this.syncActiveRunIds();
       const currentIds = new Set(runs.map(run => run.id));
       for (const [id, model] of this.runModels) {
         if (!currentIds.has(id)) { model.set(null); this.runModels.delete(id); }
@@ -82,13 +84,15 @@ export class InferenceStore {
     catch (error) { this.activity.mutate(value => { value.error = error instanceof Error ? error.message : String(error); }); }
     finally { this.activity.mutate(value => { value.busy = false; }); }
   }
-  remove(runId: string) {
+  async remove(runId: string) {
     const run = this.runModel(runId).value;
-    if (run && isActiveInference(run)) return;
+    if (run && (isActiveInference(run) || (run.pendingSettlement ?? 0) > 0)) return;
+    try { await this.gateway?.remove(runId); }
+    catch (error) { this.activity.mutate(value => { value.error = String(error); }); await this.refresh(); return; }
     this.stop(runId);
-    this.gateway?.remove(runId);
     this.runs.set(values => values.filter(run => run.id !== runId));
     this.runIds.set(values => values.filter(id => id !== runId));
+    this.syncActiveRunIds();
     this.runModel(runId).set(null);
     this.runModels.delete(runId);
     this.observabilityModels.get(runId)?.set(null);
@@ -119,6 +123,15 @@ export class InferenceStore {
     this.runModel(run.id).set(run);
     this.publishObservability(run);
     if (created) this.runIds.mutate(values => { values.unshift(run.id); });
+    this.syncActiveRunIds();
+  }
+
+  // QueryPanel must retain older live runs even when the newest run has finished.
+  // See apps/studio/docs/api.md#browser-owned-inference.
+  private syncActiveRunIds() {
+    const ids = this.runs.value.filter(isActiveInference).map(run => run.id);
+    const current = this.activeRunIds.value;
+    if (ids.length !== current.length || ids.some((id, index) => id !== current[index])) this.activeRunIds.set(ids);
   }
 
   private publishObservability(run: InferenceRun) {

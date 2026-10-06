@@ -10,7 +10,7 @@ import {
   type P4Endpoint,
   type P4Event,
 } from "@p4studio/p4-protocol";
-import { P4_TUNNEL_PATH, parseP4TunnelServerControl } from "@p4studio/studio_domain/common";
+import { P4RequestNotSent, P4_TUNNEL_PATH, parseP4TunnelServerControl } from "@p4studio/studio_domain/common";
 
 export class UncertainDelivery extends Error { constructor(message: string) { super(message); this.name = "UncertainP4Delivery"; } }
 
@@ -34,6 +34,7 @@ export class BrowserP4Connection {
   private sequence = 0;
   private readonly seen = new Set<string>();
   private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
+  private readonly errors = new Set<(error: Error) => void>();
   readonly operationId: string;
   readonly outer: Extract<P4Endpoint, { kind: "outer" }>;
 
@@ -52,14 +53,14 @@ export class BrowserP4Connection {
   static open(agentId: string, ingressAddress: string, operationId: string = crypto.randomUUID()): Promise<BrowserP4Connection> {
     const connection = new BrowserP4Connection(agentId, ingressAddress, operationId);
     return new Promise((resolve, reject) => {
-      const timer = window.setTimeout(() => { connection.close(); reject(new UncertainDelivery("Timed out opening browser P4 bridge")); }, 10_000);
+      const timer = window.setTimeout(() => { connection.close(); reject(new P4RequestNotSent("Timed out opening browser P4 bridge")); }, 10_000);
       const listener = (event: MessageEvent) => {
         if (typeof event.data !== "string") return;
         try {
           const control = parseP4TunnelServerControl(JSON.parse(event.data));
           if (control.connectionId !== connection.operationId && control.connectionId !== null) return;
           if (control.type === "opened") { window.clearTimeout(timer); connection.opened = true; connection.socket.removeEventListener("message", listener); resolve(connection); }
-          if (control.type === "error" || control.type === "closed") { window.clearTimeout(timer); connection.socket.removeEventListener("message", listener); connection.close(); reject(new UncertainDelivery(control.detail)); }
+          if (control.type === "error" || control.type === "closed") { window.clearTimeout(timer); connection.socket.removeEventListener("message", listener); connection.close(); reject(new P4RequestNotSent(control.detail)); }
         } catch { /* Regular P4 binary traffic is handled by receive. */ }
       };
       connection.socket.addEventListener("message", listener);
@@ -85,6 +86,7 @@ export class BrowserP4Connection {
   }
 
   onEvent(listener: (event: P4Event, receivedAtMs: number) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  onError(listener: (error: Error) => void): () => void { this.errors.add(listener); return () => this.errors.delete(listener); }
 
   close(): Promise<boolean> {
     if (this.closing) return this.closing;
@@ -147,7 +149,7 @@ export class BrowserP4Connection {
     if (notice.eventId !== pending.event.eventId) return;
     window.clearTimeout(pending.timer); this.pending = undefined;
     pending.reject(notice.result === "not_started"
-      ? new Error("P4 reported that the request was never sent to its target agent")
+      ? new P4RequestNotSent("P4 reported that the request was never sent to its target agent")
       : new UncertainDelivery("P4 could not confirm delivery of the request; state is unknown"));
   }
 
@@ -166,6 +168,7 @@ export class BrowserP4Connection {
     if (this.stopped) return;
     const pending = this.pending; this.pending = undefined;
     if (pending) { window.clearTimeout(pending.timer); pending.reject(error); }
+    this.errors.forEach(listener => listener(error));
     void this.close();
   }
 }

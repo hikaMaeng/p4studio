@@ -1,4 +1,9 @@
 export enum RSC {
+  RECOVERY_HISTORY_PREVIOUS_BUTTON = "recovery.historyPrevious.button", RECOVERY_HISTORY_NEXT_BUTTON = "recovery.historyNext.button",
+  RECOVERY_MODEL_HISTORY_TEXT = "recovery.modelHistory.text",
+  RECOVERY_MODEL_HISTORY_OPEN_BUTTON = "recovery.modelHistoryOpen.button",
+  RECOVERY_TITLE_TEXT = "recovery.title.text",
+  RECOVERY_RECOVERED_STATUS = "recovery.recovered.status",
   MODELS_RECOVERY_MESSAGE = "models.recovery.message",
   MODELS_LIFECYCLE_MESSAGE = "models.lifecycle.message",
   MODELS_INSPECT_BUTTON = "models.inspect.button",
@@ -148,5 +153,7 @@ export enum RSC {
   MODELS_GRAPH_EMPTY_MESSAGE = "models.graph.empty.message",
   MODELS_GRAPH_NODE_NAME_MESSAGE = "models.graph.node.name.message",
   MODELS_GRAPH_LABELS_ERROR_ALERT = "models.graph.labels.error.alert",
-  MODELS_GRAPH_LOAD_MESSAGE = "models.graph.load.message"
+  MODELS_GRAPH_LOAD_MESSAGE = "models.graph.load.message",
+  MODELS_ABSENT_STATUS = "models.absent.status",
+  MODELS_PREVIOUS_LOAD_UNKNOWN_MESSAGE = "models.previous.load.unknown.message",
 }

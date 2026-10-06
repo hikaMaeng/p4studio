@@ -7,7 +7,7 @@ export interface DeploymentGateway {
   list(): Promise<DeploymentRecord[]>;
   save(input: DeploymentInput, id?: string): Promise<DeploymentRecord>;
   remove(id: string, discard: boolean): Promise<void>;
-  operate(id: string, action: "load" | "unload"): Promise<DeploymentRecord>;
+  operate(id: string, action: "load" | "unload", expectedLoadGeneration?: number): Promise<DeploymentRecord>;
   reconcile(id: string): Promise<DeploymentRecord>;
 }
 export type ObservedNodeTarget = { agentId: string; nodeId: string; nodeGeneration: number; adapterKind: string };
@@ -22,7 +22,10 @@ class DeploymentStore {
   readonly records = new SliceModel<DeploymentRecord[]>([]);
   readonly editor = new SliceModel<{ open: boolean; id?: string; input: DeploymentInput }>({ open: false, input: emptyDeployment() });
   readonly activity = new SliceModel({ busy: false, error: "" });
-  readonly inspection = new SliceModel({ modelId: "" });
+  readonly listError = new SliceModel("");
+  // Per-model exclusion and independent list inspection; see docs/api.md#model-refresh.
+  readonly tasks = new SliceModel(new Map<string, "load" | "unload" | "inspect" | "save" | "remove">());
+  readonly listInspection = new SliceModel(false);
   readonly selection = new SliceModel("");
   readonly nodeSelection = new SliceModel<ObservedNodeTarget | null>(null);
   readonly agentPositions = new SliceModel(new Map<string, { x: number; y: number }>());
@@ -35,8 +38,13 @@ class DeploymentStore {
     if (!this.gateway || this.refreshing) return; this.refreshing = true;
     if (this.timer) clearTimeout(this.timer);
     const version = this.records.getVersion();
-    try { const records = await this.gateway.list(); if (this.records.getVersion() === version) this.records.set(records); }
-    catch (e) { this.activity.mutate(v => { v.error = String(e); }); }
+    const tasksVersion = this.tasks.getVersion();
+    try {
+      const records = await this.gateway.list();
+      this.listError.set("");
+      if (this.records.getVersion() === version && this.tasks.getVersion() === tasksVersion) this.records.set(records);
+    }
+    catch (e) { this.listError.set(String(e)); }
     finally { this.refreshing = false; this.timer = setTimeout(() => void this.refresh(), 2000); }
   }
   open(record?: DeploymentRecord) {
@@ -100,42 +108,72 @@ class DeploymentStore {
   }
   close() { this.editor.mutate(v => { v.open = false; }); }
   async save(): Promise<DeploymentRecord | null> {
-    if (!this.gateway || this.activity.value.busy) return null;
+    const id = this.editor.value.id;
+    if (!this.gateway || this.activity.value.busy || (id && this.tasks.value.has(id))) return null;
     this.activity.mutate(v => { v.busy = true; v.error = ""; });
+    if (id) this.tasks.mutate(tasks => { tasks.set(id, "save"); });
     try {
       const input = this.editor.value.input;
       for (const stage of input.stages) {
         if (input.adapter === "llamacpp" && stage.planText !== undefined) Object.assign(stage, llamaPlanSummary(stage.planText));
         buildLoadPayload(input, stage, 1);
       }
-      const record = await this.gateway.save(input, this.editor.value.id); this.close(); await this.refresh(); return record;
+      const record = await this.gateway.save(input, id); this.close(); await this.refresh(); return record;
     }
     catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); return null; }
-    finally { this.activity.mutate(v => { v.busy = false; }); }
+    finally { if (id) this.tasks.mutate(tasks => { tasks.delete(id); }); this.activity.mutate(v => { v.busy = false; }); }
   }
   async remove(id: string, discard: boolean) {
-    if (!this.gateway || this.activity.value.busy) return false;
-    this.activity.mutate(v => { v.busy = true; v.error = ""; });
+    if (!this.gateway || this.tasks.value.has(id)) return false;
+    this.tasks.mutate(tasks => { tasks.set(id, "remove"); });
+    this.activity.mutate(v => { v.error = ""; });
     try { await this.gateway.remove(id, discard); this.records.mutate(values => { const index = values.findIndex(value => value.id === id); if (index >= 0) values.splice(index, 1); }); return true; }
     catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); return false; }
-    finally { this.activity.mutate(v => { v.busy = false; }); }
+    finally { this.tasks.mutate(tasks => { tasks.delete(id); }); }
   }
-  async operate(id: string, action: "load" | "unload") {
-    if (!this.gateway || this.activity.value.busy) return;
-    this.activity.mutate(v => { v.busy = true; v.error = ""; });
-    try { const record = await this.gateway.operate(id, action); this.records.mutate(values => { const index = values.findIndex(v => v.id === id); if (index >= 0) values[index] = record; }); await this.refresh(); }
+  async operate(id: string, action: "load" | "unload", expectedLoadGeneration?: number) {
+    if (!this.gateway || this.tasks.value.has(id)) return;
+    this.tasks.mutate(tasks => { tasks.set(id, action); });
+    this.activity.mutate(v => { v.error = ""; });
+    try { const record = await this.gateway.operate(id, action, expectedLoadGeneration); this.records.mutate(values => { const index = values.findIndex(v => v.id === id); if (index >= 0) values[index] = record; }); await this.refresh(); }
     catch (e) { this.activity.mutate(v => { v.error = e instanceof Error ? e.message : String(e); }); }
-    finally { this.activity.mutate(v => { v.busy = false; }); }
+    finally { this.tasks.mutate(tasks => { tasks.delete(id); }); }
   }
   async reconcile(id: string) {
-    if (!this.gateway || this.activity.value.busy) return;
-    this.activity.mutate(v => { v.busy = true; v.error = ""; });
-    this.inspection.mutate(v => { v.modelId = id; });
+    if (!this.gateway || this.tasks.value.has(id)) return;
+    this.tasks.mutate(tasks => { tasks.set(id, "inspect"); });
+    this.activity.mutate(v => { v.error = ""; });
     try {
       const record = await this.gateway.reconcile(id);
       this.records.mutate(values => { const index = values.findIndex(value => value.id === id); if (index >= 0) values[index] = record; });
     } catch (error) { this.activity.mutate(v => { v.error = error instanceof Error ? error.message : String(error); }); }
-    finally { this.inspection.mutate(v => { v.modelId = ""; }); this.activity.mutate(v => { v.busy = false; }); }
+    finally { this.tasks.mutate(tasks => { tasks.delete(id); }); }
+  }
+  /** Explicit user refresh observes P4; the background refresh only reads saved records. */
+  async reconcileAll(ids?: string[]) {
+    if (!this.gateway || this.listInspection.value) return;
+    this.listInspection.set(true);
+    this.activity.mutate(v => { v.error = ""; });
+    try {
+      if (!ids) {
+        const version = this.records.getVersion(), tasksVersion = this.tasks.getVersion();
+        const records = await this.gateway.list();
+        if (this.records.getVersion() === version && this.tasks.getVersion() === tasksVersion) this.records.set(records);
+        ids = this.records.value.filter(record => record.stages.length).map(record => record.id);
+      }
+      const errors: string[] = [];
+      for (const id of ids) {
+        if (this.tasks.value.has(id) || !this.records.value.some(record => record.id === id)) continue;
+        this.tasks.mutate(tasks => { tasks.set(id, "inspect"); });
+        try {
+          const record = await this.gateway.reconcile(id);
+          this.records.mutate(values => { const index = values.findIndex(value => value.id === id); if (index >= 0) values[index] = record; });
+        } catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
+        finally { this.tasks.mutate(tasks => { tasks.delete(id); }); }
+      }
+      if (errors.length) this.activity.mutate(v => { v.error = errors.join(" · "); });
+    } catch (error) { this.activity.mutate(v => { v.error = error instanceof Error ? error.message : String(error); }); }
+    finally { this.listInspection.set(false); }
   }
 }
 export const deployments = new DeploymentStore();

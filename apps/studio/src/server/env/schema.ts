@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { managementProfileSchema } from "../operations/windows.js";
 
 const tunnelSchema = z.object({
   agentHost: z.string().min(1), agentPort: z.number().int().min(1).max(65535),
@@ -19,6 +20,10 @@ const envSchema = z.object({
     catch { context.addIssue({ code: "custom", message: "Invalid P4STUDIO_AGENT_TUNNELS JSON" }); return z.NEVER; }
   }),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  P4STUDIO_AGENT_MANAGEMENT: z.string().default("[]").transform((value, context) => {
+    try { return z.array(managementProfileSchema).max(16).refine(items => new Set(items.map(item => item.agentId)).size === items.length).parse(JSON.parse(value)); }
+    catch { context.addIssue({ code: "custom", message: "Invalid P4STUDIO_AGENT_MANAGEMENT JSON" }); return z.NEVER; }
+  }),
 });
 
 export type StudioEnv = z.infer<typeof envSchema>;

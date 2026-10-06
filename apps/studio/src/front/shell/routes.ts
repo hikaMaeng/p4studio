@@ -11,10 +11,12 @@ export type StudioRoute =
   | { kind: "agent-group-edit"; groupId: string }
   | { kind: "agent-detail"; agentId: string; tab: AgentTab }
   | { kind: "agent-node-new"; agentId: string }
+  | { kind: "agent-recovery"; agentId: string; operationId?: string }
   | { kind: "models" }
   | { kind: "model-new" }
   | { kind: "model-detail"; modelId: string }
   | { kind: "model-edit"; modelId: string }
+  | { kind: "model-history"; modelId: string }
   | { kind: "pipelines" }
   | { kind: "pipeline-new" }
   | { kind: "pipeline-detail"; pipelineId: string }
@@ -42,6 +44,7 @@ export const parseRoute = (pathname: string): StudioRoute => {
   if (segments[0] === "agents" && segments[1] === "new" && segments.length === 2) return { kind: "agent-new" };
   if (segments[0] === "agents" && segments.length >= 2) {
     const agentId = segments[1]!;
+    if (segments[2] === "recovery" && segments.length <= 4) return { kind: "agent-recovery", agentId, ...(segments[3] ? { operationId: segments[3] } : {}) };
     if (segments[2] === "nodes" && segments[3] === "new" && segments.length === 4) return { kind: "agent-node-new", agentId };
     if (segments[2] === "nodes" && segments.length === 3) return { kind: "agent-detail", agentId, tab: "nodes" };
     if ((segments[2] === "information" || segments.length === 2) && segments.length <= 3) return { kind: "agent-detail", agentId, tab: "information" };
@@ -50,6 +53,7 @@ export const parseRoute = (pathname: string): StudioRoute => {
   if (segments[0] === "models" && segments[1] === "new" && segments.length === 2) return { kind: "model-new" };
   if (segments[0] === "models" && segments.length === 2) return { kind: "model-detail", modelId: segments[1]! };
   if (segments[0] === "models" && segments[2] === "edit" && segments.length === 3) return { kind: "model-edit", modelId: segments[1]! };
+  if (segments[0] === "models" && segments[2] === "history" && segments.length === 3) return { kind: "model-history", modelId: segments[1]! };
   if (segments.length === 1 && segments[0] === "pipelines") return { kind: "pipelines" };
   if (segments[0] === "pipelines" && segments[1] === "new" && segments.length === 2) return { kind: "pipeline-new" };
   if (segments[0] === "pipelines" && segments.length === 2) return { kind: "pipeline-detail", pipelineId: segments[1]! };
@@ -73,10 +77,12 @@ export const routePath = (route: StudioRoute) => {
     case "agent-group-edit": return `/agent-groups/${encodeURIComponent(route.groupId)}/edit`;
     case "agent-detail": return `/agents/${encodeURIComponent(route.agentId)}/${route.tab}`;
     case "agent-node-new": return `/agents/${encodeURIComponent(route.agentId)}/nodes/new`;
+    case "agent-recovery": return `/agents/${encodeURIComponent(route.agentId)}/recovery${route.operationId ? `/${encodeURIComponent(route.operationId)}` : ""}`;
     case "models": return "/models";
     case "model-new": return "/models/new";
     case "model-detail": return `/models/${encodeURIComponent(route.modelId)}`;
     case "model-edit": return `/models/${encodeURIComponent(route.modelId)}/edit`;
+    case "model-history": return `/models/${encodeURIComponent(route.modelId)}/history`;
     case "pipelines": return "/pipelines";
     case "pipeline-new": return "/pipelines/new";
     case "pipeline-detail": return `/pipelines/${encodeURIComponent(route.pipelineId)}`;

@@ -1,7 +1,8 @@
 import { decodeLifecycleMetadata, encodeLifecycleMetadata, NODE_LIFECYCLE_RESULT_CONTENT_TYPE, NODE_UNLOAD_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE, parseLifecycleRequest, parseLifecycleResult, sameEndpoint, type P4Endpoint } from "@p4studio/p4-protocol";
-import { agentAddress, deploymentRoutes, LLAMA_TYPES, parseDeploymentList, type DeploymentRecord } from "@p4studio/studio_domain/common";
+import { agentAddress, deploymentRoutes, DEPLOYMENT_UNLOAD_TIMEOUT_MS, LLAMA_TYPES, parseDeployment, parseDeploymentList, type DeploymentRecord } from "@p4studio/studio_domain/common";
 import { nodeUnload, inferenceExecutions, type NodeUnloadTarget } from "@p4studio/studio_domain/front";
 import { BrowserP4Reception, readAgentTopology } from "./reception.js";
+import { acquireOperationLease } from "./lease.js";
 
 async function request(path: string, method: string, body?: unknown): Promise<unknown> {
   const response = await fetch(path, { method, headers: { "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -33,32 +34,58 @@ async function unload(target: NodeUnloadTarget) {
 }
 
 async function unloadPrepared(target: NodeUnloadTarget, record: DeploymentRecord, stageId: string) {
-  const expectedUpdatedAt = record.updatedAt;
+  let expectedUpdatedAt = record.updatedAt;
+  const report = record.reports.find(value => value.stageId === stageId)!;
+  const save = async () => {
+    const saved = parseDeployment(await request(deploymentRoutes.receipt.path.replace(":id", encodeURIComponent(record.id)), deploymentRoutes.receipt.method, {
+      expectedUpdatedAt, status: record.status, loadGeneration: record.loadGeneration, operationId: record.operationId, error: record.error, reports: record.reports,
+      resolvedAddresses: record.resolvedAddresses, stageGenerations: Object.fromEntries(record.stages.map(stage => [stage.id, stage.nodeGeneration])),
+    }));
+    expectedUpdatedAt = saved.updatedAt; record.updatedAt = saved.updatedAt;
+  };
   const topology = await readAgentTopology();
   const agent = topology.agents.find(value => value.id === target.agentId);
   if (!agent) throw new Error("Target agent is no longer registered");
+  if (record.resolvedAddresses[target.agentId] !== agentAddress(agent)) throw new Error("Target agent address changed since LOAD; restore or inspect the original endpoint before unloading");
   const types = record.adapter === "llamacpp" ? LLAMA_TYPES : record;
   const metadata = parseLifecycleRequest({ schema: 1, node_id: target.nodeId, node_generation: target.nodeGeneration, adapter_kind: target.adapterKind, adapter_content_type: types.unloadContentType }, "unload");
   const payload = encodeLifecycleMetadata(metadata, new TextEncoder().encode(JSON.stringify({ load_generation: record.loadGeneration })));
   const connection = new BrowserP4Reception(topology);
+  const lease = await acquireOperationLease(record, connection.operationId, "unload", () => { void connection.close(); });
+  record.operationId = connection.operationId;
   const endpoint: P4Endpoint = { kind: "agent", address: agentAddress(agent) };
+  let confirmed = false;
+  report.state = "unloading"; report.updatedAt = new Date().toISOString(); record.status = "unloading"; record.sessionProof = null;
   try {
-    const reply = await connection.exchange(endpoint, record.adapter, NODE_UNLOAD_CONTENT_TYPE, payload, [NODE_LIFECYCLE_RESULT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE], record.timeoutMs);
+    await save();
+    const reply = await connection.exchange(endpoint, record.adapter, NODE_UNLOAD_CONTENT_TYPE, payload, [NODE_LIFECYCLE_RESULT_CONTENT_TYPE, P4_RESULT_CONTENT_TYPE], Math.min(record.timeoutMs, DEPLOYMENT_UNLOAD_TIMEOUT_MS));
     if (!sameEndpoint(reply.source, endpoint) || reply.adapterKind !== null || reply.contentType !== NODE_LIFECYCLE_RESULT_CONTENT_TYPE) throw new Error("P4 returned no matching lifecycle result; the unload outcome is unknown.");
     const decoded = decodeLifecycleMetadata(reply.payload), result = parseLifecycleResult(decoded.metadata);
     if (result.node_id !== target.nodeId || result.node_generation !== target.nodeGeneration || result.adapter_kind !== target.adapterKind || result.operation !== "unload") throw new Error("P4 lifecycle result does not match the selected node; the unload outcome is unknown.");
-    if (result.status !== "succeeded" || result.resource_state !== "absent" || result.adapter_content_type !== types.unloadedContentType) throw new Error(result.first_error ?? "P4 did not confirm removal of this node.");
+    if (result.status !== "succeeded") {
+      if (![types.errorContentType, types.unloadContentType].includes(result.adapter_content_type)) throw new Error("Unexpected lifecycle rejection content type");
+      confirmed = true; report.resourceState = result.resource_state;
+      report.lifecycle = { operation: "unload", status: result.status, resourceState: result.resource_state, firstError: result.first_error ?? null, cleanupError: result.cleanup_error ?? null };
+      report.state = result.resource_state === "unknown" ? "unknown" : "failed";
+      report.detail = result.first_error ?? "P4 did not confirm removal of this node.";
+      report.cleanupError = result.cleanup_error ?? report.detail; record.status = report.state; record.error = report.detail;
+      await save(); throw new Error(report.detail);
+    }
+    if (result.resource_state !== "absent" || result.adapter_content_type !== types.unloadedContentType) throw new Error("P4 did not confirm removal of this node.");
     const opaque: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(decoded.opaque));
     if (!opaque || typeof opaque !== "object" || (opaque as Record<string, unknown>).load_generation !== record.loadGeneration) throw new Error("P4 unload completion load generation does not match the Studio receipt.");
-    const report = record.reports.find(value => value.stageId === stageId)!;
+    confirmed = true;
     report.state = "unloaded"; report.resourceState = "absent"; report.lifecycle = { operation: "unload", status: "succeeded", resourceState: "absent", firstError: null, cleanupError: null }; report.detail = ""; report.updatedAt = new Date().toISOString();
     record.status = "failed"; record.error = `Stage ${target.nodeId} was unloaded individually; unload or recover the remaining stages before loading again.`; record.updatedAt = new Date().toISOString();
-    await request(deploymentRoutes.receipt.path.replace(":id", encodeURIComponent(record.id)), deploymentRoutes.receipt.method, {
-      expectedUpdatedAt,
-      status: record.status, loadGeneration: record.loadGeneration, operationId: record.operationId, error: record.error, reports: record.reports,
-      resolvedAddresses: record.resolvedAddresses, stageGenerations: Object.fromEntries(record.stages.map(stage => [stage.id, stage.nodeGeneration])),
-    });
-  } finally { connection.close(); }
+    await save();
+  } catch (error) {
+    if (!confirmed) {
+      report.state = "unknown"; report.resourceState = "unknown"; report.detail = error instanceof Error ? error.message : String(error);
+      report.cleanupError = report.detail; record.status = "unknown"; record.error = report.detail;
+      try { await save(); } catch (persistenceError) { throw new AggregateError([error, persistenceError], "Node unload outcome and receipt persistence remain uncertain"); }
+    }
+    throw error;
+  } finally { await connection.close(); await lease.release(); }
 }
 
 nodeUnload.start({ unload });

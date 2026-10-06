@@ -28,19 +28,21 @@ export type PlacementStage = z.infer<typeof stageSchema>;
 /** Persisted only after every stage answers SESSION_READY for the same generation and session; see docs/api.md#session-proof. */
 export const sessionProofSchema = z.object({ sessionId: text, loadGeneration: positive, stageIds: z.array(text).max(128), checkedAt: text });
 export type SessionProof = z.infer<typeof sessionProofSchema>;
-export const stageStateSchema = z.enum(["pending", "creating", "loading", "loaded", "ready", "unloading", "unloaded", "failed", "unknown"]);
+export const stageStateSchema = z.enum(["pending", "creating", "loading", "loaded", "ready", "unloading", "unloaded", "absent", "failed", "unknown"]);
 export type StageState = z.infer<typeof stageStateSchema>;
 export const reportSchema = z.object({ stageId: z.string(), state: stageStateSchema, detail: z.string(), failureDetail: z.string().default(""), loadRequested: z.boolean().default(false), updatedAt: z.string(), telemetry: z.unknown(),
   loadOutcome: z.enum(["succeeded", "rejected", "failed", "unknown"]).optional(),
   resourceState: z.enum(["absent", "present", "unknown"]).optional(),
   cleanupError: z.string().optional(),
+  recovery: z.object({ operationId: z.string().uuid(), kind: z.literal("forced"), observedAt: z.string() }).optional(),
   lifecycle: z.object({ operation: z.enum(["load", "unload"]), status: z.enum(["succeeded", "rejected", "failed"]), resourceState: z.enum(["absent", "present", "unknown"]), firstError: z.string().nullable(), cleanupError: z.string().nullable() }).optional(),
   observation: z.object({ state: z.enum(["loaded", "unloaded", "missing", "unknown", "failed", "loading", "unloading"]), checkedAt: z.string(), agentGeneratedAt: z.number().nullable(), detail: z.string() }).optional(),
 });
 export type StageReport = z.infer<typeof reportSchema>;
 export const deploymentSchema = deploymentInputSchema.extend({
-  id: text, status: z.enum(["draft", "loading", "loaded", "ready", "unloading", "unloaded", "failed", "unknown"]),
+  id: text, status: z.enum(["draft", "loading", "loaded", "ready", "unloading", "unloaded", "absent", "failed", "unknown"]),
   loadGeneration: z.number().int().min(0), operationId: z.string(), error: z.string(),
+  loadStartedAt: z.string().datetime().optional(),
   reports: z.array(reportSchema), sessionProof: sessionProofSchema.nullable().default(null), resolvedAddresses: z.record(z.string(), z.string()).default({}), createdAt: z.string(), updatedAt: z.string(),
 });
 export type DeploymentRecord = z.infer<typeof deploymentSchema>;

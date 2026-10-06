@@ -23,9 +23,11 @@ import {
   InferenceCancellation, inferenceExecutions, isActiveInference,
 } from "@p4studio/studio_domain/front";
 import { BrowserP4Reception, readAgentTopology } from "../../p4/reception.js";
+import { acquireOperationLease } from "../../p4/lease.js";
 import { inspectGraphAgent } from "../../p4/inspection.js";
 import { recordSessionProof } from "../models/api.js";
 import { wireOptions, wirePrompt } from "./prompt.js";
+import { BrowserInferenceHistory, HISTORY_KEY } from "./history.js";
 
 // See apps/studio/docs/api.md#browser-owned-inference.
 const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
@@ -38,7 +40,8 @@ const telemetry = new InferenceTelemetryCache();
 const monitoringRequests = new Map<string, Promise<InferenceMonitoring>>();
 const monitoringLoops = new Map<string, object>();
 let monitoringInspectionInFlight = false;
-const HISTORY_KEY = "p4studio.inference.history.v1";
+const ownedRunIds = new Set<string>();
+const history = new BrowserInferenceHistory(() => [...runs.values()]);
 const publishTimers = new Map<string, number>();
 let persistTimer: number | undefined;
 
@@ -60,24 +63,32 @@ function wireMaxTokens(model: DeploymentRecord, maxTokens: number): number {
   return maxTokens;
 }
 
-const persist = () => { try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify({ timingVersion: 3, runs: [...runs.values()] })); } catch { /* storage is optional */ } };
-const restore = () => {
+const historyError = (error: unknown) => inference.activity.mutate(value => { value.error = `Inference history could not be preserved: ${String(error)}`; });
+const persist = () => {
+  try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify({ timingVersion: 3, runs: [...runs.values()] })); } catch { /* A compatibility mirror; IndexedDB is authoritative. */ }
+  for (const id of ownedRunIds) { const run = runs.get(id); if (run) void history.save(run).catch(historyError); }
+};
+const restore = (stored: unknown) => {
   try {
-    const raw = window.localStorage.getItem(HISTORY_KEY); if (!raw) return;
-    const stored: unknown = JSON.parse(raw);
     const version = stored !== null && typeof stored === "object" && "timingVersion" in stored && typeof stored.timingVersion === "number" ? stored.timingVersion : 1;
-    for (const run of parseInferenceRuns(stored).runs) {
+    const restored = parseInferenceRuns(stored).runs;
+    for (const id of runs.keys()) if (!ownedRunIds.has(id) && !restored.some(run => run.id === id)) runs.delete(id);
+    for (const run of restored) {
+      if (ownedRunIds.has(run.id)) continue;
+      if (run.ownershipCheckpoint) run.pendingSettlement = Math.max(run.pendingSettlement ?? 0, run.ownershipCheckpoint.admitted - run.ownershipCheckpoint.settled);
       if (version < 2) run.requests.forEach(migrateLegacyTiming);
       if (version < 3) run.requests.forEach(invalidateLegacyDispatchTiming);
       if (isActiveInference(run)) {
-        run.state = "unknown"; run.error ??= "The browser inference session ended before all results arrived";
+        run.pendingSettlement = Math.max(run.pendingSettlement ?? 0, run.submitted);
+        run.state = "unknown"; run.error ??= "The original browser owner is unavailable in this view; inspect settlement or recover this LOAD generation";
         run.requests.forEach(request => { if (["queued", "streaming", "cancelled"].includes(request.state)) { request.state = "unknown"; request.error ??= run.error; } });
       }
       runs.set(run.id, run);
     }
   } catch { /* ignore stale or unavailable history */ }
 };
-restore();
+const historyReady = history.read().then(restore);
+void historyReady.catch(historyError);
 window.addEventListener("pagehide", persist);
 
 async function request(path: string, method = "GET"): Promise<unknown> {
@@ -202,28 +213,43 @@ function ensureMonitoringLoop(modelId: string) {
 }
 
 const gateway: InferenceGateway = {
-  list: async () => [...runs.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+  list: async () => { await historyReady; restore(await history.read()); return [...runs.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt)); },
   cancel: runId => inferenceExecutions.cancel(runId),
-  remove: runId => {
-    const run = runs.get(runId); if (run && isActiveInference(run)) return;
+  remove: async runId => {
+    const run = runs.get(runId); if (run && (isActiveInference(run) || (run.pendingSettlement ?? 0) > 0)) return;
+    await history.remove(runId);
     if (!runs.delete(runId)) return;
+    ownedRunIds.delete(runId);
     window.clearTimeout(publishTimers.get(runId));
     publishTimers.delete(runId);
     listeners.delete(runId);
     persist();
   },
   create: async input => {
+    await historyReady;
     const model = (await records()).find(value => value.id === input.modelId);
     if (!model || !canAttemptInference(model) || model.adapter !== "llamacpp" || !model.loadGeneration || model.stages.length < 2) throw new Error("The selected distributed llama.cpp deployment is not ready for a SESSION-gated inference attempt");
+    if ([...runs.values()].some(run => run.modelId === model.id && run.state === "unknown" && (run.pendingSettlement ?? run.submitted) > 0 && (run.loadGeneration === undefined
+      ? !model.loadStartedAt || !Number.isFinite(Date.parse(run.createdAt)) || Date.parse(run.createdAt) >= Date.parse(model.loadStartedAt) - 5000
+      : run.loadGeneration === model.loadGeneration))) throw new Error("Previous request settlement is unknown for this LOAD generation; unload or recover the model before starting another session");
     const limits = llamaDispatchLimits(model.stages);
     if (!limits) throw new Error("The selected deployment has no valid llama.cpp resource_profile admission limits");
     const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
     if (input.maxTokens > maxAllowed) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
-    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
+    const total = input.concurrency * input.repetitions;
+    const promptBytes = new TextEncoder().encode(wirePrompt(model, input.prompt)).byteLength;
+    // A deliberately conservative admission estimate. The adapter alone owns actual tokenization and Rust allocation capacities.
+    const promptTokenEstimate = promptBytes + 32;
+    const requestByteEstimate = 4096 + 8 * promptBytes + 2 * new TextEncoder().encode(wireOptions(model)).byteLength;
+    if (requestByteEstimate > limits.maxRequestBytes || total * requestByteEstimate > limits.maxRequestRetainedBytes || total * promptTokenEstimate > limits.maxInputTokens) throw new Error(`The submitted prompt needs a larger LOAD resource profile under the conservative input estimate (per-request bytes ${requestByteEstimate}, retained bytes ${total * requestByteEstimate}, input tokens ${total * promptTokenEstimate}); unload and expand the model before running`);
+    if (!Number.isSafeInteger(total) || total > limits.maxRequests || total * input.maxTokens > limits.maxOutputTokens) throw new Error(`The requested ${total} submissions require a larger LOAD resource profile (requests ${limits.maxRequests}, output tokens ${limits.maxOutputTokens}); unload and expand the model before running`);
+    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     const cancellation = new InferenceCancellation(run, model.loadGeneration, () => publish(run), model.timeoutMs);
     const unregister = inferenceExecutions.register(model, cancellation);
-    runs.set(run.id, run); publish(run); ensureMonitoringLoop(model.id);
-    void execute(run, model, input, cancellation).finally(unregister); return run;
+    runs.set(run.id, run); ownedRunIds.add(run.id);
+    try { await history.checkpoint(run); } catch (error) { runs.delete(run.id); ownedRunIds.delete(run.id); unregister(); throw new Error(`Cannot start inference without a durable owner record: ${String(error)}`); }
+    publish(run); ensureMonitoringLoop(model.id);
+    void execute(run, model, input, cancellation).finally(() => { if (cancellation.settled) unregister(); }); return run;
   },
   subscribe: (id, onRun) => {
     const set = listeners.get(id) ?? new Set(); set.add(onRun); listeners.set(id, set); const run = runs.get(id); if (run) onRun(structuredClone(run));
@@ -250,13 +276,17 @@ function recordBatchTiming(run: InferenceRun, value: P4BatchObservation, timings
 async function execute(run: InferenceRun, model: DeploymentRecord, input: InferenceRunInput, cancellation: InferenceCancellation) {
   let connection: BrowserP4Reception | undefined; const timings = new Map<string, RequestTiming>();
   let stop: (() => void) | undefined;
+  let stopError: (() => void) | undefined;
+  let lease: Awaited<ReturnType<typeof acquireOperationLease>> | undefined;
   // Keyed by request ID and by PREFILL event ID; one entry per submitted request, dropped with this execution.
   const outputs = new Map<string, OutputOrdinalBuffer>(); const submissions = new Map<string, string>();
   try {
     const topology = await readAgentTopology();
+    lease = await acquireOperationLease(model, run.id, "inference", error => { run.error = error.message; void cancellation.cancel(); });
     if (cancellation.requested) return;
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
     connection = new BrowserP4Reception(topology, new Map(Object.entries(model.resolvedAddresses)));
+    stopError = connection.onError?.(error => cancellation.transportLost(error.message));
     cancellation.connect(command => connection!.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", P4_CANCEL_CONTENT_TYPE, command, 0).event, () => { void connection?.close(); });
     cancellation.signal.signal.addEventListener("abort", () => { if (!run.submitted) void connection?.close(); }, { once: true });
     for (const stage of stages) {
@@ -287,18 +317,19 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     stop = connection.onEvent((event, receivedAtMs) => {
       if (!isActiveInference(run)) return;
       if (!connection!.owns(event.target)) return;
+      if (event.correlationId !== connection!.operationId) return;
       if (event.contentType === P4_DELIVERY_FAILURE_CONTENT_TYPE) {
         // A transport diagnostic. Only a PREFILL that provably never left ends its request as failed.
         try {
           const notice = parseP4DeliveryFailure(event.payload); const requestId = submissions.get(notice.eventId);
-          if (requestId) fail(run, `P4 delivery failure for request ${requestId}: ${notice.result}`, notice.result === "not_started" ? "failed" : "unknown");
-        } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); }
+          if (requestId) cancellation.deliveryFailed(requestId, notice.eventId, notice.result === "not_started", `P4 delivery failure for request ${requestId}: ${notice.result}`);
+        } catch (error) { run.error = error instanceof Error ? error.message : String(error); void cancellation.cancel(); }
         return;
       }
       if (event.adapterKind !== "llamacpp") return;
       try {
         if (cancellation.consume(event)) return;
-        if (event.contentType === ERROR) { fail(run, new TextDecoder().decode(event.payload), "failed"); return; }
+        if (event.contentType === ERROR) return; // Exact request errors are owned by the cancellation/settlement ledger.
         const stage = stageFor(event, stages);
         const telemetryKind = classifyP4Telemetry(event.contentType);
         if (telemetryKind === "unsupported") throw new Error(`Unsupported P4 telemetry contract ${event.contentType}`);
@@ -333,20 +364,29 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
           const terminal = output.stop !== null;
           if (["queued", "streaming"].includes(item.state)) item.state = "streaming"; item.text += output.text;
           recordOutputTiming(item, timing, receivedAtMs, terminal);
-          if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; if (run.completed === expected && !cancellation.requested) run.state = "completed"; }
+          if (terminal) { item.state = "completed"; item.completedAt = now(); run.completed += 1; }
           recordOutputObservability(run, Date.now(), terminal);
         }
+        if (run.completed === expected && !cancellation.requested) cancellation.finishNatural();
         publish(run);
-      } catch (error) { fail(run, error instanceof Error ? error.message : String(error)); }
+      } catch (error) { run.error = error instanceof Error ? error.message : String(error); void cancellation.cancel(); }
     });
+    // See apps/studio/docs/api.md#browser-owned-inference: interval is start-to-start,
+    // independent of response completion. Anchor deadlines to avoid dispatch-time drift.
+    const dispatchStartedAt = performance.now();
     for (let repetition = 0; repetition < input.repetitions; repetition += 1) {
       if (cancellation.requested || run.state !== "running") break;
-      if (repetition && input.intervalMs) await new Promise<void>(resolve => {
+      const delayMs = Math.max(0, dispatchStartedAt + repetition * input.intervalMs - performance.now());
+      if (delayMs) await new Promise<void>(resolve => {
         const finish = () => { window.clearTimeout(timer); cancellation.signal.signal.removeEventListener("abort", finish); resolve(); };
-        const timer = window.setTimeout(finish, input.intervalMs);
+        const timer = window.setTimeout(finish, delayMs);
         cancellation.signal.signal.addEventListener("abort", finish, { once: true });
       });
       if (cancellation.requested || run.state !== "running") break;
+      // Persist a conservative wave checkpoint before any bytes leave. Owner loss
+      // between this commit and dispatch remains unknown, never "not submitted".
+      cancellation.reserveWave(input.concurrency);
+      await history.checkpoint(run);
       for (let lane = 0; lane < input.concurrency; lane += 1) {
         if (cancellation.requested || run.state !== "running") break;
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
@@ -358,25 +398,31 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };
         run.requests.push(item); run.submitted += 1; timings.set(id, { sentAtMs: receipt.sentAtMs, firstOutputAtMs: null, prefillRows: 0 });
       }
+      cancellation.abandonUnsentWave();
       publish(run);
-      await waitForWave(run, repetition + 1);
+      await history.save(run);
     }
-  } catch (error) { if (!cancellation.requested) fail(run, error instanceof Error ? error.message : String(error)); }
+    await waitForRun(run);
+  } catch (error) { cancellation.abandonUnsentWave(); if (!cancellation.requested) { run.error = error instanceof Error ? error.message : String(error); if (run.submitted) await cancellation.cancel(); else fail(run, run.error); } }
   finally {
     if (cancellation.requested) await cancellation.cancel();
-    stop?.(); await connection?.close();
+    stop?.(); stopError?.(); await connection?.close();
+    try { await history.save(run); } catch (error) { historyError(error); }
+    // Only the original generation-bound ledger can retire the durable owner.
+    // Connection closure, TTL expiry and unknown cancellation merely release the live lease.
+    if (cancellation.settled) try { await lease?.settle?.(run.submitted); } catch (error) { run.error ??= String(error); publish(run); }
+    try { await lease?.release(); } catch (error) { run.error ??= String(error); publish(run); }
   }
 }
 
-function waitForWave(run: InferenceRun, waveIndex: number): Promise<void> {
+function waitForRun(run: InferenceRun): Promise<void> {
   return new Promise((resolve, reject) => {
     const check = () => {
-      const requests = run.requests.filter(request => request.waveIndex === waveIndex);
-      if (requests.length > 0 && requests.every(request => request.state === "completed")) {
+      if (run.state === "completed") {
         resolve(); return;
       }
-      if (!["preparing", "running"].includes(run.state)) {
-        reject(new Error(run.error ?? `Inference wave ${waveIndex} did not complete`)); return;
+      if (!["preparing", "running", "settling"].includes(run.state)) {
+        reject(new Error(run.error ?? "Inference run did not complete")); return;
       }
       window.setTimeout(check, 50);
     };

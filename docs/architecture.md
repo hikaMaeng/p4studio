@@ -9,6 +9,7 @@
 - Server bridge: 저장된 agent ID만 인가한 뒤 [browser bridge](../apps/studio/src/server/agent-socket/browser-bridge.ts)가 WebSocket binary와 P4 TCP bytes를 decode·reframe 없이 양방향 전달함. 서버는 P4 명령·응답 매칭·토큰 stream을 소유하지 않음
 - Network: 브리지는 [TCP dial routing](../apps/studio/src/server/agent-socket/routes.ts)과 runtime 소유 SSH tunnel을 이용할 수 있으나, 이는 TCP 목적지만 바꾸며 P4 event 의미를 해석하지 않음
 - Inference observability: 현재 P4 증거, Studio가 계산할 운영 지표, 추가 P4 계약의 경계는 [추론 관측 설계](inference-observability.md)가 소유함
+- Recovery: 정상 UNLOAD와 관측 부재·강제 회수를 구분한다. [보강 계획](agent-recovery-plan.md)은 계약과 수용 상태를 소유한다. Windows 전용 승인 설치의 host-management, SQLite operation journal, 작업 lease와 복구 화면을 제공한다. 다른 OS 및 P4 관리 drain은 미지원이다.
 
 프로덕션에서는 Express가 `dist/front`를 정적으로 제공한다. 개발에서는 Vite가 `/api`를 Express로 프록시한다.
 

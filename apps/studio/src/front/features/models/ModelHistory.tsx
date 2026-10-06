@@ -1,0 +1,15 @@
+import { Alert, Box, Button, Paper, Typography } from "@mui/material";
+import { useEffect } from "react";
+import { z } from "zod";
+import { deploymentSchema } from "@p4studio/studio_domain/common";
+import { deploymentHistory } from "@p4studio/studio_domain/front";
+import { useTranslation } from "../../i18n/useTranslation.js";
+import { useModel } from "../../model/useModel.js";
+import { navigate } from "../../shell/routes.js";
+import { RSC } from "./resource.js";
+const schema = z.object({ history: z.array(z.object({ revision: z.number(), recordedAt: z.string(), reason: z.string(), record: deploymentSchema })) });
+export function ModelHistory({ modelId }: { modelId: string }) {
+  const model = deploymentHistory(modelId), page = useModel(model.page).value, entries = useModel(model.entries).value, activity = useModel(model.activity).value, { t } = useTranslation();
+  useEffect(() => { void model.refresh(async () => { const response = await fetch(`/api/model-deployments/${encodeURIComponent(modelId)}/history`, { signal: AbortSignal.timeout(10_000) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); return schema.parse(await response.json()).history; }); }, [model, modelId]);
+  return <Box data-testid="model-history" sx={{ display: "grid", gap: 2 }}><Button onClick={() => navigate({ kind: "model-detail", modelId })}>{t[RSC.MODELS_BACK_BUTTON]}</Button><Typography variant="h2">{t[RSC.RECOVERY_MODEL_HISTORY_TEXT]}</Typography>{activity.error && <Alert severity="error">{activity.error}</Alert>}{entries.slice(page * 20, (page + 1) * 20).map(entry => <Paper variant="outlined" key={entry.revision} sx={{ p: 2 }}><Typography variant="h3">{entry.record.name} · {entry.record.loadGeneration} · {entry.record.status}</Typography><Typography>{entry.record.operationId} · {entry.record.updatedAt}</Typography>{entry.record.error && <Alert severity="warning">{entry.record.error}</Alert>}{entry.record.reports.map(report => <Box key={report.stageId} sx={{ mt: 1 }}><Typography>{report.stageId} · {report.state} · {report.resourceState}</Typography>{report.lifecycle && <Typography component="pre" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(report.lifecycle, null, 2)}</Typography>}{report.recovery && <Button onClick={() => { const agentId = entry.record.stages.find(stage => stage.id === report.stageId)?.agentId; if (agentId) navigate({ kind: "agent-recovery", agentId, operationId: report.recovery!.operationId }); }}>{t[RSC.RECOVERY_RECOVERED_STATUS]}</Button>}<Typography sx={{ whiteSpace: "pre-wrap" }}>{[report.failureDetail, report.cleanupError, report.detail].filter(Boolean).join("\n")}</Typography></Box>)}</Paper>)}<Box sx={{ display: "flex", gap: 2 }}><Button disabled={page === 0} onClick={() => model.page.set(page - 1)}>{t[RSC.RECOVERY_HISTORY_PREVIOUS_BUTTON]}</Button><Typography>{page + 1} / {Math.max(1, Math.ceil(entries.length / 20))}</Typography><Button disabled={(page + 1) * 20 >= entries.length} onClick={() => model.page.set(page + 1)}>{t[RSC.RECOVERY_HISTORY_NEXT_BUTTON]}</Button></Box></Box>;
+}

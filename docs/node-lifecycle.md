@@ -22,11 +22,15 @@ P4 감사 기준: `56c203b6d70dc91be46e399b6d68f85ebc53cda1` (2026-09-16, clean)
 
 ## Partial failure and recovery
 
+정상 UNLOAD가 busy로 막힌 경우의 관리 drain·강제 자원 회수·에이전트 재기동 보강은 [후속 계획](agent-recovery-plan.md)을 따른다. 이 기능은 아직 구현하지 않았으며, 강제 재기동 뒤 노드 부재를 성공한 UNLOAD 영수증으로 바꾸지 않는다.
+
 - 순차 LOAD 중 첫 실패 이후 새 stage를 시작하지 않는다. 성공/잔존/불명 stage를 역순으로 UNLOAD하고, 정리 실패가 있어도 다른 stage의 정리를 계속한다. LOAD 및 최초 cleanup 오류와 현재 결과를 보존한다.
 - `rejected/present` LOAD는 기존 점유자의 노드일 수 있다. 해당 ID에 자동 UNLOAD를 보내지 않는다.
-- timeout·잘린 결과·identity 불일치·단절은 결과 불명이다. 회수에 새 OUTER channel을 사용하며 LOAD를 재전송하지 않는다. 아직 loading이면 UNLOAD가 거부될 수 있으므로 기록을 유지하고 사용자가 다시 상태 확인/회수할 수 있다.
-- 원래 LOAD가 불명일 때 별도 연결의 UNLOAD `rejected/absent`나 INSPECT 부재는 늦게 도착할 LOAD의 미실행 증명이 아니다. 불명을 지우지 않으며 자동 무한 재시도/새 LOAD를 만들지 않는다. 성공한 동일 generation UNLOAD가 와야 회수 확정이다.
-- 회수 필요 stage가 있으면 UI와 HTTP가 편집·재적재를 차단한다. 해소 후 ID는 유지하고 더 큰 node generation과 새로운 load generation을 부여한다. actual generation을 receipt의 `stageGenerations`로 먼저 저장하고 SESSION·다음 회수에 사용한다.
+- 전송 전 연결 실패와 P4 `not_started`는 미전송 실패다. 전송 이후 timeout·잘린 결과·identity 불일치·단절은 결과 불명이다. 이 분류는 lifecycle 결과와 별도로 저장하며 미전송 요청을 remote 자원 소유권으로 승격하지 않는다.
+- INSPECT에서 exact node ID가 없거나 UNLOAD가 `rejected/absent`이면 **현재 registry 부재**를 기록한다. 과거 LOAD가 실제 실행되지 않았다는 뜻이나 성공한 UNLOAD receipt라는 뜻은 아니다. 과거 attempt와 결과 불명은 이력으로 유지한다.
+- 모든 stage의 현재 자원이 부재하고 실행 중 Studio 작업 lease가 없으면 기존 stage node ID를 유지하고 더 큰 node generation과 새로운 load generation으로 LOAD 재시도를 허용한다. 모델별 exclusive operation lease와 P4의 generation fence가 경합을 막는다. 보고된 generation 충돌이나 같은 ID의 잔존 점유는 성공으로 추정하지 않고 해당 stage 충돌로 처리한다.
+- 과거 LOAD 전달 결과가 여전히 불명확하면 계획 편집·삭제는 계속 차단한다. 재적재는 같은 계획을 새 generation으로 재시도하는 동작이며 과거 이력을 지우지 않는다. 강제 복구 후에도 old/new attempt 증거를 합치지 않는다.
+- broker의 높은 node generation 기억은 현재 agent 프로세스 수명이다. INSPECT는 boot/incarnation ID를 아직 제공하지 않으므로 에이전트 재시작이 포함된 경합은 이를 이용해 미실행을 증명할 수 없다. 재시도에서 실제 세대 충돌·잔존 노드가 발견되면 그 보고된 identity를 근거로 복구해야 한다.
 - INSPECT `lifecycle_state`/`lifecycle_result`는 opaque adapter snapshot보다 우선한다. `empty`/`unloaded` 문자열이 남은 등록은 제거 완료가 아니다. INSPECT에는 adapter load generation이 없어 loaded presence를 이 모델의 ready로 승격하지 않는다.
 
 ## UI and migration

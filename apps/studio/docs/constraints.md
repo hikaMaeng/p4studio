@@ -17,4 +17,5 @@
 - 모델 표는 `article`/이름 있는 `table`, 구성은 `/models/new`, `/models/:id/edit` 전용 페이지의 이름 있는 section, 노드 선택 nav, `배치 N` fieldset으로 찾는다. 인자는 plan/LOAD JSON textarea로 편집한다. 모바일에서도 표 열을 강제 압축하지 않는다.
 - 어댑터별 preflight와 P4 completion 검증은 browser OUTER가 수행한다. 서버 bridge는 endpoint·causation·correlation·adapter·load generation을 해석하지 않는다.
 - 인퍼런스는 ready llama.cpp 모델만 선택하며, 브라우저가 새 session identity와 모든 stage의 `SESSION_READY` 뒤에 PREFILL을 보낸다. SSE 실행 controller는 사용하지 않는다.
+- `inference-run-stop`은 번역된 visible text를 가진 버튼이다. 질의 `inference-run-group`, 기록 `inference-history-row`, 상세 `inference-history-detail`에서 대상 run으로 범위를 지정한다. preparing/running 동안 enabled, cancelling 동안 disabled이며 종료 상태에서는 숨긴다. 목록의 action 열은 번역된 문구 길이를 수용한다.
 - 프리필 TPS는 해당 요청의 `BatchObservation.owned_requests.prefill_rows`가 도착한 뒤에만 계산한다. 관측이 없으면 0으로 표시하지 않는다. GPU 활성률은 inspection의 `utilization_gpu_percent` 표본이며 SM 포화율이 아니다.

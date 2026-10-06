@@ -13,6 +13,7 @@ export class BrowserP4Reception {
   readonly operationId = crypto.randomUUID();
   private readonly connections = new Map<string, BrowserP4Connection>();
   private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
+  private readonly errors = new Set<(error: Error) => void>();
   private closed = false;
   constructor(private readonly topology: GraphAgentList, private readonly addresses: Map<string, string> = new Map(topology.agents.map(agent => [agent.id, agentAddress(agent)]))) {
     this.topology = structuredClone(topology); this.addresses = new Map(addresses);
@@ -33,6 +34,7 @@ export class BrowserP4Reception {
       if (this.closed) { connection.close(); throw new Error("P4 operation was closed while connecting"); }
       this.connections.set(reception.agentId, connection);
       connection.onEvent((event, receivedAtMs) => this.listeners.forEach(listener => listener(event, receivedAtMs)));
+      connection.onError(error => this.errors.forEach(listener => listener(error)));
     }
     return connection.exchange(...args);
   }
@@ -47,9 +49,10 @@ export class BrowserP4Reception {
     this.listeners.add(listener); return () => { this.listeners.delete(listener); };
   }
   recover() { this.connections.forEach(connection => connection.close()); this.connections.clear(); }
+  onError(listener: (error: Error) => void) { this.errors.add(listener); return () => this.errors.delete(listener); }
   async close() {
     this.closed = true;
-    const connections = [...this.connections.values()]; this.connections.clear(); this.listeners.clear();
+    const connections = [...this.connections.values()]; this.connections.clear(); this.listeners.clear(); this.errors.clear();
     return (await Promise.all(connections.map(connection => connection.close()))).every(Boolean);
   }
 }

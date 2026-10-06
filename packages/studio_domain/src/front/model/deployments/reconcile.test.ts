@@ -2,7 +2,8 @@ import { expect, it } from "vitest";
 import type { P4AgentSnapshot, P4RegisteredNodeSnapshot } from "@p4studio/p4-protocol";
 import type { DeploymentRecord } from "../../../common/protocol/deployments/index.js";
 import { emptyDeployment, emptyStage } from "./store.js";
-import { reconcileDeployment } from "./reconcile.js";
+import { reconcileDeployment, hasObservedNoNodes } from "./reconcile.js";
+import { canStartDeployment, canStartLoad } from "../../../common/protocol/deployments/lifecycle.js";
 
 const checkedAt = "2026-09-15T00:00:00.000Z";
 const model = (): DeploymentRecord => ({ ...emptyDeployment(), id: "model", name: "model", status: "loaded", loadGeneration: 42, operationId: "load-42", error: "restart", sessionProof: null,
@@ -17,7 +18,7 @@ it("does not promote loaded presence to generation-verified readiness and preser
   reconcileDeployment(record, new Map([['a', snapshot('a', 'loaded')], ['b', snapshot('b', 'loaded')]]), checkedAt);
   expect(record.status).toBe("unknown");
   expect(record.reports[0]).toMatchObject({ state: "unknown", loadRequested: true, telemetry: { load_generation: 42 }, failureDetail: "old error", observation: { state: "loaded", checkedAt, agentGeneratedAt: 123 } });
-  expect(record.operationId).toBe("load-42"); expect(record.error).toBe("");
+  expect(record.operationId).toBe("load-42"); expect(record.error).toBe("restart");
 });
 it("recognizes absence but never treats an empty adapter as node removal", () => {
   const record = model(), absent = snapshot('other', 'loaded');
@@ -29,7 +30,7 @@ it("preserves partial results and treats unreachable agents as unknown", () => {
   const record = model();
   reconcileDeployment(record, new Map<string, P4AgentSnapshot | Error>([['a', snapshot('other', 'loaded')], ['b', new Error('timeout')]]), checkedAt);
   expect(record.status).toBe("unknown");
-  expect(record.reports.map(value => value.state)).toEqual(["unloaded", "unknown"]);
+  expect(record.reports.map(value => value.state)).toEqual(["absent", "unknown"]);
   expect(record.reports[1]?.observation).toMatchObject({ agentGeneratedAt: null, detail: "timeout" });
 });
 it.each([{ generation: 3 }, { adapterKind: "custom" }])("rejects another node identity: %j", changes => {
@@ -69,8 +70,54 @@ it("reads neutral lifecycle state before adapter snapshots and preserves cleanup
   expect(record.status).toBe("failed");
   expect(record.reports[0]).toMatchObject({ state: "failed", resourceState: "unknown", cleanupError: "child survived", observation: { state: "failed" } });
 });
-it("does not resolve a missing node while the original LOAD delivery remains unknown", () => {
+it("allows a new load generation after fresh node absence while preserving old LOAD uncertainty", () => {
   const record = model(); record.reports[0]!.loadOutcome = "unknown"; record.reports[0]!.resourceState = "unknown";
   reconcileDeployment(record, new Map([['a', snapshot('other', 'loaded')], ['b', snapshot('other', 'loaded')]]), checkedAt);
-  expect(record.status).toBe("unknown"); expect(record.reports[0]?.state).toBe("unknown");
+  expect(record.status).toBe("absent"); expect(record.reports[0]).toMatchObject({ state: "absent", resourceState: "absent" });
+  expect(hasObservedNoNodes(record)).toBe(true);
+  expect(record.reports[0]?.loadOutcome).toBe("unknown");
+  expect(canStartLoad(record)).toBe(true);
+  // The old command history still makes editing/deleting its plan unsafe.
+  expect(canStartDeployment(record)).toBe(false);
+});
+it("uses the displayed missing-node observation for LOAD eligibility without unlocking plan edits", () => {
+  const record = model(); record.status = "unknown";
+  record.reports = record.stages.map(stage => ({ stageId: stage.id, state: "unknown", detail: "", failureDetail: "", loadRequested: true,
+    loadOutcome: "unknown", resourceState: "unknown", updatedAt: checkedAt, telemetry: null,
+    observation: { state: "missing", checkedAt, agentGeneratedAt: 123, detail: "" } }));
+  expect(hasObservedNoNodes(record)).toBe(true);
+  expect(canStartLoad(record)).toBe(true);
+  expect(canStartDeployment(record)).toBe(false);
+  record.reports[0]!.updatedAt = "2026-09-15T00:01:00.000Z";
+  expect(hasObservedNoNodes(record)).toBe(false);
+  expect(canStartLoad(record)).toBe(false);
+});
+it("does not display complete absence when an agent is unreachable or a stage still exists", () => {
+  const record = model();
+  reconcileDeployment(record, new Map<string, P4AgentSnapshot | Error>([['a', snapshot('other', 'loaded')], ['b', new Error('unreachable')]]), checkedAt);
+  expect(hasObservedNoNodes(record)).toBe(false);
+  reconcileDeployment(record, new Map([['a', snapshot('other', 'loaded')], ['b', snapshot('b', 'loaded')]]), checkedAt);
+  expect(hasObservedNoNodes(record)).toBe(false);
+});
+it("requires exactly one current observation for each planned stage", () => {
+  const record = model();
+  reconcileDeployment(record, new Map([['a', snapshot('other', 'loaded')], ['b', snapshot('other', 'loaded')]]), checkedAt);
+  expect(hasObservedNoNodes(record)).toBe(true);
+  record.reports[1]!.stageId = 'a';
+  expect(hasObservedNoNodes(record)).toBe(false);
+  record.stages = [];
+  expect(hasObservedNoNodes(record)).toBe(false);
+});
+it("does not use an old absence snapshot after a newer unknown operation", () => {
+  const record = model(); record.reports[0]!.loadOutcome = "unknown";
+  reconcileDeployment(record, new Map([['a', snapshot('other', 'loaded')], ['b', snapshot('other', 'loaded')]]), checkedAt);
+  expect(hasObservedNoNodes(record)).toBe(true);
+  record.reports[0]!.updatedAt = "2026-09-15T00:01:00.000Z";
+  expect(hasObservedNoNodes(record)).toBe(false);
+});
+it.each(["loading", "unloading", "loaded", "ready"] as const)("does not present a %s model as absent based on older observations", status => {
+  const record = model();
+  reconcileDeployment(record, new Map([['a', snapshot('other', 'loaded')], ['b', snapshot('other', 'loaded')]]), checkedAt);
+  record.status = status;
+  expect(hasObservedNoNodes(record)).toBe(false);
 });

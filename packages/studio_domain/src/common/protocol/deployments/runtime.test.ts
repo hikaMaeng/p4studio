@@ -1,8 +1,9 @@
 import { expect, it, vi } from "vitest";
 import { decodeLifecycleMetadata, encodeLifecycleMetadata, parseLifecycleRequest, NODE_LOAD_CONTENT_TYPE, NODE_UNLOAD_CONTENT_TYPE, NODE_LIFECYCLE_RESULT_CONTENT_TYPE, type LifecycleResultMetadata, type P4Event } from "@p4studio/p4-protocol";
-import { runBrowserDeployment, type BrowserOwnedDeploymentTransport } from "./runtime.js";
+import { DEPLOYMENT_UNLOAD_TIMEOUT_MS, runBrowserDeployment, type BrowserOwnedDeploymentTransport } from "./runtime.js";
 import { deploymentSchema, type DeploymentRecord } from "./index.js";
-import { canAttemptInference, canStartDeployment, prepareDeploymentLoad } from "./lifecycle.js";
+import { canAttemptInference, canStartDeployment, canStartLoad, prepareDeploymentLoad } from "./lifecycle.js";
+import { P4RequestNotSent } from "./runtime.js";
 import { LLAMA_TYPES } from "./payload.js";
 
 const model = (): DeploymentRecord => deploymentSchema.parse({
@@ -32,15 +33,15 @@ it("permits only a SESSION-gated attempt after every unknown stage is freshly ob
   expect(canAttemptInference(record)).toBe(false);
 });
 
-function transport(mutate?: (event: P4Event, metadata: LifecycleResultMetadata) => P4Event | void): BrowserOwnedDeploymentTransport & { calls: { action: string; node: string; capacities: unknown }[] } {
-  const calls: { action: string; node: string; capacities: unknown }[] = [];
-  return { calls, close: vi.fn(), recover: vi.fn(), exchange: async (target, adapter, contentType, payload) => {
+function transport(mutate?: (event: P4Event, metadata: LifecycleResultMetadata) => P4Event | void): BrowserOwnedDeploymentTransport & { calls: { action: string; node: string; capacities: unknown; timeoutMs: number }[] } {
+  const calls: { action: string; node: string; capacities: unknown; timeoutMs: number }[] = [];
+  return { calls, close: vi.fn(), recover: vi.fn(), exchange: async (target, adapter, contentType, payload, _terminalTypes, timeoutMs) => {
     expect(target.kind).toBe("agent"); expect([NODE_LOAD_CONTENT_TYPE, NODE_UNLOAD_CONTENT_TYPE]).toContain(contentType);
     expect(payload).toBeInstanceOf(Uint8Array);
     const action = contentType === NODE_LOAD_CONTENT_TYPE ? "load" : "unload";
     const decoded = decodeLifecycleMetadata(payload as Uint8Array), request = parseLifecycleRequest(decoded.metadata, action);
     const command = JSON.parse(new TextDecoder().decode(decoded.opaque));
-    calls.push({ action, node: request.node_id, capacities: request });
+    calls.push({ action, node: request.node_id, capacities: request, timeoutMs });
     const metadata: LifecycleResultMetadata = { schema: 1, node_id: request.node_id, node_generation: request.node_generation, adapter_kind: adapter,
       adapter_content_type: adapter === "llamacpp" ? (action === "load" ? LLAMA_TYPES.loadedContentType : LLAMA_TYPES.unloadedContentType) : action === "load" ? "loaded" : "unloaded",
       operation: action, status: "succeeded", resource_state: action === "load" ? "present" : "absent" };
@@ -57,6 +58,29 @@ function transport(mutate?: (event: P4Event, metadata: LifecycleResultMetadata) 
 const run = (record: DeploymentRecord, wire: BrowserOwnedDeploymentTransport, action: "load" | "unload" = "load") => runBrowserDeployment(record, action, addresses, wire, async () => {});
 const reject = (metadata: LifecycleResultMetadata, resource: "absent" | "present" | "unknown" = "present") => Object.assign(metadata, { status: "rejected", resource_state: resource, adapter_content_type: metadata.operation, first_error: "busy or occupied" });
 
+it("keeps observed missing stages distinct from normal UNLOAD and retires their SESSION proof", async () => {
+  const record = model(), wire = transport();
+  await run(record, wire);
+  record.sessionProof = { sessionId: "session", loadGeneration: 42, stageIds: record.stages.map(stage => stage.id), checkedAt: "now" };
+  Object.assign(record.reports[1]!, { state: "absent", resourceState: "absent", observation: { state: "missing", checkedAt: "now", agentGeneratedAt: 1, detail: "" } });
+  wire.calls.length = 0;
+  await run(record, wire, "unload");
+  expect(wire.calls.map(call => call.node)).toEqual(["n2", "n0"]);
+  expect(record.status).toBe("absent"); expect(record.sessionProof).toBeNull();
+  expect(record.reports[1]).toMatchObject({ state: "absent", lifecycle: { operation: "load", status: "succeeded" } });
+  expect(canStartLoad(record)).toBe(true);
+});
+
+it("does not declare absence or reclaim a node whose LOAD was rejected as already occupied", async () => {
+  const record = model(), wire = transport();
+  await run(record, wire);
+  Object.assign(record.reports[1]!, { state: "failed", loadOutcome: "rejected", resourceState: "present" });
+  wire.calls.length = 0;
+  await run(record, wire, "unload");
+  expect(wire.calls.map(call => call.node)).toEqual(["n2", "n0"]);
+  expect(record.status).toBe("failed"); expect(record.reports[1]!.resourceState).toBe("present");
+});
+
 it("records LOAD without claiming SESSION readiness, then removes every stage with UNLOAD", async () => {
   const record = model(), wire = transport();
   await run(record, wire); expect(record.status).toBe("loaded"); expect(record.sessionProof).toBeNull(); expect(canAttemptInference(record)).toBe(true); expect(canStartDeployment(record)).toBe(false);
@@ -65,6 +89,15 @@ it("records LOAD without claiming SESSION readiness, then removes every stage wi
   expect(wire.calls.map(c => `${c.action}:${c.node}`)).toEqual(["load:n0", "load:n1", "load:n2", "unload:n2", "unload:n1", "unload:n0"]);
   expect(wire.calls[3]?.capacities).not.toHaveProperty("queue_capacity");
   expect(record.reports.every(r => r.lifecycle?.status === "succeeded" && r.resourceState === "absent")).toBe(true);
+});
+it("bounds UNLOAD independently from long model load timeouts", async () => {
+  const record = model(); record.timeoutMs = 3_600_000;
+  const wire = transport();
+  await run(record, wire);
+  expect(wire.calls.every(call => call.action === "load" && call.timeoutMs === 3_600_000)).toBe(true);
+  await run(record, wire, "unload");
+  expect(wire.calls.filter(call => call.action === "unload").map(call => call.timeoutMs))
+    .toEqual([DEPLOYMENT_UNLOAD_TIMEOUT_MS, DEPLOYMENT_UNLOAD_TIMEOUT_MS, DEPLOYMENT_UNLOAD_TIMEOUT_MS]);
 });
 it("rolls back successful siblings after duplicate ID rejection without unloading the occupied ID", async () => {
   const record = model(), wire = transport((_event, metadata) => { if (metadata.operation === "load" && metadata.node_id === "n1") reject(metadata); });
@@ -114,9 +147,20 @@ it("recovers a timed-out load without replaying LOAD and preserves the original 
   expect(wire.calls.map(c => c.action)).toEqual(["load", "unload"]);
   expect(record.reports[0]).toMatchObject({ state: "unloaded", failureDetail: "bridge closed" });
 });
-it("does not erase uncertainty when a different connection observes absent before a delayed LOAD", async () => {
+it("allows a fresh-generation LOAD after an absent UNLOAD rejection without rewriting old history", async () => {
   const record = model(), wire = transport((_event, metadata) => { if (metadata.operation === "load") throw new Error("timeout"); reject(metadata, "absent"); });
-  await run(record, wire); expect(record.status).toBe("unknown"); expect(canStartDeployment(record)).toBe(false);
+  await run(record, wire); expect(record.status).toBe("failed");
+  expect(record.reports[0]).toMatchObject({ state: "absent", resourceState: "absent", loadOutcome: "unknown", lifecycle: { operation: "unload", status: "rejected", resourceState: "absent" } });
+  expect(canStartLoad(record)).toBe(true); expect(canStartDeployment(record)).toBe(false);
+});
+it("classifies a bridge failure proven before send as a failed, retryable LOAD", async () => {
+  const record = model(); record.reports = record.stages.map(stage => ({ stageId: stage.id, state: "pending", detail: "", failureDetail: "", loadRequested: false, telemetry: null, updatedAt: "now" }));
+  const wire = transport(); wire.exchange = async () => { throw new P4RequestNotSent("bridge refused before the P4 event was sent"); };
+  await run(record, wire);
+  expect(record.status).toBe("failed");
+  expect(record.reports[0]).toMatchObject({ state: "failed", loadRequested: false, loadOutcome: "failed", resourceState: "absent" });
+  expect(canStartLoad(record)).toBe(true); expect(canStartDeployment(record)).toBe(true);
+  expect(wire.calls).toHaveLength(0);
 });
 it("rolls back all loaded stages after build incompatibility", async () => {
   const record = model(); record.adapter = "llamacpp";
@@ -125,7 +169,7 @@ it("rolls back all loaded stages after build incompatibility", async () => {
       event.payload = encodeLifecycleMetadata(metadata, new TextEncoder().encode('{"load_generation":42,"upstream_commit":"different","patch_set":"patch","backend_inventory":"CPU"}')); return event;
     }
   });
-  await run(record, wire); expect(record.status).toBe("failed"); expect(record.error).toContain("agree");
+  await run(record, wire); expect(record.status).toBe("absent"); expect(record.error).toContain("agree");
   expect(wire.calls.filter(c => c.action === "unload")).toHaveLength(3);
 });
 it("recovers owned resources even if saving the loaded receipt fails", async () => {
@@ -139,7 +183,9 @@ it("does not issue LOAD when its intent cannot be persisted", async () => {
   expect(wire.calls).toEqual([]); expect(record.status).toBe("failed");
 });
 it("keeps node IDs stable, advances generation, and blocks reuse while resources remain", async () => {
-  const record = model(); record.status = "draft"; const ids = record.stages.map(s => s.nodeId);
+  const record = model(); record.status = "draft"; record.loadGeneration = 0;
+  record.reports = record.stages.map(stage => ({ stageId: stage.id, state: "pending", detail: "", failureDetail: "", loadRequested: false, telemetry: null, updatedAt: "now" }));
+  const ids = record.stages.map(s => s.nodeId);
   prepareDeploymentLoad(record, 1000); expect(record.stages.every(s => s.nodeGeneration === 1000)).toBe(true);
   await run(record, transport()); expect(() => prepareDeploymentLoad(record, 1001)).toThrow();
   await run(record, transport(), "unload"); prepareDeploymentLoad(record, 1001);

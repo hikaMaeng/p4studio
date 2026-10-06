@@ -1,4 +1,5 @@
 export enum RSC {
+  RECOVERY_TITLE_TEXT = "recovery.title.text",
   AGENTS_NODE_LIFECYCLE_MESSAGE = "agents.node.lifecycle.message",
   AGENTS_NODE_PLACEMENT_BUTTON = "agents.node.placement.button",
   AGENTS_DELETE_BUTTON = "agents.delete.button",

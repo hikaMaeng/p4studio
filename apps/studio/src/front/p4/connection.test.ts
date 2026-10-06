@@ -21,6 +21,16 @@ class Socket extends EventTarget {
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it("marks a refused bridge open as not sent before any P4 lifecycle event exists", async () => {
+  vi.stubGlobal("WebSocket", Socket); vi.stubGlobal("window", { setTimeout, clearTimeout }); vi.stubGlobal("location", { protocol: "http:", host: "studio.test" });
+  const opening = BrowserP4Connection.open(crypto.randomUUID(), "tcp://agent:12345");
+  const socket = Socket.latest; socket.dispatchEvent(new Event("open"));
+  const control = JSON.parse(socket.sent[0] as string);
+  const rejected = expect(opening).rejects.toHaveProperty("deliveryState", "not_sent");
+  socket.message(JSON.stringify({ type: "error", connectionId: control.connectionId, detail: "connect ECONNREFUSED" }));
+  await rejected;
+});
+
 it("waits for a framed FINISH ACK, including split and coalesced bytes, before closing", async () => {
   vi.stubGlobal("WebSocket", Socket); vi.stubGlobal("window", { setTimeout, clearTimeout }); vi.stubGlobal("location", { protocol: "http:", host: "studio.test" });
   const agentId = crypto.randomUUID();
@@ -127,7 +137,7 @@ it("preserves binary lifecycle payloads, ignores stale and duplicate replies, an
   let rejected: unknown; void third.catch(error => { rejected = error; });
   socket.message(frameP4Event(encodeP4Event(notice("notice-0", "another-request", "unknown"))).buffer); await Promise.resolve(); expect(rejected).toBeUndefined();
   socket.message(frameP4Event(encodeP4Event(notice("notice-1", undelivered.eventId, "not_started"))).buffer);
-  await expect(third).rejects.toThrow("never sent");
+  await expect(third).rejects.toHaveProperty("deliveryState", "not_sent");
   const fourth = connection.exchange(target, "llamacpp", NODE_LOAD_CONTENT_TYPE, binary, [NODE_LIFECYCLE_RESULT_CONTENT_TYPE], 1000);
   const uncertain = decodeP4Event(new Uint8Array(socket.sent.at(-1) as ArrayBuffer).slice(4));
   socket.message(frameP4Event(encodeP4Event(notice("notice-2", uncertain.eventId, "unknown"))).buffer);

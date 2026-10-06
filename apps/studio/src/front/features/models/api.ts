@@ -1,9 +1,10 @@
-import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, runBrowserDeployment, validateDeploymentLoad, type DeploymentRecord } from "@p4studio/studio_domain/common";
+import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, canStartLoad, runBrowserDeployment, validateDeploymentLoad, type DeploymentRecord } from "@p4studio/studio_domain/common";
 import { deployments, reconcileDeployment, inferenceExecutions, type DeploymentGateway } from "@p4studio/studio_domain/front";
 import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import { inspectGraphAgent } from "../../p4/inspection.js";
 import { agentAddress } from "@p4studio/studio_domain/common";
 import { BrowserP4Reception, readAgentTopology } from "../../p4/reception.js";
+import { acquireOperationLease } from "../../p4/lease.js";
 
 async function request<T = unknown>(path: string, method: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, { method, headers: { "Content-Type": "application/json" }, ...(signal ? { signal } : {}), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -18,7 +19,7 @@ const gateway: DeploymentGateway = {
   list: async () => parseDeploymentList(await request(deploymentRoutes.list.path, deploymentRoutes.list.method)).deployments,
   save: async (input, id) => { const route = id ? deploymentRoutes.update : deploymentRoutes.create; return parseDeployment(await request(route.path.replace(":id", encodeURIComponent(id ?? "")), route.method, input)); },
   remove: async (id, discard) => { await request(`${deploymentRoutes.remove.path.replace(":id", encodeURIComponent(id))}${discard ? "?discard=true" : ""}`, deploymentRoutes.remove.method); },
-  operate: async (id, action) => operateInBrowser(id, action),
+  operate: async (id, action, expectedLoadGeneration) => operateInBrowser(id, action, expectedLoadGeneration),
   reconcile: async id => {
     const record = (await gateway.list()).find(value => value.id === id);
     if (!record) throw new Error("Model deployment was not found");
@@ -56,6 +57,7 @@ const receipt = async (record: DeploymentRecord, expectedUpdatedAt = record.upda
   signal,
   ));
   record.updatedAt = saved.updatedAt;
+  record.loadStartedAt = saved.loadStartedAt;
   return saved;
 };
 
@@ -76,11 +78,14 @@ export async function recordSessionProof(modelId: string, sessionId: string, che
   await receipt(record, record.updatedAt, signal);
 }
 
-async function operateInBrowser(id: string, action: "load" | "unload"): Promise<DeploymentRecord> {
+async function operateInBrowser(id: string, action: "load" | "unload", expectedLoadGeneration?: number): Promise<DeploymentRecord> {
   const record = (await gateway.list()).find(value => value.id === id);
   if (!record) throw new Error("Model deployment was not found");
+  if (expectedLoadGeneration !== undefined && (expectedLoadGeneration <= 0 || record.loadGeneration !== expectedLoadGeneration)) {
+    throw new Error("This inference belongs to a different or unknown LOAD generation; inspect the current model before recovery");
+  }
   if (action === "load") {
-    if (!canStartDeployment(record)) throw new Error("Recover or inspect the previous operation before loading again");
+    if (!canStartLoad(record)) throw new Error("Inspect the placement and resolve any currently owned nodes before loading again");
     validateDeploymentLoad(record);
   } else if (!record.loadGeneration || ["draft", "unloaded"].includes(record.status)) throw new Error("No load operation to unload");
   return action === "unload" ? inferenceExecutions.unload(record, async () => {
@@ -95,9 +100,12 @@ async function operatePrepared(record: DeploymentRecord, action: "load" | "unloa
   const topology = await readAgentTopology();
   const addresses = action === "unload" ? new Map(Object.entries(record.resolvedAddresses)) : new Map(topology.agents.map(agent => [agent.id, agentAddress(agent)]));
   const connection = new BrowserP4Reception(topology, addresses);
+  const lease = await acquireOperationLease(record, connection.operationId, action, () => { void connection.close(); });
+  try {
   if (action === "load") prepareDeploymentLoad(record);
   record.operationId = connection.operationId;
   record.status = action === "load" ? "loading" : "unloading";
+  record.sessionProof = null;
   record.error = "";
   if (action === "load") {
     record.resolvedAddresses = Object.fromEntries(addresses);
@@ -110,6 +118,7 @@ async function operatePrepared(record: DeploymentRecord, action: "load" | "unloa
   }); }
   catch (error) { record.status = "unknown"; record.error = error instanceof Error ? error.message : String(error); await receipt(record, serverRevision); }
   return record;
+  } finally { await lease.release(); }
 }
 let restartReconciliation: Promise<void> | undefined;
 export const startModels = () => {

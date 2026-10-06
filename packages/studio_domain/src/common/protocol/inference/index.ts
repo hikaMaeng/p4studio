@@ -15,6 +15,8 @@ export const inferenceRunInputSchema = z.object({
   maxTokens: z.number().int().min(1).max(0xffff_ffff),
 });
 export type InferenceRunInput = z.infer<typeof inferenceRunInputSchema>;
+/** The original browser ledger attests that every submitted owner was settled or provably refused. */
+export const inferenceOwnerSettlementSchema = z.object({ ownerToken: z.string().uuid(), loadGeneration: nonNegative, pendingSettlement: z.literal(0), submitted: nonNegative }).strict();
 
 export const inferenceRunSettingsSchema = z.object({
   concurrency: z.number().int().min(1),
@@ -216,7 +218,10 @@ export const inferenceRunSchema = z.object({
   id: identifier,
   modelId: identifier,
   modelName: identifier,
-  state: z.enum(["preparing", "running", "cancelling", "cancelled", "completed", "failed", "unknown"]),
+  state: z.enum(["preparing", "running", "settling", "cancelling", "cancelled", "completed", "failed", "unknown"]),
+  pendingSettlement: nonNegative.optional(),
+  ownershipCheckpoint: z.object({ admitted: nonNegative, settled: nonNegative }).refine(value => value.settled <= value.admitted).optional(),
+  loadGeneration: nonNegative.optional(),
   submitted: nonNegative,
   completed: nonNegative,
   createdAt: z.string(),

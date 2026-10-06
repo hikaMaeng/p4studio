@@ -10,7 +10,7 @@ export const startRuntime = (env: StudioEnv) => {
   const stopTunnels = startAgentTunnels(env.P4STUDIO_AGENT_TUNNELS);
   const database = new StudioDatabase(env.P4STUDIO_SQLITE_PATH);
   if (env.P4STUDIO_SEED_DEMO) seedDemo(database);
-  const app = createApp(database);
+  const app = createApp(database, undefined, env.P4STUDIO_AGENT_MANAGEMENT);
   const server = app.listen(env.P4STUDIO_PORT, "0.0.0.0", () => {
     console.log(`p4studio status=ready port=${env.P4STUDIO_PORT} database=${env.P4STUDIO_SQLITE_PATH}`);
   });

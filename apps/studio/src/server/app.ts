@@ -6,16 +6,23 @@ import type { StudioDatabase } from "./database/client.js";
 import { createApiRouter } from "./api/router.js";
 import { AgentObservationStore } from "./agent-socket/inspection/store.js";
 import { createDeploymentRouter } from "./api/deployments.js";
+import { OperationLeases, createLeaseRouter } from "./operations/leases.js";
+import { AgentRecovery, createRecoveryRouter } from "./operations/recovery.js";
+import type { ManagementProfile } from "./operations/windows.js";
 
 export const createApp = (
   database: StudioDatabase,
   observations = new AgentObservationStore(),
+  profiles: ManagementProfile[] = [],
 ) => {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "1mb" }));
   app.get("/health", (_request, response) => response.json({ status: "ok", database: "ready", instance: hostname() }));
   app.use(createDeploymentRouter(database));
+  const leases = new OperationLeases(database.connection);
+  app.use(createLeaseRouter(database.connection, leases));
+  app.use(createRecoveryRouter(new AgentRecovery(database, leases, profiles)));
   app.use("/api", createApiRouter(database, observations));
 
   const front = join(dirname(resolve(process.argv[1] ?? ".")), "..", "front");

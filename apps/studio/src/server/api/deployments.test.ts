@@ -26,7 +26,9 @@ it("stores declarations and browser receipts but rejects server-side P4 executio
   await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, expectedUpdatedAt: advanced.body.updatedAt, stageGenerations: { "stage-1": 1233 } }).expect(409);
   await request(app).put(`/api/model-deployments/${created.body.id}/receipt`).send({ ...receipt, expectedUpdatedAt: advanced.body.updatedAt, stageGenerations: { other: 1234 } }).expect(409);
   const observed = { status: "unloaded", loadGeneration: receipt.loadGeneration, operationId: receipt.operationId, error: receipt.error,
-    reports: receipt.reports.map(report => ({ ...report, state: "unloaded", observation: { state: "missing", checkedAt: new Date().toISOString(), agentGeneratedAt: 123, detail: "" } })), resolvedAddresses: receipt.resolvedAddresses };
+    reports: receipt.reports.map(report => ({ ...report, state: "unloaded", resourceState: "absent",
+      lifecycle: { operation: "unload", status: "succeeded", resourceState: "absent", firstError: null, cleanupError: null },
+      observation: { state: "missing", checkedAt: new Date().toISOString(), agentGeneratedAt: 123, detail: "" } })), resolvedAddresses: receipt.resolvedAddresses };
   await request(app).put(`/api/model-deployments/${created.body.id}/reconcile`).send({ ...observed, expectedUpdatedAt: "old-revision" }).expect(409);
   const reconciled = await request(app).put(`/api/model-deployments/${created.body.id}/reconcile`).send({ ...observed, expectedUpdatedAt: advanced.body.updatedAt }).expect(200);
   expect(reconciled.body).toMatchObject(observed);

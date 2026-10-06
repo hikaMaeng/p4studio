@@ -13,4 +13,6 @@ export * from "./model/inference/monitoring-summary.js";
 export * from "./model/inference/timing.js";
 export * from "./model/inference/observability.js";
 export * from "./model/agent-groups/store.js";
-export { reconcileDeployment } from "./model/deployments/reconcile.js";
+export { reconcileDeployment, hasObservedNoNodes } from "./model/deployments/reconcile.js";
+export * from "./model/recovery/store.js";
+export * from "./model/deployments/history.js";

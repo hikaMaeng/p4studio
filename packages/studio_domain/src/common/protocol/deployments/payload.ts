@@ -1,6 +1,6 @@
 import type { DeploymentInput, PlacementStage } from "./index.js";
 
-export type LlamaDispatchLimits = { maxRequests: number; maxOutputTokensPerRequest: number; maxOutputTokens: number };
+export type LlamaDispatchLimits = { maxRequests: number; maxOutputTokensPerRequest: number; maxOutputTokens: number; maxInputTokens: number; maxRequestBytes: number; maxRequestRetainedBytes: number };
 
 /**
  * The adapter owns these admission limits.  Studio may only offer or dispatch
@@ -16,7 +16,8 @@ export function llamaDispatchLimits(stages: PlacementStage[]): LlamaDispatchLimi
       const value = profile as Record<string, unknown>;
       const read = (key: string) => Number.isSafeInteger(value[key]) && Number(value[key]) > 0 ? Number(value[key]) : null;
       const maxRequests = read("max_requests"), maxOutputTokensPerRequest = read("max_output_tokens_per_request"), maxOutputTokens = read("max_output_tokens");
-      return maxRequests === null || maxOutputTokensPerRequest === null || maxOutputTokens === null ? null : { maxRequests, maxOutputTokensPerRequest, maxOutputTokens };
+      const maxInputTokens = read("max_input_tokens"), maxRequestBytes = read("max_request_bytes"), maxRequestRetainedBytes = read("max_request_retained_bytes");
+      return maxRequests === null || maxOutputTokensPerRequest === null || maxOutputTokens === null || maxInputTokens === null || maxRequestBytes === null || maxRequestRetainedBytes === null ? null : { maxRequests, maxOutputTokensPerRequest, maxOutputTokens, maxInputTokens, maxRequestBytes, maxRequestRetainedBytes };
     } catch { return null; }
   });
   if (!profiles.length || profiles.some(profile => profile === null)) return null;
@@ -24,6 +25,9 @@ export function llamaDispatchLimits(stages: PlacementStage[]): LlamaDispatchLimi
     maxRequests: Math.min(...profiles.map(profile => profile!.maxRequests)),
     maxOutputTokensPerRequest: Math.min(...profiles.map(profile => profile!.maxOutputTokensPerRequest)),
     maxOutputTokens: Math.min(...profiles.map(profile => profile!.maxOutputTokens)),
+    maxInputTokens: Math.min(...profiles.map(profile => profile!.maxInputTokens)),
+    maxRequestBytes: Math.min(...profiles.map(profile => profile!.maxRequestBytes)),
+    maxRequestRetainedBytes: Math.min(...profiles.map(profile => profile!.maxRequestRetainedBytes)),
   };
 }
 

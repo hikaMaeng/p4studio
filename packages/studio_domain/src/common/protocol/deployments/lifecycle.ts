@@ -30,13 +30,35 @@ export function buildNodeLifecyclePayload(record: DeploymentRecord, stage: Place
     ? buildLoadPayload(record, stage, record.loadGeneration) : { load_generation: record.loadGeneration })));
 }
 /** A rejected LOAD never transfers ownership of an already occupied ID. */
+export function stageHasCurrentAbsenceObservation(report: StageReport): boolean {
+  return report.observation?.state === "missing" && report.observation.agentGeneratedAt !== null
+    && report.updatedAt === report.observation.checkedAt;
+}
 export function stageNeedsRecovery(report: StageReport): boolean {
+  if (stageHasCurrentAbsenceObservation(report)) return false;
+  if (report.loadOutcome === "unknown" && report.resourceState !== "absent"
+    && !(report.lifecycle?.operation === "unload" && report.lifecycle.status === "succeeded" && report.lifecycle.resourceState === "absent") && !report.recovery) return true;
+  // Current resource ownership is independent of whether an older LOAD got a
+  // terminal reply. A later exact absence observation retires current ownership
+  // while preserving that attempt's historical outcome.
   return (report.loadRequested || ["creating", "loading", "loaded", "ready", "unloading", "unknown"].includes(report.state))
     && report.loadOutcome !== "rejected" && report.resourceState !== "absent" && report.state !== "unloaded";
 }
 export function canStartDeployment(record: DeploymentRecord): boolean {
+  return canStartLoad(record) && !record.reports.some(report => report.loadRequested && report.loadOutcome === "unknown"
+    && !report.recovery && !(report.lifecycle?.operation === "unload" && report.lifecycle.status === "succeeded" && report.lifecycle.resourceState === "absent"));
+}
+/**
+ * Starting a new LOAD reuses the declared node IDs with larger generations.
+ * A fresh report that proves the node registry is absent releases current
+ * ownership even when the prior LOAD's terminal result remains unknown.
+ */
+export function canStartLoad(record: DeploymentRecord): boolean {
   if (!record.reports.length && record.status === "unknown") return false;
-  return ["draft", "unloaded", "failed", "unknown"].includes(record.status) && !record.reports.some(stageNeedsRecovery);
+  if (record.status !== "draft" && record.loadGeneration > 0 && record.reports.length !== record.stages.length) return false;
+  if (!record.stages.length || record.reports.length && record.reports.length !== record.stages.length) return false;
+  return ["draft", "unloaded", "absent", "failed", "unknown"].includes(record.status)
+    && !record.reports.some(stageNeedsRecovery);
 }
 /**
  * An unknown deployment is never presented as ready.  It can, however, make a
@@ -56,7 +78,7 @@ export function canAttemptInference(record: DeploymentRecord): boolean {
 }
 /** Preserve IDs, advance generation only after the previous operation has no owned resources. */
 export function prepareDeploymentLoad(record: DeploymentRecord, now = Date.now()): void {
-  if (!canStartDeployment(record)) throw new Error("Recover or inspect the previous load before editing or loading again");
+  if (!canStartLoad(record)) throw new Error("Inspect the placement and resolve any currently owned nodes before loading again");
   const next = record.stages.map(stage => Math.max(stage.nodeGeneration, now, stage.nodeGeneration + (record.loadGeneration > 0 ? 1 : 0)));
   const loadGeneration = Math.max(now, record.loadGeneration + 1);
   if (!Number.isSafeInteger(loadGeneration) || next.some(value => !Number.isSafeInteger(value))) throw new Error("Deployment generation exhausted");

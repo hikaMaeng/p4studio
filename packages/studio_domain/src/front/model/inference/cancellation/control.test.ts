@@ -26,6 +26,7 @@ function fixture(ids = ["one", "two"]) {
 
 it("sends one control CANCEL per unfinished exact submission, preserves completed requests, and is idempotent", async () => {
   const f = fixture(); f.run.requests[1]!.state = "completed"; f.run.completed = 1;
+  f.control.output({ ...f.output("two"), stop: "length", release_operation_id: 10 }, 0); f.control.consume(f.release("two"));
   const done = f.control.cancel(); expect(f.control.cancel()).toBe(done);
   expect(f.run.state).toBe("cancelling"); expect(f.control.requested).toBe(true);
   expect(f.dispatch).toHaveBeenCalledTimes(1);
@@ -35,11 +36,32 @@ it("sends one control CANCEL per unfinished exact submission, preserves complete
   expect(f.run.state).toBe("cancelled"); expect(f.run.requests.map(value => value.state)).toEqual(["cancelled", "completed"]);
   expect(f.run.requests[0]!.text).toBe("partial"); expect(f.close).toHaveBeenCalledTimes(1);
 });
+it("keeps a pre-dispatch reservation in every snapshot until proven unsent or exactly settled", () => {
+  const f = fixture([]); f.control.reserveWave(10);
+  expect(f.run).toMatchObject({ pendingSettlement: 10, ownershipCheckpoint: { admitted: 10, settled: 0 } });
+  f.control.transportLost("page lost before dispatch");
+  expect(f.run).toMatchObject({ pendingSettlement: 10, ownershipCheckpoint: { admitted: 10, settled: 0 } });
+  f.control.abandonUnsentWave();
+  expect(f.run).toMatchObject({ pendingSettlement: 0, ownershipCheckpoint: { admitted: 10, settled: 10 } });
+});
 it("accepts RELEASE before terminal and an earlier approved OUTPUT prefix after terminal", async () => {
   const f = fixture(["one"]); const done = f.control.cancel();
   f.control.consume(f.release("one")); f.control.consume(f.terminal("one"));
   f.control.output(f.output("one"), 1); await vi.advanceTimersByTimeAsync(25); expect(f.run.state).toBe("cancelling");
   f.control.output(f.output("one"), 0); await vi.advanceTimersByTimeAsync(25); await done; expect(f.run.state).toBe("cancelled");
+});
+it("a provably not-started delivery fails only that submission and drains other accepted work", async () => {
+  const f = fixture(); f.control.deliveryFailed("two", "prefill-two", true, "not_started");
+  expect(f.dispatch).toHaveBeenCalledTimes(1); expect(f.run.requests[1]!.state).toBe("failed"); expect(f.run.requests[0]!.state).toBe("queued");
+  f.control.consume(f.terminal("one")); f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25); await f.control.cancel();
+  expect(f.run.state).toBe("failed"); expect(f.control.settled).toBe(true);
+});
+it("an unknown owner from an old LOAD does not block a newly loaded generation", async () => {
+  const f = fixture(["one"]); f.control.transportLost("closed"); const registry = new InferenceExecutions();
+  const old = { id: "model", loadGeneration: 42, stages: [{ agentId: "agent", nodeId: "head", nodeGeneration: 9 }] } as DeploymentRecord;
+  registry.register(old, f.control); const next = fixture(["two"]); next.run.id = "new-run";
+  expect(() => registry.register({ ...old, loadGeneration: 43, stages: [{ ...old.stages[0]!, nodeGeneration: 10 }] }, next.control)).not.toThrow();
+  expect(() => registry.register(old, fixture(["three"]).control)).toThrow("previous inference");
 });
 it("keeps cancellation unknown when RELEASE never arrives, even after a cancellation terminal", async () => {
   const f = fixture(["one"]); const done = f.control.cancel(); f.control.consume(f.terminal("one"));

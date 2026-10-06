@@ -1,5 +1,18 @@
 import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import type { DeploymentRecord, StageReport } from "../../../common/protocol/deployments/index.js";
+import { stageHasCurrentAbsenceObservation } from "../../../common/protocol/deployments/lifecycle.js";
+
+/** Current observation for display only; it never retires an unknown LOAD. See docs/api.md#model-refresh. */
+export function hasObservedNoNodes(record: DeploymentRecord): boolean {
+  if (!record.stages.length || ["loading", "unloading", "loaded", "ready"].includes(record.status)
+    || record.reports.length !== record.stages.length) return false;
+  return record.stages.every(stage => {
+    const reports = record.reports.filter(report => report.stageId === stage.id);
+    if (reports.length !== 1) return false;
+    const report = reports[0]!;
+    return stageHasCurrentAbsenceObservation(report);
+  });
+}
 
 /** See docs/api.md#model-refresh. Current agents report the held load generation; older ones report none. */
 export function reconcileDeployment(record: DeploymentRecord, observations: Map<string, P4AgentSnapshot | Error>, checkedAt: string): void {
@@ -20,8 +33,11 @@ export function reconcileDeployment(record: DeploymentRecord, observations: Map<
       const node = snapshot.nodes.find(value => value.nodeId === stage.nodeId);
       if (!node) {
         observation.state = "missing";
-        if (previous?.loadOutcome === "unknown" && previous.resourceState !== "absent") observation.detail = "Node absent at inspection; the outstanding LOAD outcome is still unknown";
-        else { report.state = "unloaded"; report.resourceState = "absent"; }
+        // This snapshot answers current registry presence. Preserve an unknown
+        // older LOAD result as history without claiming a node is still owned.
+        report.state = previous?.lifecycle?.operation === "unload" && previous.lifecycle.status === "succeeded" && previous.lifecycle.resourceState === "absent" ? "unloaded" : "absent";
+        report.resourceState = "absent";
+        if (previous?.loadOutcome === "unknown") observation.detail = "Node is absent now; the previous LOAD outcome remains unknown in history";
       }
       else if (node.generation !== stage.nodeGeneration || node.adapterKind !== record.adapter) {
         observation.detail = "Observed node generation or adapter differs from this deployment";
@@ -68,7 +84,8 @@ export function reconcileDeployment(record: DeploymentRecord, observations: Map<
   record.status = record.reports.length && record.reports.every(value => value.state === "ready") && proofMatches ? "ready"
     : record.reports.length && record.reports.every(value => value.state === "loaded") ? "loaded"
     : record.reports.length && record.reports.every(value => value.state === "unloaded") ? "unloaded"
+    : record.reports.length && record.reports.every(value => value.resourceState === "absent") ? "absent"
       : record.reports.some(value => value.state === "unknown") || !record.reports.length ? "unknown" : "failed";
-  if (record.status === "unloaded" && record.loadGeneration === 0) record.status = "draft";
-  record.error = "";
+  if (["unloaded", "absent"].includes(record.status) && record.loadGeneration === 0) record.status = "draft";
+  if (!["absent", "failed", "unknown"].includes(record.status)) record.error = "";
 }

@@ -157,4 +157,6 @@ export enum RSC {
   INFERENCE_PAGINATION_PREVIOUS_BUTTON = "inference.pagination.previous.button",
   INFERENCE_PAGINATION_NEXT_BUTTON = "inference.pagination.next.button",
   INFERENCE_PAGINATION_PAGE_TEXT = "inference.pagination.page.text",
+  INFERENCE_SETTLING_STATUS = "inference.settling.status",
+  INFERENCE_RUN_RECOVER_BUTTON = "inference.run.recover.button",
 }
