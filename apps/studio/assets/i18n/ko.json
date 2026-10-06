@@ -219,6 +219,7 @@
   "models.load.button": "모델 로딩",
   "models.unload.button": "모델 언로딩",
   "models.save.button": "구성 저장",
+  "models.editor.loaded.status": "적재중",
   "models.draft.status": "구성 중",
   "models.pending.status": "명령 대기",
   "models.creating.status": "이전 생성 결과 불명",

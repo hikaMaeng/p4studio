@@ -219,6 +219,7 @@
   "models.load.button": "Carregar modelo",
   "models.unload.button": "Descarregar modelo",
   "models.save.button": "Salvar plano",
+  "models.editor.loaded.status": "Carregado",
   "models.draft.status": "Rascunho",
   "models.pending.status": "Pendente",
   "models.creating.status": "Resultado da criação anterior desconhecido",

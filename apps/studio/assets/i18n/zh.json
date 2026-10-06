@@ -219,6 +219,7 @@
   "models.load.button": "加载模型",
   "models.unload.button": "卸载模型",
   "models.save.button": "保存配置",
+  "models.editor.loaded.status": "已加载",
   "models.draft.status": "草稿",
   "models.pending.status": "等待命令",
   "models.creating.status": "旧创建结果未知",

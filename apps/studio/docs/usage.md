@@ -20,7 +20,7 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 - 미조회 안내와 성공한 조회의 0개 결과는 별도 문구로 표시한다. P4 snapshot이 없는 상태를 노드 0개로 단정하지 않는다.
 - [GraphNameEditor](../src/front/features/models/GraphNameEditor.tsx)의 연필은 에이전트/노드 이름을 인라인 편집한다. Enter/저장으로 SQL 반영, Escape/취소로 폐기한다. 에이전트의 관리 ID·접속 주소와 노드의 P4 ID·generation·연결은 변경하지 않는다.
 
-- [ModelEditorPage](../src/front/features/models/ModelEditorPage.tsx) 헤더에 현재 모델 이름·모델로 돌아가기·기본 구성·저장을 둔다. 기본 구성은 헤더에서 펼치며 노드 설정은 12px 본문/입력과 13px 소제목을 사용한다. 초기 fit은 배치 소속 에이전트를 기준으로 하며 나머지 에이전트는 캔버스를 이동해 탐색한다.
+- [ModelEditorPage](../src/front/features/models/ModelEditorPage.tsx) 헤더에 현재 모델 이름·모델로 돌아가기·기본 구성·저장을 둔다. 목록의 구성 상세 진입과 그래프·노드 인자 조회는 적재·회수·결과 불명 상태에서도 가능하다. 저장이 금지된 배치는 저장 버튼을 비활성화하고 적재된 모델은 그 자리에 `적재중`을 표시한다. 회수 중·결과 불명·부분 실패는 해당 상태를 표시하며, 폼 제출도 저장을 실행하지 않는다. 기본 구성은 헤더에서 펼치며 노드 설정은 12px 본문/입력과 13px 소제목을 사용한다. 초기 fit은 배치 소속 에이전트를 기준으로 하며 나머지 에이전트는 캔버스를 이동해 탐색한다.
 
 ## Agent nodes
 

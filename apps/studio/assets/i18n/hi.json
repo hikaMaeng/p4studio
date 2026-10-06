@@ -219,6 +219,7 @@
   "models.load.button": "मॉडल लोड करें",
   "models.unload.button": "मॉडल अनलोड करें",
   "models.save.button": "योजना सहेजें",
+  "models.editor.loaded.status": "लोड हुआ",
   "models.draft.status": "प्रारूप",
   "models.pending.status": "लंबित",
   "models.creating.status": "पुराने निर्माण का परिणाम अज्ञात",

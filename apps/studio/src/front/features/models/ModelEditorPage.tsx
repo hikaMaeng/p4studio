@@ -19,6 +19,12 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
   const [generalOpen, setGeneralOpen] = useState(false);
   const node = useModel(deployments.nodeSelection).value;
   const selectedId = useModel(deployments.selection).value, value = editor.input;
+  const record = recordId ? records.find(item => item.id === recordId) : undefined;
+  // See apps/studio/docs/usage.md#model-graph: inspection stays available while saving is locked.
+  const saveLocked = !!record && !canStartDeployment(record);
+  const saveStatus = record?.status === "unloading" ? RSC.MODELS_UNLOADING_STATUS
+    : record?.status === "unknown" ? RSC.MODELS_UNKNOWN_STATUS
+    : record?.status === "failed" ? RSC.MODELS_FAILED_STATUS : RSC.MODELS_EDITOR_LOADED_STATUS;
   useEffect(() => {
     const record = recordId ? records.find((item) => item.id === recordId) : undefined;
     if (recordId && !record) return;
@@ -28,11 +34,10 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
   const selected = value.stages.findIndex((stage) => stage.id === selectedId);
   const close = () => { deployments.close(); onClose(); };
   if (recordId && !records.some((record) => record.id === recordId)) return <Alert severity="info">{t[RSC.MODELS_RECORD_PENDING_MESSAGE]}<Button onClick={close}>{t[RSC.MODELS_BACK_BUTTON]}</Button></Alert>;
-  if (recordId && !canStartDeployment(records.find(record => record.id === recordId)!)) return <Alert severity="warning">{t[RSC.MODELS_RECOVERY_MESSAGE]}<Button onClick={close}>{t[RSC.MODELS_BACK_BUTTON]}</Button></Alert>;
   const dismiss = () => { deployments.selection.set(""); deployments.nodeSelection.set(null); };
   const panelOpen = selected >= 0 || node !== null;
   return <Box component="section" aria-label={t[RSC.MODELS_EDITOR_TITLE_TEXT]} sx={{ height: "calc(100dvh - 56px)", minHeight: 480 }}>
-    <Box component="form" onSubmit={(event) => { event.preventDefault(); void deployments.save().then((record) => { if (record) onSaved(record.id); }); }} sx={{ height: "100%", display: "flex", flexDirection: "column", gap: 1.5 }}>
+    <Box component="form" onSubmit={(event) => { event.preventDefault(); if (saveLocked) return; void deployments.save().then((record) => { if (record) onSaved(record.id); }); }} sx={{ height: "100%", display: "flex", flexDirection: "column", gap: 1.5 }}>
       <Box component="header" sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.5, flexShrink: 0 }}>
         <Button variant="outlined" size="small" onClick={close}>{t[RSC.MODELS_BACK_BUTTON]}</Button>
         <Box sx={{ flex: 1, minWidth: 140 }}>
@@ -40,7 +45,7 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
           <Typography component="h1" sx={{ fontSize: 18, lineHeight: 1.4, fontWeight: 500, overflowWrap: "anywhere" }}>{value.name || t[RSC.MODELS_CREATE_BUTTON]}</Typography>
         </Box>
         <Button size="small" variant="outlined" aria-expanded={generalOpen} aria-controls="model-general-settings" onClick={() => setGeneralOpen(!generalOpen)}>{t[RSC.MODELS_GENERAL_TEXT]}</Button>
-        <Button size="small" variant="contained" disabled={activity.busy} type="submit">{t[RSC.MODELS_SAVE_BUTTON]}</Button>
+        <Button size="small" variant="contained" disabled={activity.busy || saveLocked} type="submit">{t[saveLocked ? saveStatus : RSC.MODELS_SAVE_BUTTON]}</Button>
       </Box>
       {activity.error && <Alert severity="error" role="alert">{activity.error}</Alert>}
       <Typography variant="caption" color="text.secondary">{t[RSC.MODELS_LIFECYCLE_MESSAGE]}</Typography>

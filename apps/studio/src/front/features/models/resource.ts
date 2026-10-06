@@ -40,6 +40,7 @@ export enum RSC {
   MODELS_LOAD_BUTTON = "models.load.button",
   MODELS_UNLOAD_BUTTON = "models.unload.button",
   MODELS_SAVE_BUTTON = "models.save.button",
+  MODELS_EDITOR_LOADED_STATUS = "models.editor.loaded.status",
   MODELS_DRAFT_STATUS = "models.draft.status",
   MODELS_PENDING_STATUS = "models.pending.status",
   MODELS_CREATING_STATUS = "models.creating.status",

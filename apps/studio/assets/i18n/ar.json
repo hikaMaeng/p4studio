@@ -219,6 +219,7 @@
   "models.load.button": "تحميل النموذج",
   "models.unload.button": "إلغاء تحميل النموذج",
   "models.save.button": "حفظ الخطة",
+  "models.editor.loaded.status": "تم التحميل",
   "models.draft.status": "مسودة",
   "models.pending.status": "قيد الانتظار",
   "models.creating.status": "نتيجة الإنشاء السابق غير معروفة",

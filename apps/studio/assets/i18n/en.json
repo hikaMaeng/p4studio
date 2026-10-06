@@ -219,6 +219,7 @@
   "models.load.button": "Load model",
   "models.unload.button": "Unload model",
   "models.save.button": "Save plan",
+  "models.editor.loaded.status": "Loaded",
   "models.draft.status": "Draft",
   "models.pending.status": "Pending",
   "models.creating.status": "Legacy creation outcome unknown",
