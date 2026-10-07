@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { P4Endpoint, P4Event } from "@p4studio/p4-protocol";
-import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "@p4studio/studio_domain/common";
+import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE, P4_SCOPE_CLOSED_CONTENT_TYPE } from "@p4studio/studio_domain/common";
 vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {}, checkpoint: async () => {} }) }));
 
 const wire = vi.hoisted(() => ({ events: [] as P4Event[], retained: [] as P4Endpoint[], sentTimes: [] as number[], listeners: new Set<(event: P4Event, at: number) => void>(), holdSession: false, resume: undefined as (() => void) | undefined, closed: false }));
@@ -9,6 +9,7 @@ vi.mock("../../p4/reception.js", () => ({
   BrowserP4Reception: class {
     operationId = "operation";
     async retainDispatchConnection(target: P4Endpoint) { wire.retained.push(target); }
+    dispatchIdentity() { return { outer: { kind: "outer" as const, address: "head:52000", channel: "outer", generation: 1 }, nextSequence: wire.events.length + 1 }; }
     async exchange(target: P4Endpoint, _adapter: string, _type: string, body: { session_id: string; load_generation: number }) {
       if (wire.holdSession) await new Promise<void>(resolve => { wire.resume = resolve; });
       return { source: target, contentType: "application/vnd.p4.llamacpp.session-ready-v4+json", payload: new TextEncoder().encode(JSON.stringify({ state: "ready", ...body })) };
@@ -45,6 +46,13 @@ const emit = (original: P4Event, contentType: string, body: unknown) => {
   wire.listeners.forEach(listener => listener(reply, performance.now()));
 };
 const prefills = () => wire.events.filter(event => event.contentType.includes("prefill-v3"));
+const scopeCloses = () => wire.events.filter(event => event.contentType.includes("scope-close-v1"));
+const closeScope = () => {
+  const event = scopeCloses().at(-1)!;
+  const reply: P4Event = { ...event, eventId: crypto.randomUUID(), source: event.target, target: event.source, returnRoute: event.source as Extract<P4Endpoint, { kind: "outer" }>, class: 0, causationId: event.eventId, contentType: P4_SCOPE_CLOSED_CONTENT_TYPE,
+    payload: new TextEncoder().encode(JSON.stringify({ load_generation: 42, status: "closed", native_kv_stop_proven: true })) };
+  wire.listeners.forEach(listener => listener(reply, performance.now()));
+};
 function settle(original: P4Event, sequence: number) {
   const body = payload(original);
   emit(original, P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_REQUEST_CANCELLED", detail: "native_kv_stop_proven=false", owner: { load_generation: 42, session_id: body.session_id, request_id: body.request_id, incarnation: 3 } });
@@ -105,23 +113,24 @@ it("cancels unfinished requests across overlapping waves and suppresses later di
   await vi.advanceTimersByTimeAsync(5000); const originals = prefills(); expect(originals).toHaveLength(4);
   complete(originals[0]!, 0);
   const pending = inference.cancel(id);
-  expect(wire.events.filter(event => event.contentType.includes("cancel-v1"))).toHaveLength(3);
+  expect(scopeCloses()).toHaveLength(1);
   originals.slice(1).forEach((event, index) => settle(event, index + 1));
+  closeScope();
   await vi.advanceTimersByTimeAsync(250); await pending;
   await vi.advanceTimersByTimeAsync(5000); expect(prefills()).toHaveLength(4); expect(wire.closed).toBe(true);
   expect(inference.runModel(id).value?.requests.map(request => request.state)).toEqual(["completed", "cancelled", "cancelled", "cancelled"]);
 });
 it("stops an active wave, consumes exact cancellation responses and sends no later PREFILL", async () => {
   const { inference, id } = await start(); const originals = prefills(); expect(originals).toHaveLength(2);
-  const pending = inference.cancel(id); expect(wire.events.filter(event => event.contentType.includes("cancel-v1"))).toHaveLength(2);
-  originals.forEach(settle); await vi.advanceTimersByTimeAsync(250); await pending;
+  const pending = inference.cancel(id); expect(scopeCloses()).toHaveLength(1);
+  originals.forEach(settle); closeScope(); await vi.advanceTimersByTimeAsync(250); await pending;
   expect(inference.runModel(id).value?.state).toBe("cancelled");
   await vi.advanceTimersByTimeAsync(60_000); expect(prefills()).toHaveLength(2); expect(wire.closed).toBe(true);
 });
 it("interrupts the interval immediately and preserves the completed wave", async () => {
   const { inference, id } = await start(); prefills().forEach(complete); await vi.advanceTimersByTimeAsync(50);
-  await inference.cancel(id); await vi.advanceTimersByTimeAsync(60_000);
-  expect(prefills()).toHaveLength(2); expect(wire.events.some(event => event.contentType.includes("cancel-v1"))).toBe(false);
+  const pending = inference.cancel(id); expect(scopeCloses()).toHaveLength(1); closeScope(); await vi.advanceTimersByTimeAsync(250); await pending; await vi.advanceTimersByTimeAsync(60_000);
+  expect(prefills()).toHaveLength(2); expect(scopeCloses()).toHaveLength(1);
   expect(inference.runModel(id).value?.requests.map(request => [request.state, request.text])).toEqual([["completed", "partial answer"], ["completed", "partial answer"]]);
 });
 it("cancels preparation and never submits PREFILL after a late SESSION_READY", async () => {

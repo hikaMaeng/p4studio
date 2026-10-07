@@ -54,6 +54,11 @@ export class BrowserP4Reception {
     if (this.closed || !connection) throw new Error("Prepare the target session before inference");
     return connection.dispatch(...args);
   }
+  dispatchIdentity(target: P4Endpoint) {
+    const reception = this.reception(target), connection = this.connections.get(reception.agentId);
+    if (this.closed || !connection) throw new Error("Prepare the target session before reading its OUTER identity");
+    return { outer: connection.outer, nextSequence: connection.nextSequence };
+  }
   /** After SESSION_READY on every stage, retain the PREFILL/OUTPUT/RELEASE route only. */
   async retainDispatchConnection(target: P4Endpoint) {
     const reception = this.reception(target);

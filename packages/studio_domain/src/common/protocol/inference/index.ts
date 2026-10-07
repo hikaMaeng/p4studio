@@ -222,6 +222,14 @@ export const inferenceRunSchema = z.object({
   pendingSettlement: nonNegative.optional(),
   ownershipCheckpoint: z.object({ admitted: nonNegative, settled: nonNegative }).refine(value => value.settled <= value.admitted).optional(),
   loadGeneration: nonNegative.optional(),
+  // Audit identity for the OUTER that owns this run's P4 return scope.
+  returnScope: z.object({
+    address: identifier,
+    channel: identifier,
+    generation: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    nextSequence: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    state: z.enum(["open", "closing", "closed", "unknown"]).default("open"),
+  }).optional(),
   submitted: nonNegative,
   completed: nonNegative,
   createdAt: z.string(),

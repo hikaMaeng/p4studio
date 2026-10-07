@@ -1,7 +1,7 @@
 // Independent consumer regression tests promoted from the lifecycle audit.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { P4Endpoint, P4Event } from "@p4studio/p4-protocol";
-import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "@p4studio/studio_domain/common";
+import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE, P4_SCOPE_CLOSED_CONTENT_TYPE } from "@p4studio/studio_domain/common";
 vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {}, checkpoint: async () => {} }) }));
 
 const wire = vi.hoisted(() => ({ events: [] as P4Event[], listeners: new Set<(event: P4Event, at: number) => void>(), closed: false }));
@@ -10,6 +10,7 @@ vi.mock("../../p4/reception.js", () => ({
   BrowserP4Reception: class {
     async retainDispatchConnection() {}
     operationId = "operation";
+    dispatchIdentity() { return { outer: { kind: "outer" as const, address: "head:52000", channel: "outer", generation: 1 }, nextSequence: wire.events.length + 1 }; }
     async exchange(target: P4Endpoint, _adapter: string, _type: string, body: unknown) {
       return { source: target, contentType: "application/vnd.p4.llamacpp.session-ready-v4+json", payload: new TextEncoder().encode(JSON.stringify({ state: "ready", ...body as object })) };
     }
@@ -44,7 +45,13 @@ async function start(settings = { concurrency: 2, repetitions: 1, intervalMs: 0 
   return { inference, inferenceExecutions, id };
 }
 const prefills = () => wire.events.filter(event => event.contentType.includes("prefill-v3"));
-const cancels = () => wire.events.filter(event => event.contentType.includes("cancel-v1"));
+const scopeCloses = () => wire.events.filter(event => event.contentType.includes("scope-close-v1"));
+const closeScope = () => {
+  const event = scopeCloses().at(-1)!;
+  const reply: P4Event = { ...event, eventId: crypto.randomUUID(), source: event.target, target: event.source, returnRoute: event.source as Extract<P4Endpoint, { kind: "outer" }>, class: 0, causationId: event.eventId, contentType: P4_SCOPE_CLOSED_CONTENT_TYPE,
+    payload: new TextEncoder().encode(JSON.stringify({ load_generation: 42, status: "closed", native_kv_stop_proven: true })) };
+  wire.listeners.forEach(listener => listener(reply, performance.now()));
+};
 it("does not start SESSION when a durable owner record cannot be written", async () => {
   vi.mocked(window.localStorage.setItem).mockImplementation(() => { throw new Error("QuotaExceededError"); });
   const { inference } = await start();
@@ -62,12 +69,12 @@ it("does not use legacy timestamps without newer LOAD proof to bypass settlement
   vi.mocked(window.localStorage).getItem = () => JSON.stringify({ timingVersion: 3, runs: [{ id: "legacy", modelId: "model", modelName: "Model", state: "unknown", pendingSettlement: 2, submitted: 2, completed: 0, createdAt: "2026-10-05T00:00:00Z", error: "original owner lost", requests: [] }] });
   const { inference } = await start(); expect(prefills()).toHaveLength(0); expect(inference.activity.value.error).toContain("settlement is unknown");
 });
-it("stops later waves and cancels original owners if their durable checkpoint fails", async () => {
+it("stops later waves and closes the original OUTER scope if its durable checkpoint fails", async () => {
   const { inference, id } = await start({ concurrency: 2, repetitions: 3, intervalMs: 5000 });
   expect(prefills()).toHaveLength(2);
   vi.mocked(window.localStorage.setItem).mockImplementation(() => { throw new Error("QuotaExceededError"); });
   await vi.advanceTimersByTimeAsync(5500);
-  expect(prefills()).toHaveLength(2); expect(cancels()).toHaveLength(2);
+  expect(prefills()).toHaveLength(2); expect(scopeCloses()).toHaveLength(1);
   expect(inference.runModel(id).value?.state).toBe("unknown");
 });
 const body = (event: P4Event) => JSON.parse(new TextDecoder().decode(event.payload));
@@ -90,19 +97,19 @@ it.each(["max_input_tokens", "max_request_bytes", "max_request_retained_bytes"])
   for (const stage of model.stages) { const options = JSON.parse(stage.loadOptionsJson); options.resource_profile[field] = 1; stage.loadOptionsJson = JSON.stringify(options); }
   const { inference } = await start(); expect(wire.events).toHaveLength(0); expect(inference.activity.value.error).toContain("conservative input estimate");
 });
-it("AUD-02: error recovery must CANCEL still accepted work before closing its return connection", async () => {
+it("AUD-02: error recovery closes the original scope before retiring its return connection", async () => {
   await start(); error(prefills()[1]!); await vi.advanceTimersByTimeAsync(50);
-  expect(cancels().length).toBeGreaterThan(0);
+  expect(scopeCloses().length).toBe(1);
 });
 it("AUD-03: UNLOAD after a request error must retain and settle the original live owners", async () => {
   const { inferenceExecutions } = await start(); error(prefills()[1]!); await vi.advanceTimersByTimeAsync(50);
-  let cancelCountAtUnload = -1;
-  const unloading = inferenceExecutions.unload(model, async () => { cancelCountAtUnload = cancels().length; });
+  let closeCountAtUnload = -1;
+  const unloading = inferenceExecutions.unload(model, async () => { closeCountAtUnload = scopeCloses().length; });
   const original = prefills()[0]!;
   emit(original, P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_REQUEST_CANCELLED", detail: "cancelled", owner: { load_generation: 42, session_id: body(original).session_id, request_id: body(original).request_id, incarnation: 3 } });
   emit(original, P4_RELEASE_RECEIPT_CONTENT_TYPE, { load_generation: 42, session_id: body(original).session_id, members: [{ request_id: body(original).request_id, submission_event_id: original.eventId, incarnation: 3, sequence_id: 0, operation_id: 10 }] });
-  await vi.advanceTimersByTimeAsync(25); await unloading;
-  expect(cancelCountAtUnload).toBeGreaterThan(0);
+  closeScope(); await vi.advanceTimersByTimeAsync(25); await unloading;
+  expect(closeCountAtUnload).toBeGreaterThan(0);
 });
 it("AUD-04: natural terminal OUTPUT must retain the return route until RELEASE", async () => {
   await start({ concurrency: 1, repetitions: 1, intervalMs: 0 }); complete(prefills()[0]!); await vi.advanceTimersByTimeAsync(50);

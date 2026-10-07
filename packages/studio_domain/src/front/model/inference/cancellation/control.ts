@@ -1,16 +1,19 @@
 import { sameEndpoint, type P4Event } from "@p4studio/p4-protocol";
-import { P4_CANCEL_CONTENT_TYPE, P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE, p4CancelCommandSchema, p4InferenceErrorSchema, p4ReleaseReceiptSchema, type P4CancelCommand } from "../../../../common/protocol/inference/cancellation.js";
+import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE, P4_SCOPE_CLOSE_CONTENT_TYPE, P4_SCOPE_CLOSED_CONTENT_TYPE, p4InferenceErrorSchema, p4ReleaseReceiptSchema, p4ScopeClosedSchema, type P4ScopeCloseCommand } from "../../../../common/protocol/inference/cancellation.js";
 import type { InferenceRun } from "../../../../common/protocol/inference/index.js";
 import type { P4ApprovedOutput } from "../../../../common/protocol/inference/output.js";
 
-type Submission = { event: P4Event; cancelId?: string; incarnation?: number; sequence?: number; operation?: number; terminal: boolean; released: boolean; refused: boolean; held: number };
+type Submission = { event: P4Event; incarnation?: number; sequence?: number; operation?: number; terminal: boolean; released: boolean; refused: boolean; held: number };
 export const isActiveInference = (run: InferenceRun) => ["preparing", "running", "settling", "cancelling"].includes(run.state);
 
 // See docs/api.md#inference-cancellation. Intent is distinct from terminal and RELEASE.
 export class InferenceCancellation {
   readonly signal = new AbortController();
   private readonly submissions = new Map<string, Submission>();
-  private dispatch?: (command: P4CancelCommand) => P4Event;
+  private scopeClose?: (command: P4ScopeCloseCommand) => P4Event;
+  private scopeCloseEvent?: P4Event;
+  private scopeCloseState: "closing" | "closed" | "unknown" | undefined;
+  private scopeCloseError?: string;
   private closing?: () => void;
   private settlement?: Promise<void>;
   private naturalTimer?: ReturnType<typeof setTimeout>;
@@ -18,7 +21,7 @@ export class InferenceCancellation {
   preparationWrite: Promise<unknown> | undefined;
   constructor(readonly run: InferenceRun, private readonly loadGeneration: number, private readonly publish: () => void, private readonly timeoutMs: number) { run.ownershipCheckpoint = { admitted: 0, settled: 0 }; }
   get requested() { return this.signal.signal.aborted; }
-  connect(dispatch: (command: P4CancelCommand) => P4Event, close: () => void) { this.dispatch = dispatch; this.closing = close; }
+  connect(scopeClose: (command: P4ScopeCloseCommand) => P4Event, close: () => void) { this.closing = close; this.scopeClose = scopeClose; }
   get pending() { return this.plannedSubmissions + [...this.submissions].filter(([id, entry]) => !entry.released || entry.held || ["queued", "streaming"].includes(this.run.requests.find(request => request.id === id)?.state ?? "queued")).length; }
   get settled() { return this.pending === 0; }
   private checkpoint() { this.run.pendingSettlement = this.pending; this.run.ownershipCheckpoint!.settled = this.run.ownershipCheckpoint!.admitted - this.pending; }
@@ -64,19 +67,31 @@ export class InferenceCancellation {
     if (this.settlement) return this.settlement;
     if (!isActiveInference(this.run) && this.settled) return Promise.resolve();
     clearTimeout(this.naturalTimer); this.signal.abort(); this.run.state = "cancelling"; this.notify();
-    for (const request of this.run.requests) {
-      if (!["queued", "streaming"].includes(request.state)) continue;
-      const entry = this.submissions.get(request.id);
-      if (!entry || !this.dispatch) { request.state = "unknown"; request.error = "The original P4 submission connection is unavailable"; continue; }
-      try {
-        const command = p4CancelCommandSchema.parse({ load_generation: this.loadGeneration, session_id: this.run.id, request_id: request.id, submission_event_id: entry.event.eventId, reason: "Studio user stop" });
-        entry.cancelId = this.dispatch(command).eventId;
-      } catch (error) { request.state = "unknown"; request.error = String(error); }
+    if (this.run.submitted > 0) {
+      if (!this.scopeClose) {
+        this.scopeCloseState = "unknown"; this.scopeCloseError = "The original P4 scope connection is unavailable";
+      } else try {
+        this.scopeCloseEvent = this.scopeClose({ load_generation: this.loadGeneration, reason: "Studio user stop" });
+        this.scopeCloseState = "closing";
+        if (this.run.returnScope) this.run.returnScope.state = "closing";
+      } catch (error) {
+        this.scopeCloseState = "unknown"; this.scopeCloseError = String(error);
+      }
     }
     this.settlement = this.settle();
     return this.settlement;
   }
   consume(event: P4Event): boolean {
+    if (this.scopeCloseEvent && event.correlationId === this.scopeCloseEvent.correlationId
+      && event.causationId === this.scopeCloseEvent.eventId && event.contentType === P4_SCOPE_CLOSED_CONTENT_TYPE) {
+      this.validateScopeCloseRoute(event, 0);
+      const result = p4ScopeClosedSchema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(event.payload)));
+      if (result.load_generation !== this.loadGeneration || (result.status === "closed") !== result.native_kv_stop_proven) throw new Error("P4 SCOPE_CLOSE result does not prove the exact LOAD scope");
+      if (this.scopeCloseState !== "closed" || result.status === "closed") {
+        this.scopeCloseState = result.status; if (this.run.returnScope) this.run.returnScope.state = result.status;
+      }
+      this.notify(); return true;
+    }
     if (![P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE].includes(event.contentType)) return false;
     const raw: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(event.payload));
     if (event.contentType === P4_RELEASE_RECEIPT_CONTENT_TYPE) {
@@ -93,11 +108,13 @@ export class InferenceCancellation {
     } else {
       const error = p4InferenceErrorSchema.parse(raw);
       if ("command" in error) {
-        const entry = [...this.submissions.values()].find(value => value.cancelId === event.causationId);
-        if (!entry || error.command.input_content_type !== P4_CANCEL_CONTENT_TYPE) return false;
-        this.validateRoute(event, entry, 2);
-        // A rejection can race a natural completion; it owns no request terminal.
-        this.run.error = error.detail; this.publish(); return true;
+        if (this.scopeCloseEvent && event.correlationId === this.scopeCloseEvent.correlationId && event.causationId === this.scopeCloseEvent.eventId
+          && error.command.input_content_type === P4_SCOPE_CLOSE_CONTENT_TYPE) {
+          this.validateScopeCloseRoute(event, 2); this.scopeCloseState = "unknown"; this.scopeCloseError = error.detail;
+          if (this.run.returnScope) this.run.returnScope.state = "unknown";
+          this.run.error = error.detail; this.notify(); return true;
+        }
+        return false;
       }
       const owner = "owner" in error ? error.owner : error.submission;
       const entry = this.submissions.get(owner.request_id);
@@ -113,7 +130,10 @@ export class InferenceCancellation {
       if ("submission_event_id" in owner) {
         if (owner.submission_event_id !== entry.event.eventId) { if (!this.requested) return true; throw new Error("Refusal names another submission"); }
         // No admitted native/KV work; the exact original PREFILL was refused.
-        entry.refused = error.code === "LLAMA_ADAPTER_EVENT_REJECTED" && error.detail.startsWith("PREFILL cancelled before admission;cancel_event=") && error.detail === `PREFILL cancelled before admission;cancel_event=${entry.cancelId}`;
+        const cancelEventId = this.scopeCloseEvent?.eventId;
+        entry.refused = error.code === "LLAMA_ADAPTER_EVENT_REJECTED"
+          && error.detail.startsWith("PREFILL cancelled before admission;cancel_event=")
+          && !!cancelEventId && error.detail === `PREFILL cancelled before admission;cancel_event=${cancelEventId}`;
         entry.released = true;
       } else {
         if (entry.incarnation !== undefined && entry.incarnation !== owner.incarnation) throw new Error("Terminal changed request incarnation");
@@ -134,10 +154,18 @@ export class InferenceCancellation {
       || !event.returnRoute || !sameEndpoint(event.returnRoute, entry.event.source) || event.adapterKind !== "llamacpp" || event.class !== eventClass
       || event.correlationId !== entry.event.correlationId) throw new Error("Cancellation response route differs from original PREFILL");
   }
+  private validateScopeCloseRoute(event: P4Event, eventClass: number) {
+    const request = this.scopeCloseEvent;
+    if (!request || !sameEndpoint(event.source, request.target) || !sameEndpoint(event.target, request.source)
+      || !event.returnRoute || !sameEndpoint(event.returnRoute, request.source) || event.adapterKind !== "llamacpp"
+      || event.class !== eventClass || event.correlationId !== request.correlationId || event.causationId !== request.eventId) {
+      throw new Error("SCOPE_CLOSE response route differs from the exact OUTER and head");
+    }
+  }
   private async settle() {
     const deadline = Date.now() + Math.min(this.timeoutMs, 30_000);
     while (Date.now() < deadline && this.run.state === "cancelling") {
-      if (this.settled) break;
+      if (this.settled && (this.run.submitted === 0 || this.scopeCloseState === "closed" || this.scopeCloseState === "unknown")) break;
       await new Promise(resolve => setTimeout(resolve, 25));
     }
     for (const request of this.run.requests) {
@@ -146,7 +174,9 @@ export class InferenceCancellation {
         request.state = "unknown"; request.error = [request.error, "P4 cancellation terminal, OUTPUT prefix or RELEASE was not confirmed before the stop deadline"].filter(Boolean).join("; ");
       }
     }
-    if (this.run.state === "cancelling") this.run.state = this.run.requests.some(request => request.state === "unknown") ? "unknown" : this.run.requests.some(request => request.state === "failed") ? "failed" : "cancelled";
+    if (this.run.state === "cancelling") this.run.state = this.run.requests.some(request => request.state === "unknown") || this.run.submitted > 0 && this.scopeCloseState !== "closed"
+      ? "unknown" : this.run.requests.some(request => request.state === "failed") ? "failed" : "cancelled";
+    if (this.scopeCloseError) this.run.error = [this.run.error, `P4 SCOPE_CLOSE unresolved: ${this.scopeCloseError}`].filter(Boolean).join("; ");
     if (this.run.state === "unknown") this.run.error = [this.run.error, "Further waves stopped; P4 request settlement remains unknown"].filter(Boolean).join("; ");
     this.notify(); this.closing?.();
   }

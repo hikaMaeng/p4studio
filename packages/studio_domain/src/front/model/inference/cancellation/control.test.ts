@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { P4Event } from "@p4studio/p4-protocol";
 import type { DeploymentRecord } from "../../../../common/protocol/deployments/index.js";
 import type { InferenceRun } from "../../../../common/protocol/inference/index.js";
-import { P4_CANCEL_CONTENT_TYPE, P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "../../../../common/protocol/inference/cancellation.js";
+import { P4_SCOPE_CLOSE_CONTENT_TYPE, P4_SCOPE_CLOSED_CONTENT_TYPE, P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "../../../../common/protocol/inference/cancellation.js";
 import { InferenceCancellation } from "./control.js";
 import { InferenceExecutions } from "./executions.js";
 import { emptyRequestTelemetry } from "../observability.js";
@@ -15,24 +15,26 @@ function fixture(ids = ["one", "two"]) {
   const control = new InferenceCancellation(run, 42, publish, 100);
   const submission = (id: string): P4Event => ({ eventId: `prefill-${id}`, correlationId: "operation", causationId: null, source: { kind: "outer", address: "head:52000", channel: "outer", generation: 7 }, target: { kind: "node", address: "head:52000", nodeId: "head", generation: 9 }, returnRoute: { kind: "outer", address: "head:52000", channel: "outer", generation: 7 }, class: 1, sequence: 1, deadline: null, adapterKind: "llamacpp", contentType: "prefill", payload: new Uint8Array() });
   ids.forEach(id => control.submitted(id, submission(id)));
-  const dispatch = vi.fn(command => ({ ...submission(command.request_id), class: 0, contentType: P4_CANCEL_CONTENT_TYPE, eventId: `cancel-${command.request_id}` }));
+  const dispatch = vi.fn((command: { load_generation: number; reason?: string }) => ({ ...submission("one"), class: 0 as const, contentType: P4_SCOPE_CLOSE_CONTENT_TYPE, eventId: "scope-close", payload: new TextEncoder().encode(JSON.stringify(command)) }));
   control.connect(dispatch, close);
   const reply = (id: string, contentType: string, payload: unknown): P4Event => { const original = submission(id); return { ...original, eventId: crypto.randomUUID(), source: original.target, target: original.source, causationId: original.eventId, class: contentType === P4_RELEASE_RECEIPT_CONTENT_TYPE ? 3 : 2, contentType, payload: new TextEncoder().encode(JSON.stringify(payload)) }; };
   const terminal = (id: string) => reply(id, P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_REQUEST_CANCELLED", detail: "native_kv_stop_proven=false", owner: { load_generation: 42, session_id: "run", request_id: id, incarnation: 3 } });
   const release = (id: string) => reply(id, P4_RELEASE_RECEIPT_CONTENT_TYPE, { load_generation: 42, session_id: "run", members: [{ request_id: id, submission_event_id: `prefill-${id}`, sequence_id: ids.indexOf(id), incarnation: 3, operation_id: 10 }] });
+  const closed = (): P4Event => ({ ...submission("one"), eventId: "scope-closed", source: submission("one").target, target: submission("one").source, causationId: "scope-close", class: 0, contentType: P4_SCOPE_CLOSED_CONTENT_TYPE, payload: new TextEncoder().encode(JSON.stringify({ load_generation: 42, status: "closed", native_kv_stop_proven: true })) });
   const output = (id: string) => ({ load_generation: 42, session_id: "run", request_id: id, submission_event_id: `prefill-${id}`, incarnation: 3, sequence_id: ids.indexOf(id), token: 1, text: "token", position: 0, stop: null, output_ordinal: 0, release_operation_id: null });
-  return { run, control, dispatch, close, reply, terminal, release, output };
+  return { run, control, dispatch, close, reply, terminal, release, closed, output };
 }
 
-it("sends one control CANCEL per unfinished exact submission, preserves completed requests, and is idempotent", async () => {
+it("sends one scope close, preserves completed requests, and waits for RELEASE and the final barrier", async () => {
   const f = fixture(); f.run.requests[1]!.state = "completed"; f.run.completed = 1;
   f.control.output({ ...f.output("two"), stop: "length", release_operation_id: 10 }, 0); f.control.consume(f.release("two"));
   const done = f.control.cancel(); expect(f.control.cancel()).toBe(done);
   expect(f.run.state).toBe("cancelling"); expect(f.control.requested).toBe(true);
   expect(f.dispatch).toHaveBeenCalledTimes(1);
-  expect(f.dispatch.mock.calls[0]![0]).toMatchObject({ load_generation: 42, session_id: "run", request_id: "one", submission_event_id: "prefill-one" });
+  expect(f.dispatch.mock.calls[0]![0]).toMatchObject({ load_generation: 42, reason: "Studio user stop" });
   f.control.consume(f.terminal("one")); expect(f.run.state).toBe("cancelling");
-  f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25); await done;
+  f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25); expect(f.run.state).toBe("cancelling");
+  f.control.consume(f.closed()); await vi.advanceTimersByTimeAsync(25); await done;
   expect(f.run.state).toBe("cancelled"); expect(f.run.requests.map(value => value.state)).toEqual(["cancelled", "completed"]);
   expect(f.run.requests[0]!.text).toBe("partial"); expect(f.close).toHaveBeenCalledTimes(1);
 });
@@ -48,12 +50,12 @@ it("accepts RELEASE before terminal and an earlier approved OUTPUT prefix after 
   const f = fixture(["one"]); const done = f.control.cancel();
   f.control.consume(f.release("one")); f.control.consume(f.terminal("one"));
   f.control.output(f.output("one"), 1); await vi.advanceTimersByTimeAsync(25); expect(f.run.state).toBe("cancelling");
-  f.control.output(f.output("one"), 0); await vi.advanceTimersByTimeAsync(25); await done; expect(f.run.state).toBe("cancelled");
+  f.control.output(f.output("one"), 0); f.control.consume(f.closed()); await vi.advanceTimersByTimeAsync(25); await done; expect(f.run.state).toBe("cancelled");
 });
 it("a provably not-started delivery fails only that submission and drains other accepted work", async () => {
   const f = fixture(); f.control.deliveryFailed("two", "prefill-two", true, "not_started");
   expect(f.dispatch).toHaveBeenCalledTimes(1); expect(f.run.requests[1]!.state).toBe("failed"); expect(f.run.requests[0]!.state).toBe("queued");
-  f.control.consume(f.terminal("one")); f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25); await f.control.cancel();
+  f.control.consume(f.terminal("one")); f.control.consume(f.release("one")); f.control.consume(f.closed()); await vi.advanceTimersByTimeAsync(25); await f.control.cancel();
   expect(f.run.state).toBe("failed"); expect(f.control.settled).toBe(true);
 });
 it("an unknown owner from an old LOAD does not block a newly loaded generation", async () => {
@@ -74,7 +76,8 @@ it("rejects RELEASE whose operation differs from a natural terminal received bef
 });
 it("accepts a queued PREFILL cancellation refusal without inventing admitted RELEASE", async () => {
   const f = fixture(["one"]); const done = f.control.cancel();
-  f.control.consume(f.reply("one", P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_ADAPTER_EVENT_REJECTED", detail: "PREFILL cancelled before admission;cancel_event=cancel-one", submission: { load_generation: 42, session_id: "run", request_id: "one", submission_event_id: "prefill-one" } }));
+  f.control.consume(f.reply("one", P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_ADAPTER_EVENT_REJECTED", detail: "PREFILL cancelled before admission;cancel_event=scope-close", submission: { load_generation: 42, session_id: "run", request_id: "one", submission_event_id: "prefill-one" } }));
+  f.control.consume(f.closed());
   await vi.advanceTimersByTimeAsync(25); await done; expect(f.run.state).toBe("cancelled");
 });
 it.each(["source", "target", "correlation", "cause", "load", "session", "incarnation"])("rejects a cancellation terminal with wrong %s", async field => {
@@ -90,12 +93,12 @@ it.each(["source", "target", "correlation", "cause", "load", "session", "incarna
   event.payload = new TextEncoder().encode(JSON.stringify(payload));
   expect(() => f.control.consume(event)).toThrow(); await vi.advanceTimersByTimeAsync(100); await done; expect(f.run.state).toBe("unknown");
 });
-it("does not use a CANCEL diagnostic as a request terminal, and preserves a winning natural completion", async () => {
+it("does not use a rejected SCOPE_CLOSE diagnostic as a request terminal, and preserves a winning natural completion", async () => {
   const f = fixture(["one"]); const done = f.control.cancel();
-  const event = f.reply("one", P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_ADAPTER_EVENT_REJECTED", detail: "cancel names no request this head currently holds", command: { state: "rejected", input_content_type: P4_CANCEL_CONTENT_TYPE, first_error: "no request" } }); event.causationId = "cancel-one";
+  const event = f.reply("one", P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_ADAPTER_EVENT_REJECTED", detail: "scope does not exist", command: { state: "rejected", input_content_type: P4_SCOPE_CLOSE_CONTENT_TYPE, first_error: "no request" } }); event.causationId = "scope-close";
   f.control.consume(event); expect(f.run.requests[0]!.state).toBe("queued");
   f.run.requests[0]!.state = "completed"; f.run.completed = 1; f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25); await done;
-  expect(f.run.requests[0]!.state).toBe("completed"); expect(f.run.completed).toBe(1);
+  expect(f.run.requests[0]!.state).toBe("completed"); expect(f.run.completed).toBe(1); expect(f.run.state).toBe("unknown");
 });
 it("blocks new inference during UNLOAD and waits for all matching runs before the operation", async () => {
   const f = fixture(["one"]), registry = new InferenceExecutions();
@@ -103,7 +106,7 @@ it("blocks new inference during UNLOAD and waits for all matching runs before th
   registry.register(model, f.control); const operation = vi.fn(async () => "unloaded"); const pending = registry.unload(model, operation);
   expect(operation).not.toHaveBeenCalled();
   expect(() => registry.register(model, fixture([]).control)).toThrow("being unloaded");
-  f.control.consume(f.terminal("one")); f.control.consume(f.release("one")); await vi.advanceTimersByTimeAsync(25);
+  f.control.consume(f.terminal("one")); f.control.consume(f.release("one")); f.control.consume(f.closed()); await vi.advanceTimersByTimeAsync(25);
   expect(await pending).toBe("unloaded"); expect(operation).toHaveBeenCalledTimes(1);
   registry.register(model, fixture([]).control);
 });

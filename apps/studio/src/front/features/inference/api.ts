@@ -3,7 +3,7 @@ import {
   canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
   classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
-  P4_CANCEL_CONTENT_TYPE,
+  P4_SCOPE_CLOSE_CONTENT_TYPE,
 } from "@p4studio/studio_domain/common";
 import {
   appendMonitoringSample,
@@ -295,7 +295,13 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
     connection = new BrowserP4Reception(topology, new Map(Object.entries(model.resolvedAddresses)));
     stopError = connection.onError?.(error => cancellation.transportLost(error.message));
-    cancellation.connect(command => connection!.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", P4_CANCEL_CONTENT_TYPE, command, 0).event, () => { void connection?.close(); });
+    const head = { kind: "node" as const, address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation };
+    cancellation.connect(command => {
+      const receipt = connection!.dispatch(head, "llamacpp", P4_SCOPE_CLOSE_CONTENT_TYPE, command, 0);
+      if (run.returnScope) { run.returnScope.nextSequence = receipt.event.sequence + 1; run.returnScope.state = "closing"; }
+      void history.save(run).catch(historyError);
+      return receipt.event;
+    }, () => { void connection?.close(); });
     cancellation.signal.signal.addEventListener("abort", () => { if (!run.submitted) void connection?.close(); }, { once: true });
     for (const stage of stages) {
       if (cancellation.requested) return;
@@ -311,7 +317,10 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       }
     }
     if (cancellation.requested) return;
-    await connection.retainDispatchConnection({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation });
+    await connection.retainDispatchConnection(head);
+    const returnScope = connection.dispatchIdentity(head);
+    run.returnScope = { address: returnScope.outer.address, channel: returnScope.outer.channel, generation: returnScope.outer.generation, nextSequence: returnScope.nextSequence, state: "open" };
+    await history.save(run);
     if (cancellation.requested) return;
     try {
       cancellation.preparationWrite = recordSessionProof(model.id, run.id, now(), model.loadGeneration,
@@ -404,6 +413,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         const maxTokens = wireMaxTokens(model, input.maxTokens);
         outputs.set(id, new OutputOrdinalBuffer(maxTokens));
         const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: wireOptions(model), max_tokens: maxTokens }, 1);
+        if (run.returnScope) run.returnScope.nextSequence = receipt.event.sequence + 1;
         submissions.set(receipt.event.eventId, id);
         cancellation.submitted(id, receipt.event);
         const item: InferenceRequest = { id, state: "queued", prompt: input.prompt, text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, waveIndex: repetition + 1, submittedAt: receipt.sentAt, completedAt: null, error: null, telemetry: emptyRequestTelemetry() };

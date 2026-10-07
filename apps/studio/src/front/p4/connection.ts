@@ -37,6 +37,7 @@ export class BrowserP4Connection {
   private readonly errors = new Set<(error: Error) => void>();
   readonly operationId: string;
   readonly outer: Extract<P4Endpoint, { kind: "outer" }>;
+  get nextSequence() { return this.sequence + 1; }
 
   private constructor(agentId: string, ingressAddress: string, operationId: string) {
     this.operationId = operationId;
