@@ -18,3 +18,5 @@
 접수 경로는 [에이전트 게이트웨이 그룹](../packages/studio_domain/docs/api.md#agent-groups)이 소유한다. 그룹별 대표는 노드 소유 여부와 독립적이며, 그룹 밖 에이전트는 직접 연결한다. 에이전트 상세·노드 조회와 모델 그래프 조회의 [inspection](../apps/studio/src/front/p4/inspection.ts), 모델 LOAD/UNLOAD, 추론 SESSION/PREFILL은 모두 [브라우저 접수 연결](../apps/studio/src/front/p4/reception.ts)을 사용한다. 작업 시작 시 캐시 없이 읽은 topology를 고정하고 대상별 그룹을 선택한다. 그룹 정보 누락은 직접 연결 허용으로 해석하지 않는다. 모델의 stage 배치·실행 순서는 그대로 유지한다.
 
 노드 수명·다중 stage 회수의 계약과 소비자는 [노드 수명](node-lifecycle.md)이 소유한다. 저장된 stage는 적재 계획이며 기존 노드를 연결하는 빈 슬롯이 아니다.
+
+추론은 모든 stage의 SESSION_READY를 확인한 뒤 head의 접수 연결만 OUTPUT·RELEASE 반환 경로로 유지하고 다른 SESSION 준비 연결은 FINISH/ACK로 회수한다. P4의 40분 유휴 종료 정책은 유지한다. 종료된 연결은 접수 캐시에서 제거하며 다음 제어 요청에서 새 OUTER identity로 연결한다. 전송했던 명령은 자동 재전송하지 않는다. 사용이 끝난 준비 연결의 종료와 활성 반환 연결의 단절을 구분하며, 활성 반환 연결의 단절은 기존 미정산 보호를 유지한다.

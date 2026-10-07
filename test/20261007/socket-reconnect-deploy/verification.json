@@ -1,0 +1,30 @@
+{
+  "scope": "Studio socket lifecycle fix and deployment; P4 source and model lifecycle unchanged",
+  "studioBaseHead": "a2e5fcafba574068f30258d5e9a681a5fedb3bd1",
+  "changes": ["Evict closed reception connections; open a fresh OUTER endpoint for the next control command without replay", "After all SESSION_READY replies, retain only the head reception and FINISH/ACK other preparation connections", "Preserve active return-route loss and durable settlement fences"],
+  "checks": {
+    "targetedTests": "37 passed in 4 files",
+    "typecheck": "passed; Studio executed, unchanged package tasks cached",
+    "npmTest": "passed; Studio 104 executed, protocol 24 and domain 149 cached",
+    "build": "passed through npm run deploy studio; Studio front and server built",
+    "diffCheck": "passed",
+    "architecture": "pre-existing violation: check name=exact-versions status=violation detail=non-exact-version-ranges; apps/studio/package.json dependencies react-markdown@^10.1.0 and remark-gfm@^4.0.1 unchanged"
+  },
+  "deployment": {
+    "command": "npm run deploy studio",
+    "result": "status=ok services=studio compose=refreshed",
+    "time": "total=26194ms resolve=415ms install=1ms build=6571ms compose=18122ms verify=461ms",
+    "verify": "service=studio host=127.0.0.1 port=43120 health=ok",
+    "changed": "dependencies=already-current,build=executed",
+    "container": "76c9ee517d30",
+    "image": "sha256:90fae25677a83f3acacaa9f8c77dde81c5c2ff60dfb75bab16237e4a4b552bc0"
+  },
+  "browser": {
+    "testedUrl": "http://localhost:43120/inference/query",
+    "smoke": "passed, consoleErrors=0, pageErrors=0; smoke/report.md",
+    "scenario": "passed with isolated mocked P4 transport and HTTP mutations; scenario/report.json",
+    "coverage": "All four SESSION_READY replies before PREFILL, auxiliary FINISH before PREFILL, two completed runs with distinct return channels and exact RELEASE settlements, active return connection loss blocks a fourth submission and is not settled",
+    "screenshots": ["scenario/two-completed-runs.png", "scenario/active-return-loss-fenced.png", "smoke/screenshots/smoke.png"]
+  },
+  "limitations": ["No fresh GPU inference or real 40-minute soak", "Existing MiMo unknown request owners were not cleared; their generation still requires authoritative unload/recovery before a new run", "No commit made"]
+}

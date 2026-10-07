@@ -1,0 +1,26 @@
+{
+    "host":  "tuf",
+    "address":  "tcp://192.168.0.17:52000",
+    "oldAgentPid":  8596,
+    "terminatedNativePids":  [
+                                 14792,
+                                 15528
+                             ],
+    "newAgentPid":  540,
+    "agentSha256":  "260FD187B976D348AED7D84501B456BD1BA28651534302ADDA34E6632545A971",
+    "nativeSha256":  "2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92",
+    "nativeProcesses":  0,
+    "nativeListeners":  0,
+    "gpuBefore":  [
+                      "name, memory.used [MiB], memory.free [MiB]",
+                      "NVIDIA GeForce RTX 4070 Laptop GPU, 6512 MiB, 1437 MiB"
+                  ],
+    "gpuAfter":  [
+                     "name, memory.used [MiB], memory.free [MiB]",
+                     "NVIDIA GeForce RTX 4070 Laptop GPU, 0 MiB, 7948 MiB"
+                 ],
+    "freeRamKiBBefore":  56930800,
+    "freeRamKiBAfter":  60866124,
+    "taskState":  "Running",
+    "evidence":  "C:\\p4-agent-current\\reset-20261006-143547"
+}

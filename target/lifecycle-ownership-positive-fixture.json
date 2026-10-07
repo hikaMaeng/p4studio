@@ -1,0 +1,91 @@
+{
+  "name": "Independent settled ownership Chrome fixture",
+  "adapter": "llamacpp",
+  "ingressAgentId": "",
+  "totalLayers": 2,
+  "contextSize": 512,
+  "sequenceCapacity": 8,
+  "nBatch": 128,
+  "nUbatch": 128,
+  "timeoutMs": 3000,
+  "loadContentType": "",
+  "loadedContentType": "",
+  "unloadContentType": "",
+  "unloadedContentType": "",
+  "errorContentType": "",
+  "stages": [
+    {
+      "id": "head",
+      "agentId": "fe6ba06a-535f-42cb-b4ae-6e4743fdd901",
+      "nodeId": "head",
+      "nodeGeneration": 10,
+      "artifact": "fixture.gguf",
+      "layerStart": 0,
+      "layerEnd": 1,
+      "binary": "fixture",
+      "endpoint": "127.0.0.1:52100",
+      "device": "",
+      "options": "",
+      "argsJson": "[]",
+      "environmentJson": "[]",
+      "customPayload": "{}",
+      "loadOptionsJson": "{\"resource_profile\":{\"max_input_tokens\":150000,\"max_request_bytes\":1048576,\"max_request_retained_bytes\":67108864,\"max_requests\":8,\"max_output_tokens_per_request\":100,\"max_output_tokens\":800}}"
+    },
+    {
+      "id": "tail",
+      "agentId": "fe6ba06a-535f-42cb-b4ae-6e4743fdd901",
+      "nodeId": "tail",
+      "nodeGeneration": 10,
+      "artifact": "fixture.gguf",
+      "layerStart": 1,
+      "layerEnd": 2,
+      "binary": "fixture",
+      "endpoint": "127.0.0.1:52100",
+      "device": "",
+      "options": "",
+      "argsJson": "[]",
+      "environmentJson": "[]",
+      "customPayload": "{}",
+      "loadOptionsJson": "{\"resource_profile\":{\"max_input_tokens\":150000,\"max_request_bytes\":1048576,\"max_request_retained_bytes\":67108864,\"max_requests\":8,\"max_output_tokens_per_request\":100,\"max_output_tokens\":800}}"
+    }
+  ],
+  "id": "90b6c145-93bf-4583-956e-2972c3133cde",
+  "status": "loaded",
+  "loadGeneration": 42,
+  "operationId": "fixture-load",
+  "error": "",
+  "reports": [
+    {
+      "stageId": "head",
+      "state": "ready",
+      "detail": "",
+      "failureDetail": "",
+      "loadRequested": true,
+      "updatedAt": "2026-10-06T08:37:31.511Z",
+      "telemetry": {
+        "load_generation": 42
+      },
+      "loadOutcome": "succeeded",
+      "resourceState": "present"
+    },
+    {
+      "stageId": "tail",
+      "state": "ready",
+      "detail": "",
+      "failureDetail": "",
+      "loadRequested": true,
+      "updatedAt": "2026-10-06T08:37:31.511Z",
+      "telemetry": {
+        "load_generation": 42
+      },
+      "loadOutcome": "succeeded",
+      "resourceState": "present"
+    }
+  ],
+  "sessionProof": null,
+  "resolvedAddresses": {
+    "fe6ba06a-535f-42cb-b4ae-6e4743fdd901": "127.0.0.1:52000"
+  },
+  "createdAt": "2026-10-06T08:39:51.837Z",
+  "updatedAt": "2026-10-06T08:39:52.441Z"
+}

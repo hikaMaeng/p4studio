@@ -1,0 +1,76 @@
+{
+  "id": "d255ec39-8607-4140-8ada-1d975cfe1843",
+  "agentId": "35d728b2-4ead-4f81-949f-7721e3e1b364",
+  "agentName": "TUF RTX 4070 Laptop",
+  "address": "tcp://192.168.0.17:52000",
+  "createdAt": "2026-10-06T06:50:24.816Z",
+  "updatedAt": "2026-10-06T06:50:31.098Z",
+  "state": "verifying",
+  "affected": [
+    {
+      "modelId": "7ddd79c8-af5d-45b4-836b-4e43b081e9fc",
+      "modelName": "Gemma 4 12B QAT Q4_0 · TUF RTX 4070 Laptop · 호스트 단독 성공 이력",
+      "revision": "2026-10-06T05:36:44.185Z",
+      "loadGeneration": 1791253419649,
+      "stageIds": [
+        "tuf-head",
+        "tuf-tail"
+      ]
+    }
+  ],
+  "before": {
+    "observedAt": "2026-10-06T06:50:25.692741Z",
+    "agentPid": 540,
+    "agentBorn": "2026-10-06T05:35:50.585035Z",
+    "agentHash": "260FD187B976D348AED7D84501B456BD1BA28651534302ADDA34E6632545A971",
+    "nativeHash": "2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92",
+    "launchHash": "727B508CD013B0FB348F2B4FA5468720A72C638C0D6CD529A01694C0F965D6A3",
+    "processes": [
+      {
+        "pid": 540,
+        "parentPid": 14168,
+        "born": "2026-10-06T05:35:50.585035Z",
+        "path": "C:\\p4-agent-current\\p4-agent.exe",
+        "command": "C:\\p4-agent-current\\p4-agent.exe  0.0.0.0:52000 tcp://192.168.0.17:52000 "
+      }
+    ],
+    "ports": [
+      52000
+    ],
+    "gpu": [
+      "name, memory.used [MiB], memory.free [MiB]",
+      "NVIDIA GeForce RTX 4070 Laptop GPU, 0 MiB, 7948 MiB"
+    ],
+    "freeRamKiB": 57798448
+  },
+  "after": {
+    "observedAt": "2026-10-06T06:50:33.1645029Z",
+    "agentPid": 23400,
+    "agentBorn": "2026-10-06T06:50:32.094771Z",
+    "agentHash": "260FD187B976D348AED7D84501B456BD1BA28651534302ADDA34E6632545A971",
+    "nativeHash": "2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92",
+    "launchHash": "727B508CD013B0FB348F2B4FA5468720A72C638C0D6CD529A01694C0F965D6A3",
+    "processes": [
+      {
+        "pid": 23400,
+        "parentPid": 27164,
+        "born": "2026-10-06T06:50:32.094771Z",
+        "path": "C:\\p4-agent-current\\p4-agent.exe",
+        "command": "C:\\p4-agent-current\\p4-agent.exe  0.0.0.0:52000 tcp://192.168.0.17:52000 "
+      }
+    ],
+    "ports": [
+      52000
+    ],
+    "gpu": [
+      "name, memory.used [MiB], memory.free [MiB]",
+      "NVIDIA GeForce RTX 4070 Laptop GPU, 0 MiB, 7948 MiB"
+    ],
+    "freeRamKiB": 57803800,
+    "evidence": "C:\\p4-agent-current\\recovery-d255ec39-8607-4140-8ada-1d975cfe1843"
+  },
+  "firstError": null,
+  "cleanupError": null,
+  "stopped": true,
+  "inspectedAt": null
+}

@@ -3,11 +3,12 @@ import type { P4Endpoint, P4Event } from "@p4studio/p4-protocol";
 import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "@p4studio/studio_domain/common";
 vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {} }) }));
 
-const wire = vi.hoisted(() => ({ events: [] as P4Event[], sentTimes: [] as number[], listeners: new Set<(event: P4Event, at: number) => void>(), holdSession: false, resume: undefined as (() => void) | undefined, closed: false }));
+const wire = vi.hoisted(() => ({ events: [] as P4Event[], retained: [] as P4Endpoint[], sentTimes: [] as number[], listeners: new Set<(event: P4Event, at: number) => void>(), holdSession: false, resume: undefined as (() => void) | undefined, closed: false }));
 vi.mock("../../p4/reception.js", () => ({
   readAgentTopology: async () => ({ agents: [{ id: "agent", name: "Agent", host: "head", port: 52000 }], groups: [] }),
   BrowserP4Reception: class {
     operationId = "operation";
+    async retainDispatchConnection(target: P4Endpoint) { wire.retained.push(target); }
     async exchange(target: P4Endpoint, _adapter: string, _type: string, body: { session_id: string; load_generation: number }) {
       if (wire.holdSession) await new Promise<void>(resolve => { wire.resume = resolve; });
       return { source: target, contentType: "application/vnd.p4.llamacpp.session-ready-v4+json", payload: new TextEncoder().encode(JSON.stringify({ state: "ready", ...body })) };
@@ -25,7 +26,7 @@ vi.mock("../../p4/reception.js", () => ({
 vi.mock("../../p4/inspection.js", () => ({ inspectGraphAgent: async () => { throw new Error("Fixture has no monitoring"); } }));
 vi.mock("../models/api.js", () => ({ recordSessionProof: async () => {} }));
 beforeEach(() => {
-  vi.resetModules(); vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "performance"] }); wire.events = []; wire.sentTimes = []; wire.listeners.clear(); wire.holdSession = false; wire.resume = undefined; wire.closed = false;
+  vi.resetModules(); vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "performance"] }); wire.events = []; wire.retained = []; wire.sentTimes = []; wire.listeners.clear(); wire.holdSession = false; wire.resume = undefined; wire.closed = false;
   vi.stubGlobal("window", { localStorage: { getItem: () => null, setItem: vi.fn() }, addEventListener: vi.fn(), setTimeout, clearTimeout });
   const stage = { agentId: "agent", nodeGeneration: 9, artifact: "model.gguf", layerStart: 0, layerEnd: 1, binary: "binary", endpoint: "", device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}", loadOptionsJson: JSON.stringify({ resource_profile: { max_input_tokens: 150000, max_request_bytes: 1048576, max_request_retained_bytes: 67108864, max_requests: 100, max_output_tokens_per_request: 100, max_output_tokens: 10000 } }) };
   const model = { id: "model", name: "Model", adapter: "llamacpp", status: "loaded", loadGeneration: 42, operationId: "load", totalLayers: 2, contextSize: 512, sequenceCapacity: 8, nBatch: 128, nUbatch: 128, timeoutMs: 100, error: "", createdAt: "2026-10-05T00:00:00Z", updatedAt: "2026-10-05T00:00:00Z", resolvedAddresses: { agent: "head:52000" }, stages: [{ ...stage, id: "head", nodeId: "head" }, { ...stage, id: "tail", nodeId: "tail" }], reports: ["head", "tail"].map(stageId => ({ stageId, state: "loaded", loadOutcome: "succeeded", resourceState: "present", detail: "", updatedAt: "", telemetry: null })), loadContentType: "", loadedContentType: "", unloadContentType: "", unloadedContentType: "", errorContentType: "" };
@@ -80,6 +81,18 @@ it("keeps the next dispatch at five seconds when the preceding wave finishes ear
   expect(inference.runModel(id).value).toMatchObject({ state: "running", completed: 2 });
   prefills().slice(2).forEach((event, index) => complete(event, index + 2));
   await vi.advanceTimersByTimeAsync(50); expect(wire.closed).toBe(true);
+});
+it("retains the head route and permits a second run after exact OUTPUT and RELEASE settlement", async () => {
+  const { inference, id } = await start({ concurrency: 2, repetitions: 1, intervalMs: 1000 });
+  expect(wire.retained).toEqual([{ kind: "node", address: "head:52000", nodeId: "head", generation: 9 }]);
+  prefills().forEach(complete); await vi.advanceTimersByTimeAsync(50);
+  expect(inference.runModel(id).value).toMatchObject({ state: "completed", pendingSettlement: 0 });
+  await inference.create({ modelId: "model", prompt: "second", concurrency: 2, repetitions: 1, intervalMs: 1000, maxTokens: 100 });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(wire.retained).toHaveLength(2);
+  expect(prefills()).toHaveLength(4);
+  prefills().slice(2).forEach(complete); await vi.advanceTimersByTimeAsync(50);
+  expect(inference.runIds.value.map(runId => inference.runModel(runId).value?.state)).toEqual(["completed", "completed"]);
 });
 it("sends zero-interval waves immediately and retains the connection for their outputs", async () => {
   const { inference, id } = await start({ concurrency: 2, repetitions: 3, intervalMs: 0 });

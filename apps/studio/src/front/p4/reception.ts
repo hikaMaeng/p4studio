@@ -14,6 +14,7 @@ export class BrowserP4Reception {
   private readonly connections = new Map<string, BrowserP4Connection>();
   private readonly listeners = new Set<(event: P4Event, receivedAtMs: number) => void>();
   private readonly errors = new Set<(error: Error) => void>();
+  private dispatchAgentId: string | undefined;
   private closed = false;
   constructor(private readonly topology: GraphAgentList, private readonly addresses: Map<string, string> = new Map(topology.agents.map(agent => [agent.id, agentAddress(agent)]))) {
     this.topology = structuredClone(topology); this.addresses = new Map(addresses);
@@ -33,8 +34,17 @@ export class BrowserP4Reception {
       connection = await BrowserP4Connection.open(reception.agentId, reception.address, this.operationId);
       if (this.closed) { connection.close(); throw new Error("P4 operation was closed while connecting"); }
       this.connections.set(reception.agentId, connection);
-      connection.onEvent((event, receivedAtMs) => this.listeners.forEach(listener => listener(event, receivedAtMs)));
-      connection.onError(error => this.errors.forEach(listener => listener(error)));
+      const current = connection;
+      connection.onEvent((event, receivedAtMs) => {
+        if (this.connections.get(reception.agentId) === current) this.listeners.forEach(listener => listener(event, receivedAtMs));
+      });
+      connection.onError(error => {
+        if (this.connections.get(reception.agentId) !== current) return;
+        this.connections.delete(reception.agentId);
+        // A retired preparation socket owns no inference return route. A live
+        // exchange still rejects its own wait; never replay that command.
+        if (this.dispatchAgentId === undefined || this.dispatchAgentId === reception.agentId) this.errors.forEach(listener => listener(error));
+      });
     }
     return connection.exchange(...args);
   }
@@ -43,6 +53,19 @@ export class BrowserP4Reception {
     const connection = this.connections.get(reception.agentId);
     if (this.closed || !connection) throw new Error("Prepare the target session before inference");
     return connection.dispatch(...args);
+  }
+  /** After SESSION_READY on every stage, retain the PREFILL/OUTPUT/RELEASE route only. */
+  async retainDispatchConnection(target: P4Endpoint) {
+    const reception = this.reception(target);
+    if (this.closed || !this.connections.has(reception.agentId)) throw new Error("Prepare the target session before inference");
+    this.dispatchAgentId = reception.agentId;
+    const retired: BrowserP4Connection[] = [];
+    for (const [agentId, connection] of this.connections) {
+      if (agentId === reception.agentId) continue;
+      this.connections.delete(agentId); retired.push(connection);
+    }
+    // FINISH/ACK releases sockets only, never SESSION or request ownership.
+    await Promise.all(retired.map(connection => connection.close()));
   }
   owns(target: P4Endpoint) { return [...this.connections.values()].some(connection => sameEndpoint(target, connection.outer)); }
   onEvent(listener: (event: P4Event, receivedAtMs: number) => void) {

@@ -1,0 +1,87 @@
+{
+  "checkedAt": "2026-10-06T16:15:25.648Z",
+  "allVerified": true,
+  "modelCount": 6,
+  "stageCount": 12,
+  "test": {
+    "concurrency": 10,
+    "waves": 10,
+    "intervalMs": 10000,
+    "maxTokens": 4000,
+    "prompt": "타입스크립트에 대해 설명하라"
+  },
+  "results": [
+    {
+      "id": "8b92b1f1-4aff-450c-a1ac-108f70a50488",
+      "name": "Gemma 4 12B QAT Q4_0 · HIKATR RTX 3090",
+      "changed": false,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 4608,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    },
+    {
+      "id": "0a0d5643-a54c-44e4-b1df-1c6e5dc07ec5",
+      "name": "Gemma 4 12B QAT Q4_0 · M42 RTX 3090 ×2 · 2026-10-03",
+      "changed": false,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 5000,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    },
+    {
+      "id": "133aa128-76af-45cc-b046-a3a947a86aef",
+      "name": "Gemma 4 12B QAT Q4_0 · Mac20 M4 Pro · 호스트 단독 성공 이력",
+      "changed": true,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 4608,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    },
+    {
+      "id": "82d30ee9-353d-4b17-bd57-dbdfef028741",
+      "name": "Gemma 4 12B QAT Q4_0 · Mac21 M4 Pro · 호스트 단독 성공 이력",
+      "changed": false,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 4608,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    },
+    {
+      "id": "474d014a-6193-4fa8-a86c-a9b73597bc5c",
+      "name": "Gemma 4 12B QAT Q4_0 · NVIDIA GB10 · 호스트 단독 성공 이력",
+      "changed": false,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 4608,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    },
+    {
+      "id": "7ddd79c8-af5d-45b4-836b-4e43b081e9fc",
+      "name": "Gemma 4 12B QAT Q4_0 · TUF RTX 4070 Laptop · 호스트 단독 성공 이력",
+      "changed": false,
+      "verified": true,
+      "stageCount": 2,
+      "sequenceCapacity": 100,
+      "contextSize": 4608,
+      "maxRequests": 100,
+      "maxOutputTokens": 400000,
+      "status": "draft"
+    }
+  ]
+}

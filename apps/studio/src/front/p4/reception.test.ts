@@ -11,18 +11,26 @@ class Socket extends EventTarget {
   static opened: string[] = [];
   static events: P4Event[] = [];
   static unavailable = new Set<string>();
+  static instances: Socket[] = [];
+  agentId = "";
+  connectionId = "";
+  closed = false;
   readyState = 1;
-  constructor() { super(); queueMicrotask(() => this.dispatchEvent(new Event("open"))); }
+  constructor() { super(); Socket.instances.push(this); queueMicrotask(() => this.dispatchEvent(new Event("open"))); }
   send(value: unknown) {
     if (typeof value === "string") {
       const control = JSON.parse(value);
       if (control.type === "open") {
+        this.agentId = control.agentId; this.connectionId = control.connectionId;
         Socket.opened.push(control.agentId);
         queueMicrotask(() => this.message(JSON.stringify(Socket.unavailable.has(control.agentId)
           ? { type: "error", connectionId: control.connectionId, detail: "Gateway unavailable" }
           : { ...control, type: "opened" })));
       }
       return;
+    }
+    if ((value as ArrayBuffer).byteLength === 4 && new DataView(value as ArrayBuffer).getUint32(0) === 0) {
+      queueMicrotask(() => this.message(new Uint8Array(4).buffer)); return;
     }
     const event = decodeP4Event(new Uint8Array(value as ArrayBuffer).slice(4));
     Socket.events.push(event);
@@ -52,9 +60,60 @@ class Socket extends EventTarget {
     queueMicrotask(() => this.message(frameP4Event(encodeP4Event(reply)).buffer));
   }
   message(data: unknown) { this.dispatchEvent(new MessageEvent("message", { data })); }
-  close() {}
+  close() { this.closed = true; this.readyState = 3; }
 }
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); Socket.opened = []; Socket.events = []; Socket.unavailable.clear(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); Socket.opened = []; Socket.events = []; Socket.unavailable.clear(); Socket.instances = []; });
+
+it("retires SESSION-only sockets, keeps the head return route, and reconnects only for a new command", async () => {
+  vi.stubGlobal("WebSocket", Socket); vi.stubGlobal("window", { setTimeout, clearTimeout }); vi.stubGlobal("location", { protocol: "http:", host: "studio.test" });
+  const agents = ["head", "tail"].map(host => ({ id: crypto.randomUUID(), name: host, host, port: 52211 }));
+  const wire = new BrowserP4Reception({ agents, groups: [] });
+  const head = { kind: "node" as const, address: "tcp://head:52211", nodeId: "head", generation: 1 };
+  const tail = { kind: "node" as const, address: "tcp://tail:52211", nodeId: "tail", generation: 1 };
+  const errors: Error[] = []; wire.onError(error => errors.push(error));
+  const headReady = await wire.exchange(head, "llamacpp", "session", {}, ["done"], 1000);
+  const tailReady = await wire.exchange(tail, "llamacpp", "session", {}, ["done"], 1000);
+  await wire.retainDispatchConnection(head);
+  expect(Socket.instances.map(socket => socket.closed)).toEqual([false, true]);
+  expect(wire.owns(headReady.target)).toBe(true); expect(wire.owns(tailReady.target)).toBe(false);
+  wire.dispatch(head, "llamacpp", "prefill", {});
+  expect(Socket.events.at(-1)!.returnRoute).toEqual(headReady.target);
+  // A later control request opens a fresh auxiliary route. Its idle closure
+  // must neither end inference nor replay the command already answered.
+  const controlReady = await wire.exchange(tail, "llamacpp", "control", {}, ["done"], 1000);
+  const auxiliary = Socket.instances.at(-1)!;
+  auxiliary.message(JSON.stringify({ type: "closed", connectionId: auxiliary.connectionId, detail: "P4 agent connection closed" }));
+  expect(errors).toEqual([]); expect(wire.owns(controlReady.target)).toBe(false);
+  const reconnected = await wire.exchange(tail, "llamacpp", "next-control", {}, ["done"], 1000);
+  expect(reconnected.target).not.toEqual(controlReady.target);
+  expect(Socket.events.map(event => event.contentType)).toEqual(["session", "session", "prefill", "control", "next-control"]);
+  expect(Socket.events.at(-1)!.correlationId).toBe(wire.operationId);
+  // The active return socket still fences the run on transport loss.
+  const active = Socket.instances[0]!;
+  active.message(JSON.stringify({ type: "closed", connectionId: active.connectionId, detail: "P4 agent connection closed" }));
+  expect(errors.map(error => error.message)).toEqual(["P4 agent connection closed"]);
+  expect(wire.owns(headReady.target)).toBe(false);
+  expect(() => wire.dispatch(head, "llamacpp", "prefill", {})).toThrow("Prepare the target session");
+  await wire.close();
+});
+
+it("rejects a command whose reply connection is lost without replaying it", async () => {
+  vi.stubGlobal("WebSocket", Socket); vi.stubGlobal("window", { setTimeout, clearTimeout }); vi.stubGlobal("location", { protocol: "http:", host: "studio.test" });
+  const agent = { id: crypto.randomUUID(), name: "agent", host: "agent", port: 52211 };
+  const wire = new BrowserP4Reception({ agents: [agent], groups: [] });
+  const target = { kind: "agent" as const, address: "tcp://agent:52211" };
+  await wire.exchange(target, null, "first", {}, ["done"], 1000);
+  const socket = Socket.instances[0]!;
+  const send = vi.spyOn(socket, "send").mockImplementation(value => {
+    if (typeof value !== "string" && (value as ArrayBuffer).byteLength > 4) socket.message(JSON.stringify({ type: "closed", connectionId: socket.connectionId, detail: "reply lost" }));
+    else if (typeof value !== "string") queueMicrotask(() => socket.message(new Uint8Array(4).buffer));
+  });
+  await expect(wire.exchange(target, null, "second", {}, ["done"], 1000)).rejects.toThrow("reply lost");
+  expect(send.mock.calls.filter(([value]) => typeof value !== "string" && (value as ArrayBuffer).byteLength > 4)).toHaveLength(1);
+  await wire.exchange(target, null, "third", {}, ["done"], 1000);
+  expect(Socket.opened).toHaveLength(2);
+  await wire.close();
+});
 
 it("sends control and inference via per-group receptions with real target and return identities", async () => {
   vi.stubGlobal("WebSocket", Socket); vi.stubGlobal("window", { setTimeout, clearTimeout }); vi.stubGlobal("location", { protocol: "http:", host: "studio.test" });

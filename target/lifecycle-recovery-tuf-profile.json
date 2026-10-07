@@ -1,0 +1,14 @@
+{
+  "agentId": "35d728b2-4ead-4f81-949f-7721e3e1b364",
+  "host": "192.168.0.17",
+  "port": 52000,
+  "sshHost": "192.168.0.17",
+  "sshPort": 22,
+  "sshUser": "admin",
+  "root": "C:\\p4-agent-current",
+  "task": "P4-Agent-Current-4b62e3e4",
+  "agentHash": "260FD187B976D348AED7D84501B456BD1BA28651534302ADDA34E6632545A971",
+  "nativeHash": "2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92",
+  "launchHash": "727B508CD013B0FB348F2B4FA5468720A72C638C0D6CD529A01694C0F965D6A3",
+  "identityName": "management_identity"
+}

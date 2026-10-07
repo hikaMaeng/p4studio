@@ -1,0 +1,12 @@
+import fs from 'node:fs/promises';import {spawn} from 'node:child_process';
+const record=(await(await fetch('http://localhost:43120/api/model-deployments')).json()).deployments.find(d=>d.id==='09b02f0b-b28b-491c-bdd7-d3264698a217');
+const candidate=process.argv.includes('--candidate')?JSON.parse(await fs.readFile('test/20261007/mimo-load-fix/placement-candidate.json','utf8')):record;
+const stage=candidate.stages[3];const inspect=!process.argv.includes('--startup');
+const plan=stage.planText+(inspect?' --inspect-memory-plan':'');
+const py=`import os,struct,subprocess,base64\np=base64.b64decode('${Buffer.from(plan).toString('base64')}')\ne=os.environ.copy();e['LD_LIBRARY_PATH']='/home/m42/p4-agent-current'\nr=subprocess.run(['/home/m42/p4-agent-current/p4_staged_server','--port','24891'],env=e,input=struct.pack('<I',len(p))+p,capture_output=True,timeout=${inspect?60:240})\nprint(r.stdout.decode(errors='replace'));print(r.stderr.decode(errors='replace'));print('exit=',r.returncode)\n`;
+const command="python3 -c '"+py.replaceAll("'","'\"'\"'")+"'";
+const child=spawn('ssh',['-o','BatchMode=yes','-o','ConnectTimeout=8','m42@192.168.0.26',command]);let stdout='',stderr='';
+child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);
+const exit=await new Promise((r,j)=>{child.on('error',j);child.on('close',r);});
+await fs.writeFile('test/20261007/mimo-load-fix/gb10-'+(process.argv.includes('--candidate')?'candidate-':'')+(inspect?'memory':'startup')+'-probe.log',stdout+stderr);
+console.log(JSON.stringify({sshExit:exit,logLines:(stdout+stderr).split('\n').filter(l=>/MEMORY_PLAN|failed|error|Error|exit=|memory|allocation/i.test(l))}));

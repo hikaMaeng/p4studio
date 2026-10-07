@@ -1,0 +1,614 @@
+[
+  {
+    "modelId": "133aa128-76af-45cc-b046-a3a947a86aef",
+    "stageId": "mac20-head",
+    "nodeId": "mac20-head",
+    "planText": "--model /Users/mobimac/p4-runs/models/gemma-4-12B-it-qat-q4_0-gguf/gemma-4-12b-it-qat-q4_0.gguf --memory-topology discrete --layer-begin 0 --layer-end 24 --kv-layer-begin 0 --kv-layer-end 24 --n-seq-max 100 --spec-type none --kv-unified --batch-size 128 --ubatch-size 64 --ctx-size 460800 --n-gpu-layers 49 --device MTL0 --flash-attn on --kv-offload --no-mmap --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47)\\..*=CPU\" --expect-layer-device 0:24:MTL0",
+    "physicalResultBytes": 199835276,
+    "memory": {
+      "schema": 2,
+      "memory_topology": {
+        "mode": "discrete",
+        "host_shared_devices": []
+      },
+      "execution_shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 64,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "complete": true,
+      "fits_current_free": true,
+      "physical_result_payload_bytes": 1536000,
+      "physical_result_tensor_count": 1,
+      "max_physical_result_bytes": 199835276,
+      "layer_device_query_supported": true,
+      "layer_device_expectations_checked": true,
+      "layer_default_devices": [
+        {
+          "layer": 0,
+          "device": "MTL0"
+        },
+        {
+          "layer": 1,
+          "device": "MTL0"
+        },
+        {
+          "layer": 2,
+          "device": "MTL0"
+        },
+        {
+          "layer": 3,
+          "device": "MTL0"
+        },
+        {
+          "layer": 4,
+          "device": "MTL0"
+        },
+        {
+          "layer": 5,
+          "device": "MTL0"
+        },
+        {
+          "layer": 6,
+          "device": "MTL0"
+        },
+        {
+          "layer": 7,
+          "device": "MTL0"
+        },
+        {
+          "layer": 8,
+          "device": "MTL0"
+        },
+        {
+          "layer": 9,
+          "device": "MTL0"
+        },
+        {
+          "layer": 10,
+          "device": "MTL0"
+        },
+        {
+          "layer": 11,
+          "device": "MTL0"
+        },
+        {
+          "layer": 12,
+          "device": "MTL0"
+        },
+        {
+          "layer": 13,
+          "device": "MTL0"
+        },
+        {
+          "layer": 14,
+          "device": "MTL0"
+        },
+        {
+          "layer": 15,
+          "device": "MTL0"
+        },
+        {
+          "layer": 16,
+          "device": "MTL0"
+        },
+        {
+          "layer": 17,
+          "device": "MTL0"
+        },
+        {
+          "layer": 18,
+          "device": "MTL0"
+        },
+        {
+          "layer": 19,
+          "device": "MTL0"
+        },
+        {
+          "layer": 20,
+          "device": "MTL0"
+        },
+        {
+          "layer": 21,
+          "device": "MTL0"
+        },
+        {
+          "layer": 22,
+          "device": "MTL0"
+        },
+        {
+          "layer": 23,
+          "device": "MTL0"
+        }
+      ],
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "MTL0",
+          "description": "Apple M4 Pro",
+          "free": 55662313472,
+          "total": 55662788608,
+          "model": 3067143936,
+          "context": 10940579840,
+          "compute": 1100178880,
+          "required": 15107902656
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 42631413760,
+          "total": 68719476736,
+          "model": 825753600,
+          "context": 0,
+          "compute": 223504320,
+          "required": 1049257920
+        }
+      ]
+    }
+  },
+  {
+    "modelId": "133aa128-76af-45cc-b046-a3a947a86aef",
+    "stageId": "mac20-tail",
+    "nodeId": "mac20-tail",
+    "planText": "--model /Users/mobimac/p4-runs/models/gemma-4-12B-it-qat-q4_0-gguf/gemma-4-12b-it-qat-q4_0.gguf --memory-topology discrete --layer-begin 24 --layer-end 48 --kv-layer-begin 24 --kv-layer-end 48 --n-seq-max 100 --spec-type none --kv-unified --batch-size 128 --ubatch-size 64 --ctx-size 460800 --n-gpu-layers 25 --device MTL0 --flash-attn on --kv-offload --no-mmap --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\\..*=CPU\" --expect-layer-device 24:48:MTL0",
+    "physicalResultBytes": 3743116,
+    "memory": {
+      "schema": 2,
+      "memory_topology": {
+        "mode": "discrete",
+        "host_shared_devices": []
+      },
+      "execution_shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 64,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "complete": true,
+      "fits_current_free": true,
+      "physical_result_payload_bytes": 0,
+      "physical_result_tensor_count": 0,
+      "max_physical_result_bytes": 3743116,
+      "layer_device_query_supported": true,
+      "layer_device_expectations_checked": true,
+      "layer_default_devices": [
+        {
+          "layer": 24,
+          "device": "MTL0"
+        },
+        {
+          "layer": 25,
+          "device": "MTL0"
+        },
+        {
+          "layer": 26,
+          "device": "MTL0"
+        },
+        {
+          "layer": 27,
+          "device": "MTL0"
+        },
+        {
+          "layer": 28,
+          "device": "MTL0"
+        },
+        {
+          "layer": 29,
+          "device": "MTL0"
+        },
+        {
+          "layer": 30,
+          "device": "MTL0"
+        },
+        {
+          "layer": 31,
+          "device": "MTL0"
+        },
+        {
+          "layer": 32,
+          "device": "MTL0"
+        },
+        {
+          "layer": 33,
+          "device": "MTL0"
+        },
+        {
+          "layer": 34,
+          "device": "MTL0"
+        },
+        {
+          "layer": 35,
+          "device": "MTL0"
+        },
+        {
+          "layer": 36,
+          "device": "MTL0"
+        },
+        {
+          "layer": 37,
+          "device": "MTL0"
+        },
+        {
+          "layer": 38,
+          "device": "MTL0"
+        },
+        {
+          "layer": 39,
+          "device": "MTL0"
+        },
+        {
+          "layer": 40,
+          "device": "MTL0"
+        },
+        {
+          "layer": 41,
+          "device": "MTL0"
+        },
+        {
+          "layer": 42,
+          "device": "MTL0"
+        },
+        {
+          "layer": 43,
+          "device": "MTL0"
+        },
+        {
+          "layer": 44,
+          "device": "MTL0"
+        },
+        {
+          "layer": 45,
+          "device": "MTL0"
+        },
+        {
+          "layer": 46,
+          "device": "MTL0"
+        },
+        {
+          "layer": 47,
+          "device": "MTL0"
+        }
+      ],
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "MTL0",
+          "description": "Apple M4 Pro",
+          "free": 55662313472,
+          "total": 55662788608,
+          "model": 3892912896,
+          "context": 10940579840,
+          "compute": 1100179296,
+          "required": 15933672032
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 42644160512,
+          "total": 68719476736,
+          "model": 0,
+          "context": 0,
+          "compute": 115574720,
+          "required": 115574720
+        }
+      ]
+    }
+  },
+  {
+    "modelId": "82d30ee9-353d-4b17-bd57-dbdfef028741",
+    "stageId": "mac21-head",
+    "nodeId": "mac21-head",
+    "planText": "--model /Users/mobimac/p4-runs/models/gemma-4-12B-it-qat-q4_0-gguf/gemma-4-12b-it-qat-q4_0.gguf --memory-topology discrete --layer-begin 0 --layer-end 24 --kv-layer-begin 0 --kv-layer-end 24 --n-seq-max 100 --spec-type none --kv-unified --batch-size 128 --ubatch-size 64 --ctx-size 460800 --n-gpu-layers 49 --device MTL0 --flash-attn on --kv-offload --no-mmap --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47)\\..*=CPU\" --expect-layer-device 0:24:MTL0",
+    "physicalResultBytes": 199835276,
+    "memory": {
+      "schema": 2,
+      "memory_topology": {
+        "mode": "discrete",
+        "host_shared_devices": []
+      },
+      "execution_shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 64,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "complete": true,
+      "fits_current_free": true,
+      "physical_result_payload_bytes": 1536000,
+      "physical_result_tensor_count": 1,
+      "max_physical_result_bytes": 199835276,
+      "layer_device_query_supported": true,
+      "layer_device_expectations_checked": true,
+      "layer_default_devices": [
+        {
+          "layer": 0,
+          "device": "MTL0"
+        },
+        {
+          "layer": 1,
+          "device": "MTL0"
+        },
+        {
+          "layer": 2,
+          "device": "MTL0"
+        },
+        {
+          "layer": 3,
+          "device": "MTL0"
+        },
+        {
+          "layer": 4,
+          "device": "MTL0"
+        },
+        {
+          "layer": 5,
+          "device": "MTL0"
+        },
+        {
+          "layer": 6,
+          "device": "MTL0"
+        },
+        {
+          "layer": 7,
+          "device": "MTL0"
+        },
+        {
+          "layer": 8,
+          "device": "MTL0"
+        },
+        {
+          "layer": 9,
+          "device": "MTL0"
+        },
+        {
+          "layer": 10,
+          "device": "MTL0"
+        },
+        {
+          "layer": 11,
+          "device": "MTL0"
+        },
+        {
+          "layer": 12,
+          "device": "MTL0"
+        },
+        {
+          "layer": 13,
+          "device": "MTL0"
+        },
+        {
+          "layer": 14,
+          "device": "MTL0"
+        },
+        {
+          "layer": 15,
+          "device": "MTL0"
+        },
+        {
+          "layer": 16,
+          "device": "MTL0"
+        },
+        {
+          "layer": 17,
+          "device": "MTL0"
+        },
+        {
+          "layer": 18,
+          "device": "MTL0"
+        },
+        {
+          "layer": 19,
+          "device": "MTL0"
+        },
+        {
+          "layer": 20,
+          "device": "MTL0"
+        },
+        {
+          "layer": 21,
+          "device": "MTL0"
+        },
+        {
+          "layer": 22,
+          "device": "MTL0"
+        },
+        {
+          "layer": 23,
+          "device": "MTL0"
+        }
+      ],
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "MTL0",
+          "description": "Apple M4 Pro",
+          "free": 55662313472,
+          "total": 55662788608,
+          "model": 3067143936,
+          "context": 10940579840,
+          "compute": 1100178880,
+          "required": 15107902656
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 41459122176,
+          "total": 68719476736,
+          "model": 825753600,
+          "context": 0,
+          "compute": 223504320,
+          "required": 1049257920
+        }
+      ]
+    }
+  },
+  {
+    "modelId": "82d30ee9-353d-4b17-bd57-dbdfef028741",
+    "stageId": "mac21-tail",
+    "nodeId": "mac21-tail",
+    "planText": "--model /Users/mobimac/p4-runs/models/gemma-4-12B-it-qat-q4_0-gguf/gemma-4-12b-it-qat-q4_0.gguf --memory-topology discrete --layer-begin 24 --layer-end 48 --kv-layer-begin 24 --kv-layer-end 48 --n-seq-max 100 --spec-type none --kv-unified --batch-size 128 --ubatch-size 64 --ctx-size 460800 --n-gpu-layers 25 --device MTL0 --flash-attn on --kv-offload --no-mmap --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\\..*=CPU\" --expect-layer-device 24:48:MTL0",
+    "physicalResultBytes": 3743116,
+    "memory": {
+      "schema": 2,
+      "memory_topology": {
+        "mode": "discrete",
+        "host_shared_devices": []
+      },
+      "execution_shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 64,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "complete": true,
+      "fits_current_free": true,
+      "physical_result_payload_bytes": 0,
+      "physical_result_tensor_count": 0,
+      "max_physical_result_bytes": 3743116,
+      "layer_device_query_supported": true,
+      "layer_device_expectations_checked": true,
+      "layer_default_devices": [
+        {
+          "layer": 24,
+          "device": "MTL0"
+        },
+        {
+          "layer": 25,
+          "device": "MTL0"
+        },
+        {
+          "layer": 26,
+          "device": "MTL0"
+        },
+        {
+          "layer": 27,
+          "device": "MTL0"
+        },
+        {
+          "layer": 28,
+          "device": "MTL0"
+        },
+        {
+          "layer": 29,
+          "device": "MTL0"
+        },
+        {
+          "layer": 30,
+          "device": "MTL0"
+        },
+        {
+          "layer": 31,
+          "device": "MTL0"
+        },
+        {
+          "layer": 32,
+          "device": "MTL0"
+        },
+        {
+          "layer": 33,
+          "device": "MTL0"
+        },
+        {
+          "layer": 34,
+          "device": "MTL0"
+        },
+        {
+          "layer": 35,
+          "device": "MTL0"
+        },
+        {
+          "layer": 36,
+          "device": "MTL0"
+        },
+        {
+          "layer": 37,
+          "device": "MTL0"
+        },
+        {
+          "layer": 38,
+          "device": "MTL0"
+        },
+        {
+          "layer": 39,
+          "device": "MTL0"
+        },
+        {
+          "layer": 40,
+          "device": "MTL0"
+        },
+        {
+          "layer": 41,
+          "device": "MTL0"
+        },
+        {
+          "layer": 42,
+          "device": "MTL0"
+        },
+        {
+          "layer": 43,
+          "device": "MTL0"
+        },
+        {
+          "layer": 44,
+          "device": "MTL0"
+        },
+        {
+          "layer": 45,
+          "device": "MTL0"
+        },
+        {
+          "layer": 46,
+          "device": "MTL0"
+        },
+        {
+          "layer": 47,
+          "device": "MTL0"
+        }
+      ],
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "MTL0",
+          "description": "Apple M4 Pro",
+          "free": 55662313472,
+          "total": 55662788608,
+          "model": 3892912896,
+          "context": 10940579840,
+          "compute": 1100179296,
+          "required": 15933672032
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 41458696192,
+          "total": 68719476736,
+          "model": 0,
+          "context": 0,
+          "compute": 115574720,
+          "required": 115574720
+        }
+      ]
+    }
+  }
+]

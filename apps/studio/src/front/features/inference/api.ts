@@ -303,6 +303,8 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       }
     }
     if (cancellation.requested) return;
+    await connection.retainDispatchConnection({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation });
+    if (cancellation.requested) return;
     try {
       cancellation.preparationWrite = recordSessionProof(model.id, run.id, now(), model.loadGeneration,
         Object.fromEntries(model.stages.map(stage => [stage.id, stage.nodeGeneration])));

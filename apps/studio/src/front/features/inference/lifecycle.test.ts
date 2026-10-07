@@ -8,6 +8,7 @@ const wire = vi.hoisted(() => ({ events: [] as P4Event[], listeners: new Set<(ev
 vi.mock("../../p4/reception.js", () => ({
   readAgentTopology: async () => ({ agents: [{ id: "agent", name: "Agent", host: "head", port: 52000 }], groups: [] }),
   BrowserP4Reception: class {
+    async retainDispatchConnection() {}
     operationId = "operation";
     async exchange(target: P4Endpoint, _adapter: string, _type: string, body: unknown) {
       return { source: target, contentType: "application/vnd.p4.llamacpp.session-ready-v4+json", payload: new TextEncoder().encode(JSON.stringify({ state: "ready", ...body as object })) };

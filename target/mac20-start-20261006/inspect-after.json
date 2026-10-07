@@ -1,0 +1,228 @@
+{
+  "address": "tcp://192.168.0.20:52000",
+  "snapshot": {
+    "schema": 1,
+    "protocolVersion": 3,
+    "generatedAtUnixMs": 1791265086644,
+    "machine": {
+      "capability": {
+        "os": "macos",
+        "arch": "aarch64",
+        "cpu": {
+          "physicalCores": 14,
+          "logicalCores": 14
+        },
+        "memory": {
+          "totalBytes": 68719476736
+        },
+        "gpus": [
+          {
+            "index": 0,
+            "uuid": "APPLE-0",
+            "vendor": "Apple",
+            "name": "Apple M4 Pro",
+            "backend": "metal",
+            "memoryKind": "unified",
+            "pciBusId": null,
+            "driverVersion": null,
+            "memoryTotalBytes": 68719476736,
+            "vramTotalBytes": null
+          }
+        ],
+        "adapters": [
+          "llamacpp"
+        ]
+      },
+      "occupancy": {
+        "memory": {
+          "availableBytes": 44507856896,
+          "usedBytes": 24211619840
+        },
+        "gpus": [
+          {
+            "uuid": "APPLE-0",
+            "memoryUsedBytes": 24212586496,
+            "memoryFreeBytes": 44506890240,
+            "vramUsedBytes": null,
+            "vramFreeBytes": null,
+            "utilizationGpuPercent": null,
+            "temperatureC": null,
+            "powerDrawW": null
+          }
+        ]
+      },
+      "probes": {
+        "memory": {
+          "source": "os",
+          "state": "available",
+          "detail": null
+        },
+        "gpus": {
+          "source": "provider-aggregate",
+          "state": "available",
+          "detail": null
+        }
+      }
+    },
+    "nodes": [],
+    "broker": {
+      "sampledAtUnixMs": 1791265086644,
+      "state": "ok",
+      "receipts": null,
+      "detail": null
+    },
+    "transport": {
+      "transfer": {
+        "hopDataWrites": 0,
+        "hopDataBytes": 0
+      },
+      "retryWaiting": 0,
+      "notices": {
+        "publishing": 0,
+        "limit": 65536,
+        "dropped": 0
+      },
+      "failures": {
+        "count": 0,
+        "evicted": 0,
+        "limit": 256,
+        "eventBytes": 0,
+        "oldestUnixMs": null,
+        "states": {}
+      }
+    }
+  },
+  "rawPayload": {
+    "broker": {
+      "sampled_at_unix_ms": 1791265086644,
+      "state": "ok"
+    },
+    "generated_at_unix_ms": 1791265086644,
+    "machine": {
+      "capability": {
+        "adapters": [
+          "llamacpp"
+        ],
+        "arch": "aarch64",
+        "cpu": {
+          "logical_cores": 14,
+          "physical_cores": 14
+        },
+        "gpus": [
+          {
+            "architecture": "spdisplays_metal4",
+            "backend": "metal",
+            "compute_units": 20,
+            "driver_version": null,
+            "index": 0,
+            "memory_kind": "unified",
+            "memory_total_bytes": 68719476736,
+            "name": "Apple M4 Pro",
+            "pci_bus_id": null,
+            "provider_index": 0,
+            "uuid": "APPLE-0",
+            "vendor": "Apple",
+            "vram_total_bytes": null
+          }
+        ],
+        "memory": {
+          "total_bytes": 68719476736
+        },
+        "os": "macos"
+      },
+      "occupancy": {
+        "gpus": [
+          {
+            "memory_free_bytes": 44506890240,
+            "memory_used_bytes": 24212586496,
+            "power_draw_w": null,
+            "temperature_c": null,
+            "utilization_gpu_percent": null,
+            "uuid": "APPLE-0",
+            "vram_free_bytes": null,
+            "vram_used_bytes": null
+          }
+        ],
+        "memory": {
+          "available_bytes": 44507856896,
+          "used_bytes": 24211619840
+        }
+      },
+      "probes": {
+        "gpus": {
+          "detail": null,
+          "source": "provider-aggregate",
+          "sources": [
+            {
+              "detail": "nvidia-smi unavailable: No such file or directory (os error 2)",
+              "devices": 0,
+              "source": "nvidia-smi",
+              "state": "unavailable"
+            },
+            {
+              "detail": null,
+              "devices": 1,
+              "source": "system_profiler",
+              "state": "available"
+            }
+          ],
+          "state": "available"
+        },
+        "memory": {
+          "detail": null,
+          "source": "os",
+          "state": "available"
+        }
+      }
+    },
+    "nodes": [],
+    "protocol_version": 3,
+    "schema": 1,
+    "transport": {
+      "connections": {
+        "idle_timeout_seconds": 2400,
+        "inbound_held": 2,
+        "inbound_limit": 256,
+        "peer_held": 0,
+        "peer_limit": 256
+      },
+      "failures": {
+        "count": 0,
+        "event_bytes": 0,
+        "evicted": 0,
+        "failure_ids": [],
+        "limit": 256,
+        "oldest_unix_ms": null,
+        "states": {}
+      },
+      "notices": {
+        "dropped": 0,
+        "limit": 65536,
+        "publishing": 0
+      },
+      "outstanding": {
+        "event_bytes": 0,
+        "events": 0,
+        "limit": 256
+      },
+      "receipts": {
+        "accepted": 0,
+        "limit_bytes": 67108864,
+        "limit_count": 65536,
+        "oldest_unix_ms": null,
+        "pending": 0,
+        "records": 0,
+        "rejected": 0,
+        "reserved_bytes": 0
+      },
+      "retry": {
+        "waiting": 0
+      },
+      "transfer": {
+        "hop_data_bytes": 0,
+        "hop_data_writes": 0
+      }
+    }
+  },
+  "ack": true
+}

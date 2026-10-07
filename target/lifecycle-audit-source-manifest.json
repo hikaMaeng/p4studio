@@ -1,0 +1,678 @@
+[
+  {
+    "path": "packages/p4-protocol/src\\index.ts",
+    "sha256": "12FB91F0F52B6B388AA3CEE012173E210739508933DB313F4B58F4301E66D30F"
+  },
+  {
+    "path": "packages/p4-protocol/src\\index.test.ts",
+    "sha256": "1F7DFFDAFEC9C107F47D9BCA09E5D6EAB7A69533CACFDF5A6FB055846392B85F"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\wire.ts",
+    "sha256": "622A923A64014AA931026A84B2E64603DE399EC3682A3949E920891B72F9BBEA"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\lifecycle.ts",
+    "sha256": "13AE04FD51F305F39E5B3DF049B62841BBBD34F106300035097EDF8FF94ECFFC"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\lifecycle.test.ts",
+    "sha256": "9DD2B430FC133866389E837C8B57CEB6B55270F9076B86DBBD5C53999F6DA154"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\fixtures\\agent-snapshot-p4-4b62e3e4.ts",
+    "sha256": "1208AB7E9A47BFBDB0725D494AB0E89C8BE88C5D12EB2324A485358E736D03E4"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\delivery-failure.ts",
+    "sha256": "A1C3B82DDEE8C4FD44FDE7D47EB895103EAFA40494CDD283793410E0954CCCCD"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\agent-inspection.ts",
+    "sha256": "95E6AA6BA0A840974F5E61BA6B1DA31717510E491F8DDF34098170044847B45C"
+  },
+  {
+    "path": "packages/p4-protocol/src\\event\\agent-inspection.test.ts",
+    "sha256": "FBDD0D01B5DDC31C790DF56C404AB5C5C6BBBD8A65AF03E2A475DD136A2B540B"
+  },
+  {
+    "path": "packages/studio_domain/src\\server\\index.ts",
+    "sha256": "B14C6EE4E8455178AEB1A78D7AC447633561B49F9876E75A02C460D5FF735746"
+  },
+  {
+    "path": "packages/studio_domain/src\\server\\deployments\\presets.test.ts",
+    "sha256": "84CF2891E853029BEF3844D3002EF6D2745F2BFDBFA5D061448C728D4D476CB2"
+  },
+  {
+    "path": "packages/studio_domain/src\\server\\deployments\\plan.ts",
+    "sha256": "C2A67099292343E56E5A89665667E5E43E43D7A8BF65C0C448B927FA7D253DAE"
+  },
+  {
+    "path": "packages/studio_domain/src\\server\\deployments\\plan.test.ts",
+    "sha256": "4DF6D4B30384E4B5FFDB1DC01FC0B36482D1C53C84EF3D0E16AFC8C65E01A348"
+  },
+  {
+    "path": "packages/studio_domain/src\\server\\deployments\\compatibility.ts",
+    "sha256": "231EF0951C97EE19E04CEB4B00C8ECCD5960A1EDC48B1D86DBE6BDFABC07D596"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\index.ts",
+    "sha256": "C973B6E83F0D6189E31245A4E952B757F7EE5816C960826BBFD3A1CF5B7DF56D"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\SliceModel.ts",
+    "sha256": "C7B89A4D94DAF5013D334BDF69806210A77DA8C792BDA2F1E26017C01FFD43EE"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\modelRender.test.ts",
+    "sha256": "EBF4F823797459A1186D14AEA0775FE0BA521F4D4483A3B02043A176E38E01AE"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\language\\model\\types.ts",
+    "sha256": "7C7406D1737CC332263722F194FFF3409C6D8EBF177D1E4391CCD4B84437E35C"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\language\\model\\store.ts",
+    "sha256": "3C7A360FF1C5A4103BE022E5C9DC8E1DF5E1F00C8C993DAE3AAE21C30285AF7A"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\language\\model\\language.ts",
+    "sha256": "74D13EE13B2AB54B1AFF339C05DF11AD2A6377C7D377779C1F4359E08EBEA5A3"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\language\\model\\index.ts",
+    "sha256": "1B98FAB470D2467AB8B708A70D56AB15A48D57CB5F3472EC2F590855173FD617"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\index.ts",
+    "sha256": "8C44C6AFEC8C29CA43ADCF2516665E88A853B19D272ABAF5AC104060FFB5AFBE"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\timing.ts",
+    "sha256": "900722569B665AD0486893E21B0D18C7DF19AFBBC8B6285F7FCDB66021664DBC"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\timing.test.ts",
+    "sha256": "91CAB08DF1242381AD81742FB5D29B9EF572BEEA2158794CFCF7758AF23E57E3"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\telemetry.ts",
+    "sha256": "D568E552364D2CE19C63AF0A333319C50767241292C7D25037A9FD185EC9CA58"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\telemetry.test.ts",
+    "sha256": "92FAD7107A05B375E1C9EA550815854E66707DA4C5812D050A8735E974DED864"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\store.ts",
+    "sha256": "8FD6591C2392ABF4C0015E6C6DAC5BADB6A52B20CFFE54ECA6F9A43DACD14FAA"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\store.test.ts",
+    "sha256": "34033D953EB6B064C34326CCC5DCE616AA80CDFB5A11B0B0F8FD427B3F3C0CA8"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\observability.ts",
+    "sha256": "154D3AD7882D24A482D29408BD19F5CAFBA5316F853AD47F9518B4DE67213336"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\observability.test.ts",
+    "sha256": "14648457585E8653CBF237C13A52DBFA27EB56250F45DB31499676D339961983"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\monitoring-summary.ts",
+    "sha256": "2EE2C245BB2D98DABAE93BFBF0345D02CB75B576B7F0CA0E5AFADED727E99B0B"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\monitoring-summary.test.ts",
+    "sha256": "8A76AD31EACCD7372FC72A53421A3EB86EA5FB5C6EB92AB83C2F6127CBF60DE6"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\agent-groups\\routing.test.ts",
+    "sha256": "B8CE1C6AA7DC6B16D8901357A987226898B763C05833464154859AD50FDCA595"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\agent-groups\\index.ts",
+    "sha256": "5A46933C2896B2F86202192E2E17700D394B2268A30ABC8053E238A7AF57039C"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\p4-tunnel\\index.ts",
+    "sha256": "890D11F2D67F90DCBF54B07DF528BA9B11FFBB95B4A53A05A1375937DB0FC724"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\cancellation\\executions.ts",
+    "sha256": "C54FF005A5AC699CD4A460295C75DC863E99FCBE6FCCAF16B2B92BE288B1F736"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\cancellation\\control.ts",
+    "sha256": "E4DFE04463B48A595A880A9CA8C6CF032C974B18C3CF4BBC4CC1543143795559"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\inference\\cancellation\\control.test.ts",
+    "sha256": "E382EC0D2A787F6ADD28992579791FCE33454E68BE3C82B5126338A3F568CFC0"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\deployments\\store.ts",
+    "sha256": "7D52A2F4E3DD3E384BD7E1F8F639CE1E4E7648899E45E605EDDCAD24C504E4AB"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\deployments\\store.test.ts",
+    "sha256": "2AB0B142450C3D81CE0304CE3C9E5293F8E0F36B1055955381225ADD738AB9EE"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\deployments\\reconcile.ts",
+    "sha256": "70D3478F52E2D16623F899E2FD0A56924241483DD4AFF567D26DE9D6E4377B2D"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\deployments\\reconcile.test.ts",
+    "sha256": "7205EAE5D0278A6DE45A30E7603525462947D7B40C849F4F1B355334E0C03506"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\graph-inventory\\index.ts",
+    "sha256": "92B07FD0CA89CBFF3FDC7F56741594867059AEF07A1297DEFAAFF71FDF83E968"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\graph-inventory\\store.ts",
+    "sha256": "2CCD668CD03C84BB28D1446DB37545371D76B513EC5602799E342C42C059E196"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\graph-inventory\\store.test.ts",
+    "sha256": "9D39B11C42416628EE625920960B8DDB815C15E8D42425BD28DCA070FECC562F"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\Emitter.ts",
+    "sha256": "AE33C277EDA4EDD3C878E29D94FEA1EF871F0D936E70BE72BCB74AB6F23E6D62"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\agents\\removal.ts",
+    "sha256": "914035DFEB1CB06CB1DBDF9CEE13A086EBF638EE6112D4DCF2CF94A5259D4518"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\agents\\removal.test.ts",
+    "sha256": "2F8E2D33E921CE266229787D5889DB542B7AB45A4E4FE08770C0FE889C8A3D3D"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\agents\\node-unload.ts",
+    "sha256": "986FDC5C993572B553D8B6EE153FEB34046D383D4C254236E595C4375DCAA604"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\telemetry.ts",
+    "sha256": "EC8389711F911547868BBAA7CC8D9827C110B7960C4FBC931366DE1737A92BD0"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\telemetry.test.ts",
+    "sha256": "5489F128B403AE7658F797C4FC260F2FBC186CECCC5A6112B1945413EBD96325"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\run-settings.test.ts",
+    "sha256": "EDBF08F04974CB04D1960D1849A3C92FF341FD8335CB9F0130A1535E63E81191"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\output.ts",
+    "sha256": "59ADEDC173C9C6551850D8FA4B835798343A94A9EEDBD14E6CF2E93C9FC1C057"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\output.test.ts",
+    "sha256": "BD5415F02D5967A79B1A46D34344F8BEA3F974E00D49EBC51385047A9903B331"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\input.test.ts",
+    "sha256": "4FF98D92D73D3C4C1C1B286BD273B44A960501231308410EAB498DE19FFAF1F3"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\index.ts",
+    "sha256": "A29DEB4112955BD1EAC4058CBA314A220305D6F6407B96DB5C0A8F87FC70C0BB"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\inference\\cancellation.ts",
+    "sha256": "BF1EB13183D921FC829E4367ED0D8C44C7E560C535D794019C379DFEA3C94D90"
+  },
+  {
+    "path": "apps/studio/src\\server\\runtime.ts",
+    "sha256": "8C794024AD8A27D7195262E001A11F47FBEE61758531B433D4C4FE7A3FF44803"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\runtime.ts",
+    "sha256": "F8036A8E7D9002434A40D8736367D506D5F2DEBDD6E724B635DB493E220AE3E9"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\runtime.test.ts",
+    "sha256": "0C552D3FFAAFB0047E75B412B947BEE7E8CAD74074AD5DEED902D465C5EF42C8"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\resource-profile.ts",
+    "sha256": "E14DEB27C0428BFA6D79C550A2E99B502D0A56D6AC75B9746B4C933B0FBA7BF3"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\resource-profile.test.ts",
+    "sha256": "D0CDAB06A2810FFFBD9D58DD5B23291D9057177E1DE0F7844313BADF9378CA4B"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\presets.ts",
+    "sha256": "871515CADF0E886C2A147E3A760219640A3E0D4809C8EE6F92AB2B260C853836"
+  },
+  {
+    "path": "packages/studio_domain/src\\front\\model\\agent-groups\\store.ts",
+    "sha256": "18C843020FC85C317E8EB7B41AEC7C39BE753770AC8AD6D55B64FDC41CEBFA86"
+  },
+  {
+    "path": "apps/studio/src\\server\\inference\\controller.ts",
+    "sha256": "B5C822AADDEBC0C7E416CD59E3C793E1A1D9BB2DD7F0C505D2CB18D78F6B1EAB"
+  },
+  {
+    "path": "apps/studio/src\\server\\index.ts",
+    "sha256": "2EF9B936DFDD7F36DE99AFEBA1C0F12D44ECF350A4794283A3E516B1182A00E4"
+  },
+  {
+    "path": "apps/studio/src\\common\\domain.ts",
+    "sha256": "E51B36932DDF103D43E1EAA95EF38641CE79528AA8DE31A7763AE4B4E10A8A63"
+  },
+  {
+    "path": "apps/studio/src\\server\\env\\schema.ts",
+    "sha256": "0F7EDBBD542F6EAB1E808320128742642E8E385ED3D2EFD33FAB716BF1DD870E"
+  },
+  {
+    "path": "apps/studio/src\\server\\dev.ts",
+    "sha256": "26795CE782C80F8E17A808DE48308537DE0D997A122487F0D1D62B38AE3736B3"
+  },
+  {
+    "path": "apps/studio/src\\front\\index.html",
+    "sha256": "8305E9FD47BB36F08C49FF41408134AC9BE13CA0E51A1F8C0E66CEA8B48564EB"
+  },
+  {
+    "path": "apps/studio/src\\front\\main.tsx",
+    "sha256": "1A817E3FFC781F4F8BE5CBC1EF6B7BD679035AA2CAA5B03BD72965824A62A878"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\index.ts",
+    "sha256": "90A27D37C0DE09C2888394D684D04658CD7477C5A186138B75721AFBFA61DF1C"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\lifecycle.ts",
+    "sha256": "67A2278953C4DADA5E149BE74B34FF5A81A7481C5433CD8A2708E3CE1C3E1791"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\payload.ts",
+    "sha256": "31D0BBE2854A8C975C92A2B423261253B6C09C642D7DDB54EC19F9E6C6DECAFE"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\compatibility.ts",
+    "sha256": "777F25F5DAEFDC9B953650DC154C5436C4BDB903EAB3ED972960AB4ED042B416"
+  },
+  {
+    "path": "apps/studio/src\\server\\database\\client.ts",
+    "sha256": "2710912194BF96971ABF01D3D6123F13AEE894D3BEA26DD990FFD9B2B7A156C4"
+  },
+  {
+    "path": "apps/studio/src\\server\\database\\agent-groups.ts",
+    "sha256": "E2B3E4165D7AF509E62AE195B9ED5296D5E3B1AD0F43FDD0D98D84406E5C745C"
+  },
+  {
+    "path": "apps/studio/src\\server\\database\\deployments.ts",
+    "sha256": "488710CF08452F76BAE27A68C496165D23DE113702F715870AF909A4B56A88B8"
+  },
+  {
+    "path": "apps/studio/src\\server\\database\\schema.ts",
+    "sha256": "F4B6E0802737318481F8105B7EBF7AD1D709F3E360353083923428540EC26EA2"
+  },
+  {
+    "path": "apps/studio/src\\server\\app.ts",
+    "sha256": "81A748EB2B9129EA67AF216A4C09D7CE607F153ABA13892A7EF87F71277CEB0E"
+  },
+  {
+    "path": "apps/studio/src\\server\\database\\seed.ts",
+    "sha256": "297E3A945D9CC9381899CFCF1F38403A8D911F1DBE67434186C3ACF9E3B9923E"
+  },
+  {
+    "path": "apps/studio/src\\server\\app.test.ts",
+    "sha256": "C83C47285C72E93A2472A084ADB4B3002EE15764AA34F792ADB3C0E4C6C89EEA"
+  },
+  {
+    "path": "apps/studio/src\\front\\i18n\\useTranslation.ts",
+    "sha256": "A6D3C1C8EDE2C3EE62B35ECC0705E09FF33B8F1E132502F13B5045A5FF682085"
+  },
+  {
+    "path": "apps/studio/src\\front\\i18n\\runtime.ts",
+    "sha256": "785C87147698C31474A4E4B1BF69C08BD6D952A24CA2D8EBA91D49D1762F83AE"
+  },
+  {
+    "path": "apps/studio/src\\front\\i18n\\format.ts",
+    "sha256": "68935B121DC1713E5EB84229598ED5ECB15D302613C12C849DF8F6F93A8420C0"
+  },
+  {
+    "path": "apps/studio/src\\front\\i18n\\catalog.ts",
+    "sha256": "4C1132934F559A2B9D68C46B923FA68BA46719F2049A697F7924C7FD14F61012"
+  },
+  {
+    "path": "apps/studio/src\\front\\theme\\index.ts",
+    "sha256": "EFE50A14796902C09B0326D82503AFF049520568BADF4F654B0EA804FE32D9DE"
+  },
+  {
+    "path": "apps/studio/src\\front\\theme\\global.css",
+    "sha256": "B8FF7A55A29D340ACF266D7AC94DB5BE474CE79312D9999B4D516338C1733280"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\presets\\step.ts",
+    "sha256": "AA07ADE1C432EE2CD935D25E3606D73A989BA34CBE4D43503085849801446037"
+  },
+  {
+    "path": "packages/studio_domain/src\\common\\protocol\\deployments\\presets\\hy3.ts",
+    "sha256": "6AA8627B2584093A03BB346B91ED79B16B87A9465B9C0C89F3BD0F2C691EDDB1"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\validation.ts",
+    "sha256": "04CAC93017BFFFEBA9659382A3A461A968296D8D5457FEB9512497F699D8A04A"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\router.ts",
+    "sha256": "3BED2F626AD64B4B65DC10E22C99BB50A4DB553D23CC3EF59C669FB30419CF9F"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\inference.ts",
+    "sha256": "78965BA9E974D10192A4AE93BB2352057778BD7CF53BBE27D285ED12789D93C4"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\graph-inventory.test.ts",
+    "sha256": "BB99041452CB5392B44A756060A4E7508E102DF0B84CED6F779088F8A2DB5A9C"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\deployments.ts",
+    "sha256": "B033A7B83B5775C5A354190F7E5BDF98822879A653331EC813C331FEDD0D3D82"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\deployments.test.ts",
+    "sha256": "2713D9FEAF4D834EBA9406BC4A570282EC61639F7C9F6C246E8973E39D5E3925"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\agent-removal.test.ts",
+    "sha256": "B83DFB9D0118F6AC7CE9D1EB3A2FB198BA0C987B36614B7D8B7E998ACC2D3295"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\agent-groups.ts",
+    "sha256": "34B5F8DD954C9B464278F3022262C3845A1D4FCBC0CDB088C31B02A03928DF93"
+  },
+  {
+    "path": "apps/studio/src\\server\\api\\agent-groups.test.ts",
+    "sha256": "D24709E8618E54119AAAF8B45209F45E4A501172CBA5BB40A9B36B5136BC959D"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\pipelines\\resource.ts",
+    "sha256": "0DFF95C38A390430DD43FE2CAA8C5539297688176E5E3B9D773F2344532D51A1"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\pipelines\\PipelinesView.tsx",
+    "sha256": "204BFDDF8F992DB3CF3087E744C13A36863A21943BD26D4EDCD33439CB1922F4"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\pipelines\\PipelineDialog.tsx",
+    "sha256": "1C6AE27BD38D59C175708F0546E7C0038FC85DE8753A9DD6E695DAF2DFAD26D5"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\dashboard\\resource.ts",
+    "sha256": "683896C120337228E40CE08D95B31B080CE3E66ABEEE5A33CEA6D361F1BA2DC7"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\dashboard\\DashboardView.tsx",
+    "sha256": "5B11B6A7C44F7BECE232A6AEB8E2F3DB14E226878CDFF011A78978D42DAD0D01"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\tunnels.ts",
+    "sha256": "E25A2AD2393D8B10B93E47D0090B083EF0EDEADF54B68EF28064B1F45520B04B"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\routes.ts",
+    "sha256": "CE0785C2914B8865EC948D1DB4448319A67414421D6730ECA8D54B40561B4463"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\routes.test.ts",
+    "sha256": "8DB2A9B86520E1CEC71DF5DAA60739438018682DC2EEB00183D2CCF664637323"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\monitor.ts",
+    "sha256": "D5621CF9EAEE1A10E8E1249D82391B701AA2A0616A50612680E94B9B830DD039"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\resource.ts",
+    "sha256": "85AF4AD3BA85A4EE282C6FF5FDF720061C68515B965145C4E1FDC754CE99069F"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\PresetLibrary.tsx",
+    "sha256": "10465545AD6AE0F9530DCDE05678EB5F47455BB96A584AE3C21FB4E7DE014C50"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\PlacementEditor.tsx",
+    "sha256": "720D5A2EC58C32D6C4A2E3672B7A302C50A55CD58D6C1DB66628EBC526E576F7"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\PlacementCanvas.tsx",
+    "sha256": "91F9901EC8C03EBA2FC162C249CBE6E5E147B3BB4E028B13B183214C20F65B6F"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\NodeInspector.tsx",
+    "sha256": "997C41429E591DFB80DAFB5EA424F21EDA0A8B77C2A845E91227885B7BA29E47"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\ModelsView.tsx",
+    "sha256": "F90BDF98844F9DE080472D96AE081A129C98C82155BB8BAB2B0079B2DC2CA343"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\ModelEditorPage.tsx",
+    "sha256": "530154910671EE0E758CB31F6727B71748711936D7C71772B89E9A2DE75247BC"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\GraphNameEditor.tsx",
+    "sha256": "B1D3AA0EEB08F6F526EB6461F3032286525FBF7564C4B711D5C2748408A030FC"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\models\\api.ts",
+    "sha256": "6D4B33DBF504BA9E915089A2892AF752D2E71EFF34DCE15D6B3E7B3D7BCBEA65"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\resource.ts",
+    "sha256": "4913ABE381A97E1046851FD1698312B7E75E6C535B4A9D5BCB925CF4D6FA4899"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\NodeUnloadButton.tsx",
+    "sha256": "F891D361D1AEA39A91CAD6418F9910CBCBD0BB77FC0DCC125028BE37C5BD26A0"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\inspection\\types.ts",
+    "sha256": "7682D1C6B6D9B681BDBED4F9A3FC944DA259B6AF2E9E5FB222568D1E0F458966"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\inspection\\store.ts",
+    "sha256": "F10DF1E578A7F974CFE370A3D268B78308ACC60E26F357135D75543D84D38431"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\inspection\\coordinator.ts",
+    "sha256": "4714D786C4A86B900229AD6BCCF4A54FADBEF5846A3E178733F8DB10AF6DAB44"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\inspection\\client.ts",
+    "sha256": "8597AF731A07F322F8952AEFE3DBE8E4DAD9ADFC60A3CF59B9C2A7CA5329174A"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\reception.ts",
+    "sha256": "6E4F5BD43F92F4B6869FEF993722FBBB8854E23531D7A80771C0AC85C923AB53"
+  },
+  {
+    "path": "apps/studio/src\\front\\model\\useModel.ts",
+    "sha256": "EC07887C47B3D7B59665880A0557D95621AA6BEFBFD886D0C19501F287237081"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\reception.test.ts",
+    "sha256": "E8352DD39BB8582277867372F9B2D53B3BB4AB30777E3CA30CB49F5C86DD60D2"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\inspection\\client.test.ts",
+    "sha256": "4CE25FAB8ABB87728495E3119501BC9A5FE4C17EEE04D7AFBE23FDE99A7B7CA2"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\node-unload.ts",
+    "sha256": "0DB30A0A588D0921D3AD4A1D32C4015DA2E8F9C0A3B34A8A7E3AE6A36A77D4AA"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\inventory.ts",
+    "sha256": "22F04039F257536B9BCF4784300A036C92D4A6541BC9719E47197A8EA1986912"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\inspection.ts",
+    "sha256": "7B943419A0EB8679333B51EAEA53FEE7BF7800F527ABEE1F6AA5C6A67F2E22F0"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\connection.ts",
+    "sha256": "628B26EB34BC6A010F82C9182999600B5AAC652316A1994E89C83621A5B64946"
+  },
+  {
+    "path": "apps/studio/src\\front\\p4\\connection.test.ts",
+    "sha256": "2A8E1F5C591B457958E21F63E03CBC813345C610EF26EE48C764B8FE9D32CEDF"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\finish.ts",
+    "sha256": "F4318EFD93281483F65167E5B86B639A4CCE47636DDDAFC8EDB2867942E1E6D4"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\finish.test.ts",
+    "sha256": "8F193E64999D59CE75DC86FF22A57CCF395AD9A38BA0E727765B9DFB69226A79"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\AgentRemovalDialog.tsx",
+    "sha256": "A331684291215AB30BE7F799E622085D9715861D48171FC0617BB760EB1CAA7F"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\AgentDialog.tsx",
+    "sha256": "E23FC05F6D32338C17948899ED0C8414D15EB52B48BB053296A9B83AC3574F08"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\AgentDetailView.tsx",
+    "sha256": "F7ED42F31E11931D4AC44784F2B4BB50B326AFD985173FCBB135B02BCE2E1AAB"
+  },
+  {
+    "path": "apps/studio/src\\front\\shell\\routes.ts",
+    "sha256": "A9B7FFDAE58C5E79EBF2D941D271D0C253FB98BAE85707174332E8251B8B5567"
+  },
+  {
+    "path": "apps/studio/src\\front\\shell\\routes.test.ts",
+    "sha256": "A54225F188C08D4EB82D2F26E705B7B06106E385343FFC9A5D8D24C80FFEF8BA"
+  },
+  {
+    "path": "apps/studio/src\\front\\shell\\resource.ts",
+    "sha256": "E0B74980DC4085FC885C64454AE26233025DAD79A091C622166C4FC8C2297929"
+  },
+  {
+    "path": "apps/studio/src\\front\\shell\\Navigation.tsx",
+    "sha256": "3B780C465FA462F73D33A53D3D6202ACF3D41F86A09487C45C5B1AD80CAC3C32"
+  },
+  {
+    "path": "apps/studio/src\\front\\shell\\App.tsx",
+    "sha256": "573D9500170BC1FBC7473A279882FED0686BF90A41351B4541F5A1643CD4A5C5"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\components\\EmptyState.tsx",
+    "sha256": "C419F8295624CD0E92F7CF2907B3D5020FEF898943D02448E768F7C11B66826C"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\components\\Icon.tsx",
+    "sha256": "E3DAB0F80FB4AA4FB0D003785A763382AC8899827D86485813F88ABDF2F11CAF"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\AgentsView.tsx",
+    "sha256": "2053C2D5F12B19FBC2B030306EBA84FF72A7537B557C2E2235A05B411A3484BE"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\AgentRow.tsx",
+    "sha256": "8484A1E5A23C68EB36D384A14D08496C72B54B09AFB59846E5C68B8047AE47AB"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\NodeDialog.tsx",
+    "sha256": "6272B9DD11188F85140A523D984E92DC370FDAD536F60845B827A2D30B90B9B9"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\browser-bridge.test.ts",
+    "sha256": "A3CC02CED5F98AFEA4F5DCAFDB404B923175B25DA944CDE21A292CDF43087693"
+  },
+  {
+    "path": "apps/studio/src\\server\\agent-socket\\browser-bridge.ts",
+    "sha256": "D30CD7471B4F1D66AC8C67D86C9E405C9EE05E1196A833DDE0E9237A2B7C1C2A"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\nodes\\resource.ts",
+    "sha256": "9558D76D1F78B5283464C65FBE14B9BA12F6AA93450845B4C2DFCE77349F3ED1"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\components\\StatusPill.tsx",
+    "sha256": "E9252B573D05F4B0B3AD7A2980C17DCD738CF792ACD35E3969FDBD4529C2F5B6"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\nodes\\NodeCards.tsx",
+    "sha256": "7C548EB8ABD8545ABDB0638D0E8008255821734D5154699F20A0B1EBFD820F70"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\components\\resource.ts",
+    "sha256": "D32E6C853F62A6A9C48F8F485F6ED32F9EE45940F19DAEE89E0BA79970249646"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agents\\nodes\\JsonCapsules.tsx",
+    "sha256": "BD3F416921E7F4369F6CA289DB539B90DA588213C76D0EEB4EE03149F8F373E9"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\components\\MenuHeader.tsx",
+    "sha256": "33F56D923033136A769116DAFCA61A554C8A172D153BFE77C63207BE59918F8B"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\api.test.ts",
+    "sha256": "B9981C4D67E6142A061A3224E755E8A6B9927099B768ED9AAAEFCFD9BDD4F6F1"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\api.ts",
+    "sha256": "21092478B588D30ADE333E7AE67EBDE15B886924A737BD109D372BC2C1F406C7"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\InferenceWaveResults.tsx",
+    "sha256": "B50B9C880DB0CD73B03BD6D9CFA4DEDC627C0698340BB1CFC0D86A97D827ADAB"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\InferenceView.tsx",
+    "sha256": "C4ADEDBEBA21BA7C925D3D3B0D693836BAB041D3D32AC10DB68C8A138F14D48E"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\InferenceObservability.tsx",
+    "sha256": "E4E5CE3146F0C394BED3E014FB50D8A84D6A4308C894C68158E68169600C02B3"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\pagination.ts",
+    "sha256": "3072F8F72ED6F0557DC135DB684BA050772D15E56DF06A582112CCB44BD49EDA"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\pagination.test.ts",
+    "sha256": "6B8571AF54727943DA612E035F1348DC6D4201DA960F4AEAD8558529E8950F17"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\prompt.test.ts",
+    "sha256": "B6FAFB8202A69743CD08735B5A33356A83124F4C92618837FAF0E59859DAA523"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\prompt.ts",
+    "sha256": "02487A17F1896D2FDD4912DD7170C43650D5B35CE11217058545AE153282A5AF"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\inference\\resource.ts",
+    "sha256": "39F58756DD3A3D8A56F6949003CB94E88974D6AEEE399EB05E26C3054F19E659"
+  },
+  {
+    "path": "apps/studio/src\\front\\shared\\api\\client.ts",
+    "sha256": "85979E78BE6500C69EB2949FD637B00214BEF529D5F7A89E145C050AF66AE394"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agent-groups\\AgentGroupsView.tsx",
+    "sha256": "C21D7114992557298118C6634F0998CBF8FAD2DAD4A6B67B51CD3A2388AE96B2"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agent-groups\\resource.ts",
+    "sha256": "692F9BCF6F7C2DBE1BFE68F9A68C49710DFC20482A7C0C33413F0C256E4999B1"
+  },
+  {
+    "path": "apps/studio/src\\front\\features\\agent-groups\\api.ts",
+    "sha256": "028744C45C8BDE34D0C6A88C8AA9AF2A6D4D69347436690094A81D5E7707CF1F"
+  }
+]

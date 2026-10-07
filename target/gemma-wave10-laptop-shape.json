@@ -1,0 +1,80 @@
+{
+  "kind": "local CUDA estimate; remote TUF unverified",
+  "deviceBytes": 6287289856,
+  "results": [
+    {
+      "node": "tuf-head",
+      "shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 128,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "CUDA0",
+          "description": "NVIDIA GeForce RTX 3090",
+          "free": 24465375232,
+          "total": 25769279488,
+          "model": 1029029376,
+          "context": 0,
+          "compute": 1701730944,
+          "required": 2730760320
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 208486830080,
+          "total": 274727415808,
+          "model": 2863879680,
+          "context": 10940579840,
+          "compute": 369266496,
+          "required": 14173726016
+        }
+      ]
+    },
+    {
+      "node": "tuf-tail",
+      "shape": {
+        "n_ctx": 460800,
+        "n_ctx_seq": 460800,
+        "n_batch": 128,
+        "n_ubatch": 128,
+        "n_seq_max": 100,
+        "kv_unified": true
+      },
+      "entries": [
+        {
+          "scope": "device",
+          "index": 0,
+          "name": "CUDA0",
+          "description": "NVIDIA GeForce RTX 3090",
+          "free": 24465375232,
+          "total": 25769279488,
+          "model": 1854798592,
+          "context": 0,
+          "compute": 1701730944,
+          "required": 3556529536
+        },
+        {
+          "scope": "host",
+          "index": -1,
+          "name": "host",
+          "description": "host memory",
+          "free": 208582062080,
+          "total": 274727415808,
+          "model": 2038126080,
+          "context": 10940579840,
+          "compute": 229805600,
+          "required": 13208511520
+        }
+      ]
+    }
+  ]
+}

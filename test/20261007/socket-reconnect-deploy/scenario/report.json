@@ -1,0 +1,155 @@
+{
+  "mode": "scenario with mocked P4 and HTTP mutations; deployed UI bundle",
+  "testedUrl": "http://localhost:43120/inference/query",
+  "status": "passed",
+  "consoleErrors": [],
+  "pageErrors": [],
+  "runs": [
+    {
+      "sessionId": "e2821829-cd03-473d-89c2-226256fdbe62",
+      "requestId": "e2821829-cd03-473d-89c2-226256fdbe62-1-1",
+      "returnChannel": "studio-a48056df-4d2c-4a9f-b96f-30952753dca3",
+      "preparationRetired": true
+    },
+    {
+      "sessionId": "1b78107f-cf62-4b9c-9819-dcc84a4b4e4b",
+      "requestId": "1b78107f-cf62-4b9c-9819-dcc84a4b4e4b-1-1",
+      "returnChannel": "studio-2def1e86-e422-4d49-8982-64cfe6d9a416",
+      "preparationRetired": true
+    },
+    {
+      "sessionId": "142bde00-e9a8-48a2-9ded-7630d9377e78",
+      "requestId": "142bde00-e9a8-48a2-9ded-7630d9377e78-1-1",
+      "returnChannel": "studio-fed42e4a-a1fd-4cfd-ab4d-31ac28c176dc",
+      "preparationRetired": true
+    }
+  ],
+  "frames": [
+    {
+      "operationId": "ae2c93ad-ce87-438f-aa37-a2b5d299ef81",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.agent.inspect-v1+json",
+      "nodeId": null
+    },
+    {
+      "operationId": "21cfc2cd-d6f9-413a-8621-82c1d8374cee",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    },
+    {
+      "operationId": "21cfc2cd-d6f9-413a-8621-82c1d8374cee",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-0"
+    },
+    {
+      "operationId": "21cfc2cd-d6f9-413a-8621-82c1d8374cee",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-1"
+    },
+    {
+      "operationId": "64473eee-dc6e-4ae7-887c-f0ad9d7a9334",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.agent.inspect-v1+json",
+      "nodeId": null
+    },
+    {
+      "operationId": "21cfc2cd-d6f9-413a-8621-82c1d8374cee",
+      "agentId": "43cebc0e-12d2-4db2-aa75-acc8ef909f57",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-gb10-tail"
+    },
+    {
+      "operationId": "1df23ef7-4cca-4774-a358-ca3155a35329",
+      "agentId": "43cebc0e-12d2-4db2-aa75-acc8ef909f57",
+      "contentType": "application/vnd.p4.agent.inspect-v1+json",
+      "nodeId": null
+    },
+    {
+      "operationId": "21cfc2cd-d6f9-413a-8621-82c1d8374cee",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    },
+    {
+      "operationId": "fe2134ab-0ec0-4483-a339-0fa5a1716d65",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    },
+    {
+      "operationId": "fe2134ab-0ec0-4483-a339-0fa5a1716d65",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-0"
+    },
+    {
+      "operationId": "fe2134ab-0ec0-4483-a339-0fa5a1716d65",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-1"
+    },
+    {
+      "operationId": "fe2134ab-0ec0-4483-a339-0fa5a1716d65",
+      "agentId": "43cebc0e-12d2-4db2-aa75-acc8ef909f57",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-gb10-tail"
+    },
+    {
+      "operationId": "fe2134ab-0ec0-4483-a339-0fa5a1716d65",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    },
+    {
+      "operationId": "416f5273-d462-4490-b651-7d42b977b3f3",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    },
+    {
+      "operationId": "416f5273-d462-4490-b651-7d42b977b3f3",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-0"
+    },
+    {
+      "operationId": "416f5273-d462-4490-b651-7d42b977b3f3",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-m42-3090-1"
+    },
+    {
+      "operationId": "416f5273-d462-4490-b651-7d42b977b3f3",
+      "agentId": "43cebc0e-12d2-4db2-aa75-acc8ef909f57",
+      "contentType": "application/vnd.p4.llamacpp.session-v4+json",
+      "nodeId": "mimo26-150k-gb10-tail"
+    },
+    {
+      "operationId": "416f5273-d462-4490-b651-7d42b977b3f3",
+      "agentId": "6d8b2e8a-e108-4e37-af11-8199430bb41b",
+      "contentType": "application/vnd.p4.llamacpp.prefill-v3+json",
+      "nodeId": "mimo26-150k-hikatr-3090-head"
+    }
+  ],
+  "settlements": [
+    {
+      "loadGeneration": 1791308912304,
+      "pendingSettlement": 0,
+      "submitted": 1
+    },
+    {
+      "loadGeneration": 1791308912304,
+      "pendingSettlement": 0,
+      "submitted": 1
+    }
+  ],
+  "screenshots": [
+    "F:\\dev\\p4studio\\test\\20261007\\socket-reconnect-deploy\\scenario\\two-completed-runs.png",
+    "F:\\dev\\p4studio\\test\\20261007\\socket-reconnect-deploy\\scenario\\active-return-loss-fenced.png"
+  ],
+  "limitations": "No GPU inference or real 40-minute soak. Production model state and owners are untouched.",
+  "blockedNextRun": "인퍼런스 오류: The previous inference still owns this model; stop or unload it before preparing another session"
+}
