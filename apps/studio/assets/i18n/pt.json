@@ -558,5 +558,21 @@
   "recovery.retry.button": "Continuar recuperação revisada",
   "recovery.current.label": "Evidência atual dos recursos",
   "recovery.historyPrevious.button": "Anterior",
-  "recovery.historyNext.button": "Próximo"
+  "recovery.historyNext.button": "Próximo",
+  "models.requests.summary.message": "Solicitações não liquidadas no Studio {unsettled} · solicitações iniciais P4 {requests} · pendentes {pending} · execuções {owners}",
+  "models.requests.unknown.text": "Desconhecido",
+  "models.requests.refresh.button": "Consultar solicitações",
+  "models.requests.clear.button": "Limpar solicitações",
+  "models.requests.confirm.title": "Limpar solicitações não resolvidas",
+  "models.requests.confirm.button": "Cancelar e recuperar",
+  "models.requests.warning.message": "Bloqueia novas solicitações, cancela a inferência e descarrega todas as etapas do modelo. O bloqueio é removido apenas quando P4 confirma a ausência de todos os nós. Conexões perdidas podem exigir recuperação forçada do agente.",
+  "models.requests.cancel.button": "Fechar",
+  "models.requests.stage.message": "{node}: solicitações {requests} · pendentes {pending} · proprietários {active} · lotes {flights}",
+  "models.requests.owners.message": "Execução {id} · LOAD {load} · enviadas {submitted} · proprietário ativo {live} · registro {checkpoint}",
+  "models.requests.time.message": "Observado {time}",
+  "models.requests.cleared.message": "Todas as etapas estão ausentes e o bloqueio foi removido. Os resultados anteriores são preservados.",
+  "models.requests.recovery.button": "Recuperação forçada do agente",
+  "models.requests.error.message": "As solicitações não foram limpas. O trabalho restante no P4 pode exigir recuperação do agente.",
+  "models.requests.history.message": "A contagem vem da etapa inicial; as pendentes são um subconjunto. As etapas não são somadas. Execuções não liquidadas são contadas separadamente.",
+  "models.requests.inspection.error.message": "Não foi possível consultar as solicitações não resolvidas."
 }

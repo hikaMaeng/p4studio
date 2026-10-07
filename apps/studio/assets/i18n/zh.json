@@ -558,5 +558,21 @@
   "recovery.retry.button": "继续已审查的回收",
   "recovery.current.label": "当前资源证据",
   "recovery.historyPrevious.button": "上一页",
-  "recovery.historyNext.button": "下一页"
+  "recovery.historyNext.button": "下一页",
+  "models.requests.summary.message": "Studio 未结算请求 {unsettled} · P4 首阶段请求 {requests} · 等待 {pending} · 未结算运行 {owners}",
+  "models.requests.unknown.text": "未确认",
+  "models.requests.refresh.button": "查询请求",
+  "models.requests.clear.button": "清理请求",
+  "models.requests.confirm.title": "清理未解决请求",
+  "models.requests.confirm.button": "取消并回收",
+  "models.requests.warning.message": "阻止新请求，取消推理并卸载此模型的所有阶段。只有 P4 确认所有节点不存在后才解除未结算限制。连接已丢失的请求可能需要单独强制回收代理。",
+  "models.requests.cancel.button": "关闭",
+  "models.requests.stage.message": "{node}：请求 {requests} · 等待 {pending} · 所有者 {active} · 批次 {flights}",
+  "models.requests.owners.message": "运行 {id} · LOAD {load} · 已提交 {submitted} · 活跃所有者 {live} · 检查点 {checkpoint}",
+  "models.requests.time.message": "观测时间 {time}",
+  "models.requests.cleared.message": "已确认所有阶段的节点不存在并解除请求限制。之前的运行结果保留。",
+  "models.requests.recovery.button": "强制回收代理",
+  "models.requests.error.message": "请求未清理。P4 中剩余的工作可能需要回收代理。",
+  "models.requests.history.message": "请求数取自首阶段，等待数是其子集。不累加各阶段数量。未结算运行数与请求数分开统计。",
+  "models.requests.inspection.error.message": "无法查询未解决的请求。"
 }

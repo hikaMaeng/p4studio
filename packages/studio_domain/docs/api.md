@@ -1,5 +1,17 @@
 # API
 
+## Model requests
+
+모델 메뉴는 [model-requests DTO](../src/common/protocol/model-requests/index.ts)의 공개 owner metadata와 브라우저 P4 INSPECT를 별도 출처로 표시한다. `GET /api/model-deployments/:id/requests`는 현재 LOAD 및 겹치는 node generation의 미정산 실행을 반환하며 capability/hash를 포함하지 않는다. Studio 요청 수는 원래 실행의 보수적 admitted/settled 체크포인트 차이이며, 종료된 연결·만료 lease는 0으로 바꾸지 않는다. 이전 실행에 체크포인트가 없으면 수는 미확인이다.
+
+`PUT /api/operation-leases/:id/checkpoint`는 원래 owner capability, LOAD generation, 단조 증가 admitted/settled/submitted를 검사한다. wave를 보내기 전에 admitted를 영속화하고 실행 중 주기적으로 진행을 갱신한다. 이는 token 중계나 P4 접수 증명 대신 OUTER의 미정산 보호 기록이다.
+
+P4 request/pending/owner/flight 카운터는 exact node·load identity가 맞는 llama.cpp `work={...}` 진단에서만 읽는다. 현재 일부 runtime은 실행 중 `loaded`만 제공하므로 P4 수는 미확인으로 남는다. pending은 requests의 일부이며 단계별 값은 합산하지 않는다. 조회 실패·오래된 관측·다른 generation은 0이 아니다.
+
+클리어는 모델의 UNLOAD lease로 새 작업을 차단하고 원래 실행 소유자에게 CANCEL을 전달한 뒤 단계별 UNLOAD와 최신 INSPECT를 수행한다. `POST /api/model-deployments/:id/requests/clear`는 same-origin action header, 모델 revision/LOAD, 준비된 배타 lease 및 모든 단계의 30초 이내 부재를 요구한다. 성공은 owner에 clearedAt/clearOperationId를 기록하며 settledAt과 이전 실행 결과를 변경하지 않는다. 다른 모델의 나머지 자원까지 소유한 owner는 부분 해제하지 않는다.
+
+연결을 잃은 요청은 새로운 OUTER의 CANCEL로 취소할 수 없다. busy/failed runtime은 [승인된 에이전트 회수](../../../docs/agent-recovery-plan.md)가 필요하다. 관리 profile 미구성 및 Windows 이외 host 강제 회수는 현재 미지원이며 자동 프로세스 종료를 주장하지 않는다. 제품의 새 public P4 관리 drain 계약이 추가되면 별도 소비자 변경이 필요하다.
+
 ## Agent observations
 
 - [graph-inventory contract](../src/common/protocol/graph-inventory/index.ts) accepts only browser-decoded P4 INSPECT snapshots. A successful observation also records `reachable`, the browser measured `latencyMs`, and probe time on the Studio registration. Failed refreshes remain a UI error and do not overwrite the last successful observation. The server does not issue P4 commands from this route.

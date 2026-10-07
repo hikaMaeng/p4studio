@@ -278,11 +278,19 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
   let stop: (() => void) | undefined;
   let stopError: (() => void) | undefined;
   let lease: Awaited<ReturnType<typeof acquireOperationLease>> | undefined;
+  let checkpointTimer: ReturnType<typeof setInterval> | undefined;
+  let checkpoints = Promise.resolve();
+  const checkpoint = () => {
+    const counts = { admitted: run.ownershipCheckpoint?.admitted ?? 0, settled: run.ownershipCheckpoint?.settled ?? 0, submitted: run.submitted };
+    checkpoints = checkpoints.catch(() => {}).then(() => lease?.checkpoint(counts));
+    return checkpoints;
+  };
   // Keyed by request ID and by PREFILL event ID; one entry per submitted request, dropped with this execution.
   const outputs = new Map<string, OutputOrdinalBuffer>(); const submissions = new Map<string, string>();
   try {
     const topology = await readAgentTopology();
     lease = await acquireOperationLease(model, run.id, "inference", error => { run.error = error.message; void cancellation.cancel(); });
+    checkpointTimer = setInterval(() => { void checkpoint().catch(error => { run.error ??= String(error); }); }, 2000);
     if (cancellation.requested) return;
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
     connection = new BrowserP4Reception(topology, new Map(Object.entries(model.resolvedAddresses)));
@@ -388,6 +396,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
       // Persist a conservative wave checkpoint before any bytes leave. Owner loss
       // between this commit and dispatch remains unknown, never "not submitted".
       cancellation.reserveWave(input.concurrency);
+      await checkpoint();
       await history.checkpoint(run);
       for (let lane = 0; lane < input.concurrency; lane += 1) {
         if (cancellation.requested || run.state !== "running") break;
@@ -407,11 +416,13 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     await waitForRun(run);
   } catch (error) { cancellation.abandonUnsentWave(); if (!cancellation.requested) { run.error = error instanceof Error ? error.message : String(error); if (run.submitted) await cancellation.cancel(); else fail(run, run.error); } }
   finally {
+    clearInterval(checkpointTimer);
     if (cancellation.requested) await cancellation.cancel();
     stop?.(); stopError?.(); await connection?.close();
     try { await history.save(run); } catch (error) { historyError(error); }
     // Only the original generation-bound ledger can retire the durable owner.
     // Connection closure, TTL expiry and unknown cancellation merely release the live lease.
+    try { if (lease) await checkpoint(); } catch (error) { run.error ??= String(error); publish(run); }
     if (cancellation.settled) try { await lease?.settle?.(run.submitted); } catch (error) { run.error ??= String(error); publish(run); }
     try { await lease?.release(); } catch (error) { run.error ??= String(error); publish(run); }
   }

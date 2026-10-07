@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { P4Endpoint, P4Event } from "@p4studio/p4-protocol";
 import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "@p4studio/studio_domain/common";
-vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {} }) }));
+vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {}, checkpoint: async () => {} }) }));
 
 const wire = vi.hoisted(() => ({ events: [] as P4Event[], retained: [] as P4Endpoint[], sentTimes: [] as number[], listeners: new Set<(event: P4Event, at: number) => void>(), holdSession: false, resume: undefined as (() => void) | undefined, closed: false }));
 vi.mock("../../p4/reception.js", () => ({

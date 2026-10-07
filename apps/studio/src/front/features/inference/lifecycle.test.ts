@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { P4Endpoint, P4Event } from "@p4studio/p4-protocol";
 import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE } from "@p4studio/studio_domain/common";
-vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {} }) }));
+vi.mock("../../p4/lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {}, checkpoint: async () => {} }) }));
 
 const wire = vi.hoisted(() => ({ events: [] as P4Event[], listeners: new Set<(event: P4Event, at: number) => void>(), closed: false }));
 vi.mock("../../p4/reception.js", () => ({
@@ -27,7 +27,7 @@ vi.mock("../../p4/inspection.js", () => ({ inspectGraphAgent: async () => { thro
 vi.mock("../models/api.js", () => ({ recordSessionProof: async () => {} }));
 let model: any;
 beforeEach(() => {
-  vi.resetModules(); vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "performance"] });
+  vi.resetModules(); vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance"] });
   wire.events = []; wire.listeners.clear(); wire.closed = false;
   vi.stubGlobal("window", { localStorage: { getItem: () => null, setItem: vi.fn() }, addEventListener: vi.fn(), setTimeout, clearTimeout });
   const stage = { agentId: "agent", nodeGeneration: 9, artifact: "model.gguf", layerStart: 0, layerEnd: 1, binary: "binary", endpoint: "", device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}", loadOptionsJson: JSON.stringify({ resource_profile: { max_input_tokens: 150000, max_request_bytes: 1048576, max_request_retained_bytes: 67108864, max_requests: 20, max_output_tokens_per_request: 100, max_output_tokens: 2000 } }) };

@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { decodeP4Event, encodeP4Event, frameP4Event, type P4Event } from "@p4studio/p4-protocol";
-vi.mock("./lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {} }) }));
+vi.mock("./lease.js", () => ({ acquireOperationLease: async () => ({ release: async () => {}, checkpoint: async () => {} }) }));
 
 class Socket extends EventTarget {
   static OPEN = 1;

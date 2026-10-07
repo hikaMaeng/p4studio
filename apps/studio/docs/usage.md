@@ -66,6 +66,8 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 
 ## Approved Windows recovery
 
+모델 메뉴의 미결 요청 줄은 Studio의 미정산 요청·실행 수와 P4 head의 관측 요청·대기 수를 분리한다. `미결 조회`로 갱신하며 표시되는 수는 관측 시각의 값이다. `요청 클리어`는 확인 후 추론을 취소하고 모델을 언로드한다. 모든 단계의 실제 부재가 확인되어야 미정산 차단을 해제한다. 이전 실행 결과는 보존된다. busy/단절로 실패하면 같은 줄에서 에이전트 회수 화면으로 진입한다. 강제 회수에는 아래 승인 profile이 필요하다.
+
 에이전트 상세의 자원 회수 화면에서 영향 모델, 전후 PID·birth·실행 경로·listener·hash를 검토한다. 강제 회수 뒤 새 agent의 P4 INSPECT를 확인해야 완료된다. 정상 UNLOAD 거부 이력은 성공으로 바꾸지 않는다. 일부 stop 실패는 현재 자원 다시 검토 후 계속할 수 있고, stop 성공/start 실패는 재기동만 재개한다. 브라우저 reload는 같은 operation URL을 복원한다.
 
 P4STUDIO_AGENT_MANAGEMENT는 기본[]인 private JSON 설정이다. 각 항목은 {agentId,host,port,sshHost,sshPort,sshUser,root,task,agentHash,nativeHash,launchHash,identityName}. 등록 agent 좌표와 승인 installation이 정확히 일치해야 한다. root는 전용 Windows 폴더이며 task action은 cmd.exe /c <root>\run-agent.cmd, S4U다. 해시는 관리자 검토 후 환경에 넣는다. client는 원격 shell을 입력하지 않는다.

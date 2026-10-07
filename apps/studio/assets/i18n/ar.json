@@ -558,5 +558,21 @@
   "recovery.retry.button": "متابعة الاسترداد المُراجع",
   "recovery.current.label": "دليل الموارد الحالي",
   "recovery.historyPrevious.button": "السابق",
-  "recovery.historyNext.button": "التالي"
+  "recovery.historyNext.button": "التالي",
+  "models.requests.summary.message": "طلبات Studio غير مسواة {unsettled} · طلبات رأس P4 {requests} · معلقة {pending} · تشغيلات {owners}",
+  "models.requests.unknown.text": "غير معروف",
+  "models.requests.refresh.button": "فحص الطلبات",
+  "models.requests.clear.button": "مسح الطلبات",
+  "models.requests.confirm.title": "مسح الطلبات غير المحسومة",
+  "models.requests.confirm.button": "إلغاء واسترداد",
+  "models.requests.warning.message": "حظر الطلبات الجديدة وإلغاء الاستدلال وتفريغ جميع مراحل النموذج. لا يُرفع الحظر إلا بعد تأكيد P4 غياب كل العقد. قد تتطلب الطلبات ذات الاتصال المفقود استردادًا قسريًا منفصلًا للوكيل.",
+  "models.requests.cancel.button": "إغلاق",
+  "models.requests.stage.message": "{node}: طلبات {requests} · معلقة {pending} · مالكون {active} · دفعات {flights}",
+  "models.requests.owners.message": "تشغيل {id} · LOAD {load} · مرسلة {submitted} · مالك نشط {live} · نقطة تحقق {checkpoint}",
+  "models.requests.time.message": "الرصد {time}",
+  "models.requests.cleared.message": "تأكد غياب جميع المراحل ورُفع حظر الطلبات. تُحفظ نتائج التشغيلات السابقة.",
+  "models.requests.recovery.button": "استرداد الوكيل قسريًا",
+  "models.requests.error.message": "لم تُمسح الطلبات. قد يتطلب العمل المتبقي في P4 استرداد الوكيل.",
+  "models.requests.history.message": "عدد الطلبات من المرحلة الأولى، والمعلقة جزء منه. لا تُجمع أعداد المراحل. تُحسب التشغيلات غير المسواة بصورة مستقلة.",
+  "models.requests.inspection.error.message": "تعذر فحص الطلبات غير المحسومة."
 }

@@ -558,5 +558,21 @@
   "recovery.retry.button": "Continuer la récupération examinée",
   "recovery.current.label": "Preuve actuelle des ressources",
   "recovery.historyPrevious.button": "Précédent",
-  "recovery.historyNext.button": "Suivant"
+  "recovery.historyNext.button": "Suivant",
+  "models.requests.summary.message": "Requêtes non soldées Studio {unsettled} · requêtes de tête P4 {requests} · attente {pending} · exécutions {owners}",
+  "models.requests.unknown.text": "Inconnu",
+  "models.requests.refresh.button": "Inspecter les requêtes",
+  "models.requests.clear.button": "Vider les requêtes",
+  "models.requests.confirm.title": "Vider les requêtes non résolues",
+  "models.requests.confirm.button": "Annuler et récupérer",
+  "models.requests.warning.message": "Bloque les nouvelles requêtes, annule l’inférence et décharge toutes les étapes du modèle. Le blocage est levé uniquement après confirmation par P4 de l’absence de tous les nœuds. Une connexion perdue peut nécessiter une récupération forcée de l’agent.",
+  "models.requests.cancel.button": "Fermer",
+  "models.requests.stage.message": "{node} : requêtes {requests} · attente {pending} · propriétaires {active} · lots {flights}",
+  "models.requests.owners.message": "Exécution {id} · LOAD {load} · soumises {submitted} · propriétaire actif {live} · point de contrôle {checkpoint}",
+  "models.requests.time.message": "Observé à {time}",
+  "models.requests.cleared.message": "Toutes les étapes sont absentes et le blocage est levé. Les résultats précédents sont conservés.",
+  "models.requests.recovery.button": "Récupération forcée de l’agent",
+  "models.requests.error.message": "Les requêtes n’ont pas été vidées. Le travail restant dans P4 peut nécessiter une récupération de l’agent.",
+  "models.requests.history.message": "Le nombre de requêtes vient de la tête ; celles en attente en sont une partie. Les étapes ne sont pas additionnées. Les exécutions non soldées sont comptées séparément.",
+  "models.requests.inspection.error.message": "Impossible d’inspecter les requêtes non résolues."
 }

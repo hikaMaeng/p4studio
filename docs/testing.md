@@ -1,5 +1,7 @@
 # Testing
 
+모델 미결 요청은 [관측 회귀 시험](../packages/studio_domain/src/front/model/model-requests/work.test.ts), [owner·클리어 API 회귀 시험](../apps/studio/src/server/operations/model-requests.test.ts)에서 foreign capability/generation, 오래된·부분 부재, lease 없는 클리어, 단조 checkpoint, 비밀 노출 및 정산을 꾸미지 않는 회수를 검사한다. [브라우저 시나리오](../tests/browser/inference-cancellation.mjs)는 모델 메뉴의 조회·확인·원래 소유자 CANCEL·UNLOAD·전체 부재 후 클리어와 busy 거부 후 오류·owner 보존을 검사한다. 모사 시험과 실기 결과를 구분한다.
+
 ```powershell
 npm run typecheck
 npm test

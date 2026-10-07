@@ -558,5 +558,21 @@
   "recovery.retry.button": "검토한 자원 회수 계속",
   "recovery.current.label": "다시 확인한 자원",
   "recovery.historyPrevious.button": "이전",
-  "recovery.historyNext.button": "다음"
+  "recovery.historyNext.button": "다음",
+  "models.requests.summary.message": "Studio 미정산 요청 {unsettled} · P4 head 요청 {requests} · 대기 {pending} · 미정산 실행 {owners}",
+  "models.requests.unknown.text": "미확인",
+  "models.requests.refresh.button": "미결 조회",
+  "models.requests.clear.button": "요청 클리어",
+  "models.requests.confirm.title": "미결 요청 클리어",
+  "models.requests.confirm.button": "취소 및 회수",
+  "models.requests.warning.message": "이 모델의 새 요청을 차단하고 실행 중인 추론을 취소한 뒤 모든 단계의 노드를 언로드합니다. 노드 부재가 확인된 경우에만 미정산 차단을 해제합니다. 연결을 잃은 요청은 별도 에이전트 강제 회수가 필요할 수 있습니다.",
+  "models.requests.cancel.button": "닫기",
+  "models.requests.stage.message": "{node}: 요청 {requests} · 대기 {pending} · 소유 중 {active} · 배치 {flights}",
+  "models.requests.owners.message": "실행 {id} · LOAD {load} · 제출 {submitted} · 활성 소유자 {live} · 체크포인트 {checkpoint}",
+  "models.requests.time.message": "관측 {time}",
+  "models.requests.cleared.message": "모든 단계의 노드 부재를 확인하고 요청 차단을 해제했습니다. 이전 실행의 결과는 보존됩니다.",
+  "models.requests.recovery.button": "에이전트 강제 회수",
+  "models.requests.error.message": "클리어하지 못했습니다. P4 작업이 남아 있으면 에이전트 회수가 필요합니다.",
+  "models.requests.history.message": "요청 수는 head 기준이며 대기는 그 일부입니다. 단계별 수를 합산하지 않습니다. 미정산 실행은 요청 수와 별개입니다.",
+  "models.requests.inspection.error.message": "미결 요청을 조회하지 못했습니다."
 }

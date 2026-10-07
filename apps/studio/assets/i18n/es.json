@@ -558,5 +558,21 @@
   "recovery.retry.button": "Continuar recuperación revisada",
   "recovery.current.label": "Prueba actual de recursos",
   "recovery.historyPrevious.button": "Anterior",
-  "recovery.historyNext.button": "Siguiente"
+  "recovery.historyNext.button": "Siguiente",
+  "models.requests.summary.message": "Solicitudes sin liquidar en Studio {unsettled} · solicitudes de cabecera P4 {requests} · pendientes {pending} · ejecuciones {owners}",
+  "models.requests.unknown.text": "Desconocido",
+  "models.requests.refresh.button": "Consultar solicitudes",
+  "models.requests.clear.button": "Limpiar solicitudes",
+  "models.requests.confirm.title": "Limpiar solicitudes sin resolver",
+  "models.requests.confirm.button": "Cancelar y recuperar",
+  "models.requests.warning.message": "Bloquea nuevas solicitudes, cancela la inferencia y descarga todas las etapas del modelo. El bloqueo se retira solo si P4 confirma que todos los nodos están ausentes. Las conexiones perdidas pueden requerir recuperación forzada del agente.",
+  "models.requests.cancel.button": "Cerrar",
+  "models.requests.stage.message": "{node}: solicitudes {requests} · pendientes {pending} · propietarios {active} · lotes {flights}",
+  "models.requests.owners.message": "Ejecución {id} · LOAD {load} · enviadas {submitted} · propietario activo {live} · registro {checkpoint}",
+  "models.requests.time.message": "Observado {time}",
+  "models.requests.cleared.message": "Todas las etapas están ausentes y el bloqueo se retiró. Se conservan los resultados anteriores.",
+  "models.requests.recovery.button": "Recuperación forzada del agente",
+  "models.requests.error.message": "Las solicitudes no se limpiaron. El trabajo restante en P4 puede requerir recuperar el agente.",
+  "models.requests.history.message": "El número de solicitudes corresponde a la cabecera; las pendientes son un subconjunto. No se suman las etapas. Las ejecuciones sin liquidar son una cuenta separada.",
+  "models.requests.inspection.error.message": "No se pudieron consultar las solicitudes sin resolver."
 }

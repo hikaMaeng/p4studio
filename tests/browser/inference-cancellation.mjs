@@ -24,12 +24,22 @@ async function scenario(name, mode, work) {
   const context = await browser.newContext({ viewport: { width: 1535, height: 1000 }, locale: "ko-KR" });
   await context.addInitScript(() => localStorage.setItem("p4studio.language", "ko"));
   const page = await context.newPage(), errors = [], sent = [], requests = new Map(), nodes = new Set(["head", "tail"]);
-  let record = fixture();
+  let record = fixture(), ownerCleared = false;
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
   await context.route(`${url}/api/**`, async route => {
     const pathname = new URL(route.request().url()).pathname;
     let body = {};
+    if (pathname.endsWith("/requests/clear")) {
+      assert.equal(route.request().headers()["x-p4studio-action"], "clear-model-requests");
+      assert.equal(route.request().postDataJSON().loadGeneration, 42);
+      if (nodes.size) { await route.fulfill({ status: 409, json: { error: { message: "Fresh P4 absence on every model stage is required; pending work was not cleared" } } }); return; }
+      ownerCleared = true; await route.fulfill({ status: 204 }); return;
+    }
+    if (pathname.endsWith("/requests")) {
+      const session = requests.values().next().value?.body.session_id;
+      await route.fulfill({ json: { owners: session && !ownerCleared ? [{ operationId: session, modelId, loadGeneration: 42, startedAt: record.createdAt, live: true, submitted: requests.size, pending: requests.size, checkpointAt: new Date().toISOString() }] : [], observedAt: new Date().toISOString() } }); return;
+    }
     if (pathname.startsWith("/api/operation-leases")) {
       if (route.request().method() === "DELETE") { await route.fulfill({ status: 204 }); return; }
       await route.fulfill({ json: { operationId: route.request().postDataJSON()?.operationId ?? pathname.split("/")[3], expiresAt: Date.now() + 30000, ready: true } }); return;
@@ -79,8 +89,8 @@ async function scenario(name, mode, work) {
           const metadata = decodeLifecycleMetadata(event.payload).metadata;
           assert.equal(sent.filter(value => value.contentType.includes("cancel-v1")).length, 2);
           assert(Date.now() - sent.find(value => value.contentType.includes("cancel-v1")).at >= 600, "UNLOAD must wait for cancellation receipts");
-          nodes.delete(metadata.node_id);
-          const body = encodeLifecycleMetadata({ schema: 1, operation: "unload", node_id: metadata.node_id, node_generation: 9, adapter_kind: "llamacpp", status: "succeeded", resource_state: "absent", adapter_content_type: "application/vnd.p4.llamacpp.unloaded-v3+json", first_error: null, cleanup_error: null }, text({ load_generation: 42 }));
+          if (mode !== "busy") nodes.delete(metadata.node_id);
+          const body = encodeLifecycleMetadata({ schema: 1, operation: "unload", node_id: metadata.node_id, node_generation: 9, adapter_kind: "llamacpp", status: mode === "busy" ? "rejected" : "succeeded", resource_state: mode === "busy" ? "present" : "absent", adapter_content_type: "application/vnd.p4.llamacpp.unloaded-v3+json", first_error: mode === "busy" ? 'unload is busy;work={"requests":2,"pending":1}' : null, cleanup_error: null }, text({ load_generation: 42 }));
           send(response(event, NODE_LIFECYCLE_RESULT_CONTENT_TYPE, body, 0, event.target, null));
         }
       }
@@ -98,8 +108,9 @@ async function scenario(name, mode, work) {
     await page.getByRole("button", { name: "질의 전송", exact: true }).click();
     await expect(page.getByTestId("inference-run-stop")).toBeVisible();
     await work({ page, capture, count, run });
-    assert.deepEqual(errors, []);
-    results.push({ name, status: "passed", sent });
+    const expectedConsoleErrors = mode === "busy" ? ["Failed to load resource: the server responded with a status of 409 (Conflict)"] : [];
+    assert.deepEqual(errors, expectedConsoleErrors);
+    results.push({ name, status: "passed", sent, expectedConsoleErrors });
   } catch (error) { await capture("failure"); await fs.writeFile(path.join(out, `${name}-failure.txt`), JSON.stringify({ errors, text: await page.locator("body").innerText() }, null, 2)); throw error; }
   finally { await context.close(); }
 }
@@ -134,6 +145,27 @@ try {
     await page.getByTestId("model-row").getByRole("button", { name: "모델 언로딩", exact: true }).click();
     await expect(page.getByTestId("model-row-status")).toContainText("언로딩 완료");
     assert.equal(count("cancel-v1"), 2); assert.equal(count("prefill-v3"), 2); assert.equal(count("node.unload"), 2); assert.equal((await run()).state, "cancelled"); await capture("unloaded");
+  });
+  await scenario("model-request-clear", "streaming", async ({ page, count, run, capture }) => {
+    await expect.poll(() => count("prefill-v3")).toBe(2);
+    await page.getByRole("button", { name: "모델", exact: true }).click();
+    await expect(page.getByTestId("model-pending-summary")).toContainText("Studio 미정산 요청 2");
+    await page.getByTestId("model-requests-clear").click();
+    await expect(page.getByRole("dialog")).toContainText("모든 단계의 노드를 언로드");
+    await page.getByTestId("model-requests-clear-confirm").click();
+    await expect(page.getByTestId("model-pending-requests")).toContainText("모든 단계의 노드 부재를 확인하고 요청 차단을 해제했습니다");
+    await expect(page.getByTestId("model-pending-summary")).toContainText("미정산 실행 0");
+    assert.equal(count("cancel-v1"), 2); assert.equal(count("node.unload"), 2); assert.equal((await run()).state, "cancelled");
+    await capture("cleared");
+  });
+  await scenario("model-request-clear-busy", "busy", async ({ page, count, capture }) => {
+    await expect.poll(() => count("prefill-v3")).toBe(2);
+    await page.getByRole("button", { name: "모델", exact: true }).click();
+    await page.getByTestId("model-requests-clear").click(); await page.getByTestId("model-requests-clear-confirm").click();
+    await expect(page.getByTestId("model-pending-requests").getByRole("alert")).toContainText("pending work was not cleared");
+    await expect(page.getByTestId("model-pending-summary")).toContainText("미정산 실행 1");
+    await expect(page.getByTestId("model-pending-requests")).not.toContainText("모든 단계의 노드 부재를 확인하고 요청 차단을 해제했습니다");
+    assert.equal(count("cancel-v1"), 2); assert.equal(count("node.unload"), 2); await capture("busy-preserved");
   });
   await scenario("node-unload", "streaming", async ({ page, count, run, capture }) => {
     await expect.poll(() => count("prefill-v3")).toBe(2); await page.getByRole("button", { name: "에이전트", exact: true }).click();

@@ -16,3 +16,5 @@ export * from "./model/agent-groups/store.js";
 export { reconcileDeployment, hasObservedNoNodes } from "./model/deployments/reconcile.js";
 export * from "./model/recovery/store.js";
 export * from "./model/deployments/history.js";
+export * from "./model/model-requests/store.js";
+export * from "./model/model-requests/work.js";

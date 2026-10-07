@@ -12,6 +12,7 @@ import { RSC } from "./resource.js";
 import { studioApi } from "../../shared/api/client.js";
 import { Icon } from "../../shared/components/Icon.js";
 import { MenuHeader } from "../../shared/components/MenuHeader.js";
+import { PendingRequests } from "./pending-requests/PendingRequests.js";
 
 import { navigate } from "../../shell/routes.js";
 
@@ -93,6 +94,7 @@ export function ModelsView({ snapshot, selectedModelId, editor, onOpenModel, onC
       </Box>
       {progressKey && <Box role="status" sx={{ px: 1.5, pb: .75 }}><Typography variant="caption">{t[progressKey]}</Typography><LinearProgress aria-label={t[progressKey]} /></Box>}
       {issues.length > 0 && <Alert severity="warning" data-testid="model-action-issues" sx={{ py: 0 }}>{issues.join(" · ")}</Alert>}
+      <PendingRequests record={record} busy={busy} agentNames={Object.fromEntries(inventory.agents.map(agent => [agent.id, agent.name]))} />
       <Collapse id={detailsId} data-testid="model-row-details" in={expanded} timeout="auto" unmountOnExit>
       {previousLoadUnknown && <Alert severity="info" data-testid="model-load-history">{t[RSC.MODELS_PREVIOUS_LOAD_UNKNOWN_MESSAGE]}</Alert>}
       {noNodes && record.error && <Alert severity="warning">{record.error}</Alert>}

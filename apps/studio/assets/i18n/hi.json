@@ -558,5 +558,21 @@
   "recovery.retry.button": "समीक्षित पुनर्प्राप्ति जारी रखें",
   "recovery.current.label": "वर्तमान संसाधन प्रमाण",
   "recovery.historyPrevious.button": "पिछला",
-  "recovery.historyNext.button": "अगला"
+  "recovery.historyNext.button": "अगला",
+  "models.requests.summary.message": "Studio अनिपटाए अनुरोध {unsettled} · P4 हेड अनुरोध {requests} · लंबित {pending} · रन {owners}",
+  "models.requests.unknown.text": "अज्ञात",
+  "models.requests.refresh.button": "अनुरोध जाँचें",
+  "models.requests.clear.button": "अनुरोध साफ़ करें",
+  "models.requests.confirm.title": "अनसुलझे अनुरोध साफ़ करें",
+  "models.requests.confirm.button": "रद्द करें और संसाधन वापस लें",
+  "models.requests.warning.message": "नए अनुरोध रोकें, इन्फरेंस रद्द करें और इस मॉडल के सभी चरण अनलोड करें। P4 द्वारा सभी नोड अनुपस्थित होने की पुष्टि के बाद ही रोक हटती है। खोए हुए कनेक्शन के अनुरोधों के लिए एजेंट की अलग बलपूर्वक रिकवरी आवश्यक हो सकती है।",
+  "models.requests.cancel.button": "बंद करें",
+  "models.requests.stage.message": "{node}: अनुरोध {requests} · लंबित {pending} · स्वामी {active} · बैच {flights}",
+  "models.requests.owners.message": "रन {id} · LOAD {load} · भेजे गए {submitted} · सक्रिय स्वामी {live} · चेकपॉइंट {checkpoint}",
+  "models.requests.time.message": "अवलोकन {time}",
+  "models.requests.cleared.message": "सभी चरण अनुपस्थित हैं और अनुरोध रोक हटा दी गई है। पिछले रन के परिणाम सुरक्षित हैं।",
+  "models.requests.recovery.button": "एजेंट की बलपूर्वक रिकवरी",
+  "models.requests.error.message": "अनुरोध साफ़ नहीं हुए। P4 में बचे काम के लिए एजेंट रिकवरी आवश्यक हो सकती है।",
+  "models.requests.history.message": "अनुरोध संख्या हेड चरण से है; लंबित उसका हिस्सा हैं। चरणों की संख्याएँ नहीं जोड़ी जातीं। अनिपटाए रन अलग गिने जाते हैं।",
+  "models.requests.inspection.error.message": "अनसुलझे अनुरोधों की जाँच नहीं हो सकी।"
 }

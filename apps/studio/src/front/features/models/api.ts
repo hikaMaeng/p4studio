@@ -1,4 +1,4 @@
-import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, canStartLoad, runBrowserDeployment, validateDeploymentLoad, type DeploymentRecord } from "@p4studio/studio_domain/common";
+import { deploymentRoutes, parseDeployment, parseDeploymentList, prepareDeploymentLoad, canStartDeployment, canStartLoad, runBrowserDeployment, validateDeploymentLoad, modelRequestRoutes, type DeploymentRecord } from "@p4studio/studio_domain/common";
 import { deployments, reconcileDeployment, inferenceExecutions, type DeploymentGateway } from "@p4studio/studio_domain/front";
 import type { P4AgentSnapshot } from "@p4studio/p4-protocol";
 import { inspectGraphAgent } from "../../p4/inspection.js";
@@ -78,7 +78,7 @@ export async function recordSessionProof(modelId: string, sessionId: string, che
   await receipt(record, record.updatedAt, signal);
 }
 
-async function operateInBrowser(id: string, action: "load" | "unload", expectedLoadGeneration?: number): Promise<DeploymentRecord> {
+async function operateInBrowser(id: string, action: "load" | "unload", expectedLoadGeneration?: number, clearRequests = false): Promise<DeploymentRecord> {
   const record = (await gateway.list()).find(value => value.id === id);
   if (!record) throw new Error("Model deployment was not found");
   if (expectedLoadGeneration !== undefined && (expectedLoadGeneration <= 0 || record.loadGeneration !== expectedLoadGeneration)) {
@@ -87,16 +87,16 @@ async function operateInBrowser(id: string, action: "load" | "unload", expectedL
   if (action === "load") {
     if (!canStartLoad(record)) throw new Error("Inspect the placement and resolve any currently owned nodes before loading again");
     validateDeploymentLoad(record);
-  } else if (!record.loadGeneration || ["draft", "unloaded"].includes(record.status)) throw new Error("No load operation to unload");
+  } else if (!clearRequests && (!record.loadGeneration || ["draft", "unloaded"].includes(record.status))) throw new Error("No load operation to unload");
   return action === "unload" ? inferenceExecutions.unload(record, async () => {
     const current = (await gateway.list()).find(value => value.id === record.id);
     if (!current || current.loadGeneration !== record.loadGeneration || current.stages.length !== record.stages.length
       || record.stages.some(stage => !current.stages.some(value => value.id === stage.id && value.agentId === stage.agentId && value.nodeId === stage.nodeId && value.nodeGeneration === stage.nodeGeneration))) throw new Error("Model placement changed while stopping inference; inspect before unloading");
-    return operatePrepared(current, action);
+    return operatePrepared(current, action, clearRequests);
   }) : operatePrepared(record, action);
 }
 
-async function operatePrepared(record: DeploymentRecord, action: "load" | "unload"): Promise<DeploymentRecord> {
+async function operatePrepared(record: DeploymentRecord, action: "load" | "unload", clearRequests = false): Promise<DeploymentRecord> {
   const topology = await readAgentTopology();
   const addresses = action === "unload" ? new Map(Object.entries(record.resolvedAddresses)) : new Map(topology.agents.map(agent => [agent.id, agentAddress(agent)]));
   const connection = new BrowserP4Reception(topology, addresses);
@@ -117,9 +117,28 @@ async function operatePrepared(record: DeploymentRecord, action: "load" | "unloa
     serverRevision = saved.updatedAt;
   }); }
   catch (error) { record.status = "unknown"; record.error = error instanceof Error ? error.message : String(error); await receipt(record, serverRevision); }
+  if (clearRequests) {
+    const observed = await gateway.reconcile(record.id);
+    // Keep the model fence until the server commits fresh, exact-stage absence.
+    const response = await fetch(modelRequestRoutes.clear.path.replace(":id", encodeURIComponent(record.id)), {
+      method: modelRequestRoutes.clear.method, signal: AbortSignal.timeout(10_000), headers: { "Content-Type": "application/json", "x-p4studio-action": "clear-model-requests" },
+      body: JSON.stringify({ operationId: connection.operationId, loadGeneration: observed.loadGeneration, expectedUpdatedAt: observed.updatedAt }),
+    });
+    if (!response.ok) {
+      const value: unknown = await response.json(), detail = value && typeof value === "object" && "error" in value ? value.error : null;
+      throw new Error(detail && typeof detail === "object" && "message" in detail ? String(detail.message) : `HTTP ${response.status}`);
+    }
+    return observed;
+  }
   return record;
   } finally { await lease.release(); }
 }
+export const clearModelRequests = async (record: DeploymentRecord) => {
+  if (deployments.tasks.value.has(record.id)) throw new Error("Another operation owns this model");
+  deployments.tasks.mutate(tasks => { tasks.set(record.id, "unload"); });
+  try { await operateInBrowser(record.id, "unload", record.loadGeneration || undefined, true); }
+  finally { deployments.tasks.mutate(tasks => { tasks.delete(record.id); }); await deployments.refresh(); }
+};
 let restartReconciliation: Promise<void> | undefined;
 export const startModels = () => {
   deployments.start(gateway);

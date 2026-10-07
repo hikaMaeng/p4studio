@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { DeploymentRecord } from "@p4studio/studio_domain/common";
+import { modelRequestRoutes, type DeploymentRecord } from "@p4studio/studio_domain/common";
 const proof = z.object({ operationId: z.string(), expiresAt: z.number(), ready: z.boolean() });
 async function request(path: string, method: string, body?: unknown) {
   const response = await fetch(path, { method, signal: AbortSignal.timeout(10_000), headers: { "Content-Type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -26,7 +26,10 @@ export async function acquireOperationLease(record: DeploymentRecord, operationI
       await new Promise(resolve => window.setTimeout(resolve, 250));
       result = await request(`/api/operation-leases/${encodeURIComponent(operationId)}`, "GET");
     }
-    return { release, settle: async (submitted: number) => {
+    return { release, checkpoint: async (counts: { admitted: number; settled: number; submitted: number }) => {
+      if (action !== "inference") throw new Error("Only the original inference owner can record request progress");
+      await request(modelRequestRoutes.checkpoint.path.replace(":id", encodeURIComponent(operationId)), modelRequestRoutes.checkpoint.method, { ownerToken, loadGeneration: record.loadGeneration, ...counts });
+    }, settle: async (submitted: number) => {
       if (action !== "inference") throw new Error("Only the original inference owner can record request settlement");
       await request(`/api/operation-leases/${encodeURIComponent(operationId)}/settlement`, "PUT", { ownerToken, loadGeneration: record.loadGeneration, pendingSettlement: 0, submitted });
     } };

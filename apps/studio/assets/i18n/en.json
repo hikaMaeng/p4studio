@@ -558,5 +558,21 @@
   "recovery.retry.button": "Continue reviewed recovery",
   "recovery.current.label": "Current resource proof",
   "recovery.historyPrevious.button": "Previous",
-  "recovery.historyNext.button": "Next"
+  "recovery.historyNext.button": "Next",
+  "models.requests.summary.message": "Studio unsettled requests {unsettled} · P4 head requests {requests} · pending {pending} · unsettled runs {owners}",
+  "models.requests.unknown.text": "Unknown",
+  "models.requests.refresh.button": "Inspect requests",
+  "models.requests.clear.button": "Clear requests",
+  "models.requests.confirm.title": "Clear unresolved requests",
+  "models.requests.confirm.button": "Cancel and reclaim",
+  "models.requests.warning.message": "Block new requests, cancel inference and unload every stage of this model. The unsettled fence is retired only after P4 confirms every node absent. Requests whose connection was lost may require separate forced agent recovery.",
+  "models.requests.cancel.button": "Close",
+  "models.requests.stage.message": "{node}: requests {requests} · pending {pending} · owners {active} · batches {flights}",
+  "models.requests.owners.message": "Run {id} · LOAD {load} · submitted {submitted} · live owner {live} · checkpoint {checkpoint}",
+  "models.requests.time.message": "Observed {time}",
+  "models.requests.cleared.message": "Every stage is absent and the request fence was retired. Previous run outcomes are preserved.",
+  "models.requests.recovery.button": "Force agent recovery",
+  "models.requests.error.message": "Requests were not cleared. Remaining P4 work may require agent recovery.",
+  "models.requests.history.message": "The request count is from the head; pending is a subset. Counts across stages are not added. Unsettled runs are separate from request counts.",
+  "models.requests.inspection.error.message": "Could not inspect unresolved requests."
 }
