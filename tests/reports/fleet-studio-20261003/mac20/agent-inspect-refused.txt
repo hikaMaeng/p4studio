@@ -1,6 +1,0 @@
-Browser tab: 1233221767, Title: "P4 Studio", URL: "http://localhost:43120/agents/00efb873-fc0b-4dcb-bf74-ce51d4eaeffa".
-The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
-~					35 button 정보 새로고침
-+				79 container
-+					80 text P4 조회 실패 connect ECONNREFUSED 192.168.0.20:52000
-The focused UI element is 0 AXWebArea P4 Studio, URL: localhost:43120/agents/00efb873-fc0b-4dcb-bf74-ce51d4eaeffa

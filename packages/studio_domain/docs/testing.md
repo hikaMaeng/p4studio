@@ -1,6 +1,6 @@
 # Testing
 
-- [cancellation/control.test.ts](../src/front/model/inference/cancellation/control.test.ts): 정확한 PREFILL당 단일 CANCEL, 완료 요청 보존, RELEASE/terminal 역순·늦은 OUTPUT prefix, 큐 취소 거부, stale identity 거부, 정산 불명, 자연 완료 경합, 공유 노드 UNLOAD barrier와 SESSION proof 저장 경합을 검사한다. [store.test.ts](../src/front/model/inference/store.test.ts)는 진행 중 삭제 금지와 취소 중 구독 유지의 소비 경로를 검사한다. [계획](../../../tests/plans/inference-cancellation-20261005.md).
+- [cancellation/control.test.ts](../src/front/model/inference/cancellation/control.test.ts): 정확한 PREFILL당 단일 CANCEL, 완료 요청 보존, RELEASE/terminal 역순·늦은 OUTPUT prefix, 큐 취소 거부, stale identity 거부, 정산 불명, 자연 완료 경합, 공유 노드 UNLOAD barrier와 SESSION proof 저장 경합을 검사한다. [store.test.ts](../src/front/model/inference/store.test.ts)는 진행 중 삭제 금지와 취소 중 구독 유지의 소비 경로를 검사한다.
 
 - [reconcile.test.ts](../src/front/model/deployments/reconcile.test.ts): INSPECT의 loaded를 ready로 승격하지 않음, absent/empty 미적재, 부분 접속 실패, 노드 세대·adapter 불일치, 전환 상태, worker 정지, 이전 LOAD 근거 보존. [상태 조회 계약](api.md#model-refresh).
 
@@ -30,4 +30,4 @@ P4 wire 호환은 [protocol testing](../../p4-protocol/docs/testing.md), 화면�
 
 [routing.test.ts](../src/common/protocol/agent-groups/routing.test.ts)는 그룹별 gateway 선택, 비소속 직접 경로, 누락/다중 소속 거부를 검증한다. 실제 HTTP·browser·bridge 소비 경로는 [Studio tests](../../../apps/studio/docs/testing.md#gateway-group-verification)와 연결한다.
 
-수명 codec·browser runtime·단절/부분 실패 회수와 UI 검증은 [노드 수명 계획](../../../tests/plans/node-lifecycle-20260916.md)을 따른다.
+수명 codec·browser runtime·단절/부분 실패 회수와 UI 검증은 [노드 수명 검증 계약](../../../docs/testing.md)을 따른다.

@@ -1,11 +1,46 @@
+# Dependencies, builds and caches
 node_modules/
 dist/
 .turbo/
+.vite/
+.cache/
 coverage/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+
+# Local runtime state and credentials
 data/
-tests/artifacts/
-/test/
-apps/studio/docker/volumes/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+apps/studio/docker/volumes/*
+!apps/studio/docker/volumes/.gitkeep
 .env
 .env.*
+
+# Generated model files and temporary investigations
+/target/
+/tmp/
+/temp/
+*.gguf
+*.safetensors
+
+# Run history stays local; keep reusable test code outside these directories.
+/test/
+/tests/plans/
+/tests/reports/
+/tests/artifacts/
+/tests/results/
+test-results/
+playwright-report/
+blob-report/
 *.log
+*.log.*
+npm-debug.log*
+
+# Machine-local metadata
+.DS_Store
+Thumbs.db

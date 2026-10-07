@@ -1,1 +1,0 @@
-src/front/p4/connection.test.ts > waits for a framed FINISH ACK, including split and coalesced bytes, before closing

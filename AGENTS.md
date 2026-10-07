@@ -68,6 +68,13 @@ rg -n 'LoadCommand|SessionCommand|CONTENT_TYPE' F:/dev/p4/layers/adapters/llamac
 
 ## 저장소 규칙과 검증
 
+### Git 추적 범위
+
+- 제품 소스, 구성·잠금 파일, 현재 계약 문서, 재사용 가능한 회귀 시험·고정 fixture만 추적한다. 브라우저 시험 코드는 `tests/browser/`, 격리 연동 시험은 `tests/integration/`, headless 시나리오는 `tests/headless/`에 둔다.
+- `target/`, `test/`, `tests/plans/`, `tests/reports/`, `tests/artifacts/`, `tests/results/`의 일회성 계획·실행 보고·스냅샷·로그·스크린샷·trace·압축 파일은 로컬 자료다. 장기 검증 조건은 `docs/testing.md`와 패키지 testing 문서에 유지한다.
+- 사용자의 단순 테스트 이력 제외 지시가 skill의 보고서 작성·보존 지침보다 우선한다. 보고서는 무시된 로컬 경로에 쓸 수 있으나 `git add -f`로 추적하지 않는다. 전체 커밋 요청도 `.gitignore`를 우회하는 근거가 아니다.
+- 무시 규칙 추가와 기존 파일의 추적 해제를 함께 확인한다. 재사용 코드·fixture를 생성물과 같이 제외하지 않는다. 원격 binary·모델 파일과 SQLite·SSH·환경 비밀은 추적하지 않는다.
+
 작업 분야에 맞는 `.codex/skills/` 지침을 적용한다. 모노레포는 현재 루트 `package.json`의 **npm workspaces + Turbo**, 정확한 버전과 패키지 경계를 따른다. 과거 세션의 pnpm 설정을 복원하지 않는다. React는 Model Render와 최소 slice 구독, 표시 문자열은 번역 resource key, Docker 실행·배포는 루트 단일 진입점 계약을 따른다.
 
 - 프로토콜 수정은 Rust wire/fixture와의 바이트 호환, 크기·버전·identity 거부, 분할 수신·timeout 뒤 버퍼 보존 등 변경한 계약을 검사한다. TypeScript encode/decode 자체 왕복만으로 P4 호환을 증명하지 않는다.

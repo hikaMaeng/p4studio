@@ -14,7 +14,7 @@
 
 이 문서는 P4 Studio가 OUTER로 구현해야 할 책임과 `F:/dev/p4`에서 계약을 찾는 경로를 정리한다. 작업 규칙은 [AGENTS.md](../AGENTS.md), Studio 내부 구조는 [architecture.md](architecture.md)가 소유한다. P4 명세를 복제하는 문서가 아니다.
 
-2026-10-03 경량 브로커 계약 대조: P4 HEAD `4b62e3e4aef1f265de0235dd0141f95feb3a1338`, clean. 직전 대조(`945fc359`) 이후 Studio가 소비하는 계약의 변경과 적용은 다음과 같다. 이 HEAD로 빌드한 agent에 대한 실기 결과는 [검증 보고서](../tests/reports/p4-latest-contract/20261003_135500.md)가 소유한다.
+2026-10-03 경량 브로커 계약 대조: P4 HEAD `4b62e3e4aef1f265de0235dd0141f95feb3a1338`, clean. 직전 대조(`945fc359`) 이후 Studio가 소비하는 계약의 변경과 적용은 다음과 같다. 실제 agent 연동 수용은 [검증 계약](testing.md)에 따라 별도로 판정한다.
 
 | P4 변경 | 근거 | Studio 적용 |
 | --- | --- | --- |
@@ -27,7 +27,7 @@
 | `resource_profile` version 2: OUTER footprint 3종과 `outer_token_issue_window` 필수, completion store가 모든 예약을 동시에 담아야 한다 | [resource_profile.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/resource_profile.rs), [lifecycle.rs](../../p4/tools/event-drive/src/run/lifecycle.rs) | [resource-profile.ts](../packages/studio_domain/src/common/protocol/deployments/resource-profile.ts)가 LOAD 직전에 검증하고 `retained_bytes`를 산정한다. [노드 수명](node-lifecycle.md) |
 | LOAD의 `binary`는 agent의 `P4_STAGED_SERVER_BINARY`와 같은 경로여야 한다 | [event-protocol-v2.md](../../p4/docs/event-protocol-v2.md) Load | Studio는 agent 설정을 읽을 수 없으므로 검증하지 않는다. 불일치는 P4의 LOAD 거부로 드러난다 |
 
-2026-10-05 요청 취소 대조: P4 HEAD `ee4979a3c2f6f92c048ca70d5d8b1238e39876c2`의 현재 [CancelCommand](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs), [worker cancel](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/cancel.rs), [completion payload](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs)와 `tools/event-drive` 생산자·시험을 확인했다. Studio는 원래 PREFILL의 OUTER 연결에서 first-stage node로 `cancel-v1`을 발행하고 `error-v2` 및 `release-receipt-v1`을 소비한다. `LLAMA_REQUEST_CANCELLED`의 `native_kv_stop_proven=false`는 즉각적인 native/KV 정지 증명이 아니다. [Studio 적용·소비자](../packages/studio_domain/docs/api.md#inference-cancellation), [검증 계획](../tests/plans/inference-cancellation-20261005.md). 이번 대조는 실제 GPU 취소 시험이 아니다.
+2026-10-05 요청 취소 대조: P4 HEAD `ee4979a3c2f6f92c048ca70d5d8b1238e39876c2`의 현재 [CancelCommand](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs), [worker cancel](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/cancel.rs), [completion payload](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs)와 `tools/event-drive` 생산자·시험을 확인했다. Studio는 원래 PREFILL의 OUTER 연결에서 first-stage node로 `cancel-v1`을 발행하고 `error-v2` 및 `release-receipt-v1`을 소비한다. `LLAMA_REQUEST_CANCELLED`의 `native_kv_stop_proven=false`는 즉각적인 native/KV 정지 증명이 아니다. [Studio 적용·소비자](../packages/studio_domain/docs/api.md#inference-cancellation), [검증 계약](testing.md). 이번 대조는 실제 GPU 취소 시험이 아니다.
 
 `SchedulingSnapshot.outer_token`은 passthrough로 보존만 한다. event ID는 이전부터 `crypto.randomUUID()`이며 P4는 형식을 검사하지 않는다.
 
@@ -143,6 +143,6 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 
 ### 2026-10-05 확정 연결 수명 후속
 
-대조 소스: P4 `0daad9977` ([실행 기록](../../p4/tests/reports/connection-teardown/20261005_132657.md)). M42 원격 기본 agent112PASS와3개 독립 변이가 통과했다. 전체 workspace는 같은 환경의 기준선과 후보 모두21FAIL이며 새 실패는0이다.
+연결 수명 소유 코드: [socket activity](../../p4/entrypoints/agent/src/event_runtime/transport/activity.rs), [Studio reception](../apps/studio/src/front/p4/reception.ts).
 
-OUTER↔agent 실제 수신·송신 바이트가 같은 마지막 활동 시각을 갱신하며, 양방향 무통신40분이면 agent 수신 TCP와 해당 live 반환 경로/슬롯을 회수한다. raw half-close 출력 수신은 기한까지 허용한다. 개별 inference 완료는 TCP 종료가 아니며 FINISH/ACK는 정상 연결 종료다. PING 신설·요청 payload 해석은 하지 않는다. agent 수신과 peer 송신은 각256개 독립 pool이고 peer별 TCP owner 하나를 재사용한다. Studio는 여전히 정상 종료 FINISH/ACK를 지켜 불필요한40분 보유를 피한다. 이 후속 소스의 fleet/Studio bridge 강제 종료 수용과 기존 배포된 d77e630f8/Chrome120회 증거는 구별한다.
+OUTER↔agent 실제 수신·송신 바이트가 같은 마지막 활동 시각을 갱신하며, 양방향 무통신40분이면 agent 수신 TCP와 해당 live 반환 경로/슬롯을 회수한다. raw half-close 출력 수신은 기한까지 허용한다. 개별 inference 완료는 TCP 종료가 아니며 FINISH/ACK는 정상 연결 종료다. PING 신설·요청 payload 해석은 하지 않는다. agent 수신과 peer 송신은 각256개 독립 pool이고 peer별 TCP owner 하나를 재사용한다. Studio는 여전히 정상 종료 FINISH/ACK를 지켜 불필요한40분 보유를 피한다. 실제 fleet와 Studio bridge의 강제 종료 수용은 별도 연동 시험이다.

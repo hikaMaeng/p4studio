@@ -1,44 +1,20 @@
-# 모델 언로딩·에이전트 초기화 보강 계획
+# 모델 언로딩·에이전트 복구 계약
 
-2026-10-06 사용자 요청. 초기 계획 이후 Studio 구현·배포를 진행했다. **Windows 승인 설치의 강제 회수와 TUF 실제 동선은 구현·검증했고, 공개 P4 관리 drain과 모든 host 수용은 미완료**다. 목표는 UNLOAD가 막힌 경우에도 Studio에서 자원 회수와 에이전트 재기동을 끝내는 것이다.
+Windows 승인 설치의 host-management 복구를 제공한다. 공개 P4 관리 drain과 POSIX runner는 미지원이며, 모든 host의 실제 자원 회수 수용은 별도 검증한다.
 
 현재 소비 경로: [복구 DTO](../packages/studio_domain/src/common/protocol/recovery/index.ts) → [front model](../packages/studio_domain/src/front/model/recovery/store.ts) → [복구 화면](../apps/studio/src/front/features/agent-recovery/RecoveryView.tsx), [server recovery](../apps/studio/src/server/operations/recovery.ts) → [승인 Windows runner](../apps/studio/src/server/operations/windows.ts). 정상 CANCEL·RELEASE는 원래 브라우저 연결의 기존 공개 계약을 사용한다. 강제 회수는 기존 UNLOAD 영수증을 성공으로 변경하지 않는다.
 
-| 구분 | 현재 구현 / 증거 |
+| 구분 | 현재 구현 |
 | --- | --- |
 | R1 | 정확한 ERROR 귀속, terminal/RELEASE 정산, 연결 단절 전달, 중지·회수 버튼, `absent` projection, 단조 revision, generation별 실행 소유권과 영속 deployment history |
 | R2 | 승인 Windows binary/launch/task/endpoint 검사, PID·birth·path·listener 재검사, native 고아 회수, 중복 방지, 원격 exclusive file lock, 부분 실패 뒤 현재 자원 재검토·명시적 계속, stop 이후 startup만 재개, 새 host 증거 + 브라우저 P4 INSPECT 결합 |
 | R3 | 미지원. source-bound CANCEL로 다른 OUTER의 원장을 사칭하지 않는다. P4 adapter의 native/KV 관리 drain 완료를 주장하지 않는다 |
 | R4 | 대상 stage와 forwarding gateway 영향 모델 집계, 서버 lease로 Studio 탭 간 admission 차단. TUF 외 OS별 runner와 다중 host 실제 회수는 미검증 |
 
-TUF 실제 Chrome: 강제 회수 이후 새 agent/native0/nodes0 확인, Gemma 정상 답변, 제출된 요청의 CANCEL·RELEASE, 두 stage 정상 UNLOAD를 별도 검증했다. 초기 §1과 아래 최초 감사는 당시 상태를 기록한다. 최신 실행·제약은 [구현 검증 보고](../tests/reports/lifecycle-audit/20261006_163000.md)를 따른다.
 
 관련 계약: [노드 수명](node-lifecycle.md), [Studio 경계](constraints.md), [P4 참조](p4-reference.md). 이 계획은 정상 UNLOAD와 강제 초기화의 결과를 구분하는 후속 변경의 소유 문서다.
 
-## 1. 확인한 사례와 증거 경계
-
-| 항목 | 2026-10-06 TUF에서 직접 확인 |
-| --- | --- |
-| 주소 / 기존 agent | `tcp://192.168.0.17:52000`, PID 8596, `C:\p4-agent-current\p4-agent.exe` |
-| native | PID 14792 / 15528, 기존 agent의 자식, 포트 24110 / 24111 |
-| head의 UNLOAD 거부 | requests 4, flight_batches 2, flight_executions 2, open_batch_view 2, active_owners 4, active_frontiers 4 |
-| tail의 UNLOAD 거부 | requests / flights 0, active_owners 4, active_frontiers 4 |
-| lifecycle | 두 stage 모두 `unload / rejected / present`; 성공한 UNLOAD가 아니다 |
-| 수행한 복구 | 정확한 PID·경로·listener·자식·기동 task를 검사하고 로그 보존 → 기존 process tree 강제 종료 → 잔존 native·포트 검사 → 기존 S4U scheduled task 재기동 |
-| 재기동 결과 | 새 PID 540, 같은 agent/native SHA256, native 프로세스 0, native listener 0 |
-| 자원 | GPU used 6,512 → 0 MiB; OS free RAM 56,930,800 → 60,866,124 KiB. 약 3.75 GiB의 가용 RAM 증가이며 프로세스별 해제량 측정은 아니다 |
-| 공개 P4 왕복 | 새 OUTER channel의 INSPECT 응답 + FINISH ACK, nodes 0, broker ok |
-| Studio | TUF 상태 새로고침 뒤 `언로딩 완료` / 모델 로딩 버튼 표시. 현재 reconcile의 부재 projection이며 정상 UNLOAD 영수증은 아니다 |
-
-agent SHA256: `260FD187B976D348AED7D84501B456BD1BA28651534302ADDA34E6632545A971`.
-native SHA256: `2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92`.
-원격 원본은 `C:\p4-agent-current\reset-20261006-143547\{before-processes.json,agent-before.log,reset-report.json}`에 보존했다. 로컬 작업 증거는 `target/tuf-reset-20261006/`의 before/after INSPECT, 실행 스크립트·stdout, reset report, Studio 화면이다. 첫 encoded-command 호출은 Windows 명령 길이 제한으로 실행 전에 실패했으며, 파일 전송 후 동일 guard 스크립트를 실행했다.
-
-프로세스 종료로 자원은 회수했지만 기존 4개 요청의 정상 완료·terminal 전달·RELEASE 정산은 증명하지 않았다. `unload is busy`의 직접 조건은 확인했고, 그 원장이 남게 된 원인은 아직 미확정이다.
-
-조사 기준: Studio HEAD `1cfc8bf46058facc5ff58d21e2e11f0ac127b50e`, P4 HEAD `6be05d78bb1d6021b3f2309a7bb5c4fecaea0261`. 두 working tree에 다른 진행 중 변경이 있어 현재 파일을 읽었으며, 이를 clean HEAD나 배포 artifact와 같다고 판정하지 않았다. 기존 진행 중 소스는 수정하지 않았다.
-
-## 2. 초기 조사 시점의 실행 경로와 부족한 계약
+## 2. 실행 경계와 제한
 
 | 경계 | 현재 코드 / 확인한 제한 |
 | --- | --- |
@@ -50,7 +26,6 @@ native SHA256: `2AB3F9EF3D78C6FDEC3AC779AB2567777D0A3F15E3530BD5386E749A5CF7ED92
 | 상태 소비자 | [reconcileDeployment](../packages/studio_domain/src/front/model/deployments/reconcile.ts)는 알려진 LOAD 뒤 노드 부재를 unloaded로 표시할 수 있다. 강제 회수와 정상 UNLOAD 성공을 UI에서 구분하는 증거 종류가 필요하다 |
 | 에이전트 초기화 | 현재 [control dispatcher](../../p4/entrypoints/agent/src/event_runtime/control.rs)에 Studio가 호출할 공개 agent reset/restart 명령이 없다. TCP bridge·SSH tunnel은 원격 프로세스 관리 기능이 아니다 |
 
-기존 [CW-TUF-01](../../p4/tests/reports/connection-teardown/20261005_152300.md)의 `tools/check_unload_evidence.py` 판정 조건을 후속 정상 UNLOAD 소비자 시험에 적용한다. 해당 Python 파일을 제품에 import하지 않고, 같은 반례·판정 의미를 Studio 자체 시험으로 고정한다. 과거 원인 미확정을 이번 사례의 원인 규명으로 바꾸지 않는다.
 
 ## 3. 사용자 동선과 완료 판정
 
@@ -124,30 +99,3 @@ R1/R2는 현재 P4 wire에 없는 명령을 발명하지 않고 먼저 제공할
 | REC-12 | 독립 변이: lifecycle identity/stop proof/old-tree 부재/lease 검사를 하나씩 제거하면 대응 소비자 시험 실패. 단순 encode/decode 왕복으로 대체하지 않음 |
 
 구현 후 범위에 맞춰 `npm run typecheck`, `npm test`, `npm run build`, 실제 브라우저/API/P4/OS 경로를 검증한다. P4 wire 변경 시 Rust fixture와 버전/identity 거부를 검사하고 해당 저장소의 검증 규약을 적용한다. 국소 GREEN, TUF 실기, 다중 host 수용을 별도로 보고한다.
-
-초기 복구 계획의 검증은 docs 구조 검사·로컬 링크·`git diff --check`였다. 제품 기능 구현과 실제 정상 drain은 미실행이다. 다음 절은 이후 사용자가 추가한 전수 조사·결정론적 재현과 MiMo 용량 요구를 반영한다.
-
-## 7. 2026-10-06 결정론적 감사 후속
-
-[감사 계획](../tests/plans/lifecycle-audit-20261006.md) · [최초 반례](../tests/reports/lifecycle-audit/20261006_145500.md). 최초 감사에서는12개 RED와 Chromium UI 결함3개를 재현했다. 아래 소비 경로를 구현하고 동일 반례를 재검사했다. 최초 RED는 이후 통과 결과와 구분해 보존한다.
-
-| 우선순위 | 수정할 소비 경로 / 완료 조건 |
-| --- | --- |
-| 1 | 일반 ERROR를 정확한 source/correlation/causation/load/session/submission에 귀속한다. 한 요청의 refusal로 이미 접수된 다른 요청을 failed/정산 완료로 바꾸지 않는다 |
-| 1 | 화면의 실패와 remote settlement 수명을 분리한다. 오류 뒤에도 원래 연결의 소유자를 보존하고 CANCEL/terminal/OUTPUT prefix/RELEASE를 소비한다. natural OUTPUT 완료도 RELEASE 전에 연결을 닫지 않는다 |
-| 1 | connection/reception의 transport close/error를 실행 모델에 전달한다. 결과 불명에 최초 오류·부분 출력·미정산 owner를 남긴다. FINISH ACK는 요청/native/KV 정산 증거로 사용하지 않는다 |
-| 1 | 모델/node 기록 폐기 전에 영향받는 자원과 회수 권한을 보여준다. loaded/unknown 선언을 확인 없이 discard=true로 삭제하지 않는다. 삭제한 선언의 정확한 LOAD owner와 회수·강제 초기화 이력은 operation journal에 남긴다 |
-| 2 | 요청 상세에도 같은 live run의 중지 버튼을 제공한다. failed/unknown 뒤에는 settlement/recovery 동선이 보이며 페이지 이동·새로고침으로 사라지지 않는다 |
-| 2 | node UNLOAD도 model UNLOAD와 같은 유한 deadline·거부/실패/불명 영속 기록을 쓴다. 단조 revision/CAS와 agent별 작업 lease로 같은 ms·여러 탭의 갱신 경합을 막는다 |
-| 2 | 빈 INSPECT를 관측 부재로 표시하고 정상 UNLOAD succeeded/absent 또는 force recovery 완료와 구분한다. 과거 unload/rejected/present 및 중단된 요청 이력은 새 LOAD가 시작돼도 보존한다 |
-
-### MiMo 동시10 ×10회 ·5초 간격 용량
-
-요구를20건 시험으로 축소하거나 앞 웨이브의 응답 완료까지 다음 제출을 직렬화하지 않는다. adapter의 실행 슬롯과 pending 요청 보유를 구분하고, 요청100건이 동시에 보유돼도 수용할 RAM 예산을 LOAD 전에 준비한다. 필요하면 그 이상의 headroom도 명시한다.
-
-- 과거 구성은 sequence_capacity20와 max_requests20였다. P4의 요청 보유 예산은 count/bytes/input-token/output-token 합을 검사하며, 초과는 명시적 refusal이다. 현재 요청 admission/pending 경로에는 요청 디스크 spill/page-in이 없다. 모델·KV·OS 페이징과 동일 기능으로 취급하지 않는다.
-- 감사 당시 MiMo 선언은 max_requests100/output_tokens819200였고 세 번째 stage native exit5와 앞 두 stage UNLOAD 기록이 있었다. 최신 후속 실제 적재와 회수는 [독립 리뷰 실행 보고](../tests/reports/lifecycle-audit/20261006_170000-zero-context-review.md)에서 별도 판정한다. 선언100만으로 실제 적재·100건 응답을 완료했다고 하지 않는다. 과거 보유 예산 오류와 최신 native 초기화 오류는 별도 원인이다.
-- 생성 cap8192이면 보유100건 예약은 최소819200 output tokens다. 사용자 시험 cap512와는 구분한다. max_input_tokens150000, retained bytes64MiB 및 terminal/release/completion/edge 저장 한도도 실제100건 입력·토큰 총량과 함께 대조한다. sequence_capacity/KV를100으로 늘리는 변경은 자동으로 따라붙이지 않는다.
-- Studio는 현재 profile의 요청 수·output/input token·request/retained byte 예산을 첫 SESSION 전에 검사한다. 입력 토큰은 실제 wire prompt의 UTF8 bytes를 사용한 보수적 추정이며, 실제 tokenization/admission은 adapter의 권한이다. 요청100건·5초 간격은 응답 완료를 기다려20건으로 축소하지 않는다. 적재 profile 부족은 실행 전에 표시한다. MiMo 실제 native 적재·100건 생성·정산은 별도 미완 수용이다.
-
-추가 수용 조건: 오류 요청1개와 정상 접수 요청N개를 섞어 남은 owner를 회수하고, RELEASE 전 연결 종료·stale ERROR 소비·transport 단절 방치를 독립적으로 검사한다. 100건의 생성 응답·terminal·RELEASE, 모든 필수 stage의 정상 UNLOAD와 native 자원 회수를 같은 artifact/generation으로 결속한다. TUF의 제한된 실기 수용 및 MiMo의 후속 결과는 [구현 보고](../tests/reports/lifecycle-audit/20261006_163000.md)와 [독립 재검토](../tests/reports/lifecycle-audit/20261006_170000-zero-context-review.md)에 artifact/generation별로 기록한다.

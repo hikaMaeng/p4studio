@@ -42,4 +42,4 @@ P4 감사 기준: `56c203b6d70dc91be46e399b6d68f85ebc53cda1` (2026-09-16, clean)
 - 단독 노드 선언 API `POST /api/agents/:id/nodes`는 410이다. 이전 노드 등록 deep URL은 수명 설명과 모델 배치 진입을 제공한다. 과거 SQLite 선언·파이프라인 데이터는 삭제하지 않는다.
 - server-side deployment runner/socket은 제거했다. 서버는 저장과 opaque WebSocket/TCP bridge만 소유한다. P4 원본은 빌드/실행 의존성이 아니다.
 
-검증: [계획](../tests/plans/node-lifecycle-20260916.md), [runtime 반례](../packages/studio_domain/src/common/protocol/deployments/runtime.test.ts), [Rust가 소비하는 고정 fixture](../packages/p4-protocol/src/event/lifecycle.test.ts). 이 변경의 로컬 fixture 검증은 실제 P4 모델·다중 머신 추론 수용이 아니다.
+검증: [검증 계약](testing.md), [runtime 반례](../packages/studio_domain/src/common/protocol/deployments/runtime.test.ts), [Rust가 소비하는 고정 fixture](../packages/p4-protocol/src/event/lifecycle.test.ts). 이 변경의 로컬 fixture 검증은 실제 P4 모델·다중 머신 추론 수용이 아니다.

@@ -52,8 +52,8 @@ UI: `/agent-groups`, `/agent-groups/new`, `/agent-groups/:id`, `/agent-groups/:i
 - POST /api/operation-leases {operationId,modelId,expectedUpdatedAt,action:load|unload|inference,ownerToken?}; GET/PUT/DELETE .../:id. ready 전 신규 I/O를 시작하지 않는다. 일반 TTL30초/heartbeat5초, recovery는 검증 또는 증명된 무효과 종료 전 영구 fence다. gateway 경유 agent도 자원에 포함한다. recovery를 다른 recovery로 선점할 수 없다.
 - GET /api/model-deployments/:id/history: current + archived records. 변경과 삭제 전 기록을 유지한다. pending recovery 동안 ready/new load promotion, 편집·삭제를 거부한다.
 
-[정책·수용 상태](../../../docs/agent-recovery-plan.md), [검증](../../../tests/reports/lifecycle-audit/20261006_163000.md).
+[복구 계약](../../../docs/agent-recovery-plan.md), [회귀 시험](testing.md).
 
 - inference admission은 model/load/node generation별 SQLite owner 원장을 남긴다. live lease DELETE/TTL은 미정산 owner를 해제하지 않는다. PUT .../:id/settlement는 original closure의 private UUID capability와 정확한 generation/pending0을 요구한다. capability는 실행 이력에 저장하지 않는다.
 - 과거 unknown 실행의 Recover는 해당 run의 LOAD generation을 최초 현재 모델 조회와 비교한 뒤만 취소·UNLOAD를 시작한다. 세대가 없거나 달라진 기록은 현재 모델 화면에서 명시적으로 검사한다.
-- [독립 리뷰와 반례](../../../tests/reports/lifecycle-audit/20261006_170000-zero-context-review.md)는 source/local 및 실제 배포 증거를 구분한다.
+- 소스 회귀, mock 브라우저 시험, 실제 agent·모델 수용은 별도로 판정한다.

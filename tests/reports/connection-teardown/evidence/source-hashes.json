@@ -1,6 +1,0 @@
-{
-  "apps\\studio\\src\\front\\p4\\connection.ts": "628b26eb34bc6a010f82c9182999600b5aac652316a1994e89c83621a5b64946",
-  "apps\\studio\\src\\server\\agent-socket\\browser-bridge.ts": "d30cd7471b4f1d66ac8c67d86c9e405c9ee05e1196a833dde0e9237a2b7c1c2a",
-  "apps\\studio\\src\\server\\agent-socket\\finish.ts": "f4318efd93281483f65167e5b86b639a4cce47636dddafc8edb2867942e1e6d4",
-  "test\\connection-teardown.mjs": "7e155ec95da6bfb046aa1f3346a1ce1579a75497c949497f5a00cdeab8310138"
-}
