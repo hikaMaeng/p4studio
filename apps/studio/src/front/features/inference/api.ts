@@ -1,6 +1,6 @@
 import { P4_DELIVERY_FAILURE_CONTENT_TYPE, parseP4DeliveryFailure, type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
 import {
-  canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
+  canAttemptInference, deploymentRoutes, llamaDispatchLimits, llamaSessionContract, parseDeploymentList, parseInferenceRuns,
   classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, parseP4SpeculativeRound, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
   P4_SCOPE_CLOSE_CONTENT_TYPE,
@@ -31,7 +31,6 @@ import { wireOptions, wirePrompt } from "./prompt.js";
 import { BrowserInferenceHistory, HISTORY_KEY } from "./history.js";
 
 // See apps/studio/docs/api.md#browser-owned-inference.
-const SESSION = "application/vnd.p4.llamacpp.session-v4+json";
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
 const PREFILL = "application/vnd.p4.llamacpp.prefill-v3+json";
 const ERROR = "application/vnd.p4.llamacpp.error-v2+json";
@@ -244,7 +243,9 @@ const gateway: InferenceGateway = {
     const requestByteEstimate = 4096 + 8 * promptBytes + 2 * new TextEncoder().encode(wireOptions(model)).byteLength;
     if (requestByteEstimate > limits.maxRequestBytes || total * requestByteEstimate > limits.maxRequestRetainedBytes || total * promptTokenEstimate > limits.maxInputTokens) throw new Error(`The submitted prompt needs a larger LOAD resource profile under the conservative input estimate (per-request bytes ${requestByteEstimate}, retained bytes ${total * requestByteEstimate}, input tokens ${total * promptTokenEstimate}); unload and expand the model before running`);
     if (!Number.isSafeInteger(total) || total > limits.maxRequests || total * input.maxTokens > limits.maxOutputTokens) throw new Error(`The requested ${total} submissions require a larger LOAD resource profile (requests ${limits.maxRequests}, output tokens ${limits.maxOutputTokens}); unload and expand the model before running`);
-    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
+    // LOAD 계약 불일치는 접속 전에 거부한다. 송신 순서는 head→tail을 유지한다.
+    llamaSessionContract(model);
+    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens, repeatMode: input.repeatMode ?? "scheduled" }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     const cancellation = new InferenceCancellation(run, model.loadGeneration, () => publish(run), model.timeoutMs);
     const unregister = inferenceExecutions.register(model, cancellation);
     runs.set(run.id, run); ownedRunIds.add(run.id);
@@ -294,6 +295,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     checkpointTimer = setInterval(() => { void checkpoint().catch(error => { run.error ??= String(error); }); }, 2000);
     if (cancellation.requested) return;
     const stages = stagesFor(model, topology.agents); if (stages.some(stage => !stage.address)) throw new Error("A model stage has no recorded P4 endpoint");
+    const session = llamaSessionContract(model);
     connection = new BrowserP4Reception(topology, new Map(Object.entries(model.resolvedAddresses)));
     stopError = connection.onError?.(error => cancellation.transportLost(error.message));
     const head = { kind: "node" as const, address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation };
@@ -306,8 +308,8 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     cancellation.signal.signal.addEventListener("abort", () => { if (!run.submitted) void connection?.close(); }, { once: true });
     for (const stage of stages) {
       if (cancellation.requested) return;
-      const event = await connection.exchange({ kind: "node", address: stage.address, nodeId: stage.nodeId, generation: stage.generation }, "llamacpp", SESSION,
-        { load_generation: model.loadGeneration, session_id: run.id, stages: stages.map(value => ({ agent: value.address, node: value.nodeId, generation: value.generation })), stage_index: stage.stageIndex }, [SESSION_READY, ERROR], model.timeoutMs);
+      const event = await connection.exchange({ kind: "node", address: stage.address, nodeId: stage.nodeId, generation: stage.generation }, "llamacpp", session.contentType,
+        { load_generation: model.loadGeneration, session_id: run.id, stages: stages.map(value => ({ agent: value.address, node: value.nodeId, generation: value.generation })), stage_index: stage.stageIndex, ...session.fields }, [SESSION_READY, ERROR], model.timeoutMs);
       if (event.contentType === ERROR) throw new Error(new TextDecoder().decode(event.payload));
       if (event.contentType !== SESSION_READY || stageFor(event, stages)?.stageIndex !== stage.stageIndex) throw new Error("P4 SESSION_READY source or content type does not match the configured stage");
       const proof: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(event.payload));
@@ -402,7 +404,12 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     const dispatchStartedAt = performance.now();
     for (let repetition = 0; repetition < input.repetitions; repetition += 1) {
       if (cancellation.requested || run.state !== "running") break;
-      const delayMs = Math.max(0, dispatchStartedAt + repetition * input.intervalMs - performance.now());
+      if (input.repeatMode === "after-completion" && repetition > 0) {
+        await waitForWave(run, repetition, cancellation.signal.signal);
+        if (cancellation.requested || run.state !== "running") break;
+      }
+      const delayMs = input.repeatMode === "after-completion" ? repetition > 0 ? input.intervalMs : 0
+        : Math.max(0, dispatchStartedAt + repetition * input.intervalMs - performance.now());
       if (delayMs) await new Promise<void>(resolve => {
         const finish = () => { window.clearTimeout(timer); cancellation.signal.signal.removeEventListener("abort", finish); resolve(); };
         const timer = window.setTimeout(finish, delayMs);
@@ -442,6 +449,18 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
     try { if (lease) await checkpoint(); } catch (error) { run.error ??= String(error); publish(run); }
     if (cancellation.settled) try { await lease?.settle?.(run.submitted); } catch (error) { run.error ??= String(error); publish(run); }
     try { await lease?.release(); } catch (error) { run.error ??= String(error); publish(run); }
+  }
+}
+
+async function waitForWave(run: InferenceRun, waveIndex: number, signal: AbortSignal): Promise<void> {
+  while (!signal.aborted && run.state === "running") {
+    const wave = run.requests.filter(request => request.waveIndex === waveIndex);
+    if (wave.length && wave.every(request => request.state === "completed")) return;
+    await new Promise<void>(resolve => {
+      const finish = () => { window.clearTimeout(timer); signal.removeEventListener("abort", finish); resolve(); };
+      const timer = window.setTimeout(finish, 25);
+      signal.addEventListener("abort", finish, { once: true });
+    });
   }
 }
 

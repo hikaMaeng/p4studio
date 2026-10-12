@@ -1,7 +1,8 @@
+import { InferenceError } from "./InferenceError.js";
 import { Alert, Box, Button, Chip, Collapse, Divider, IconButton, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { batchUsageMetrics, deployments, inference, isActiveInference, monitoringSummaryFor, requestMetrics } from "@p4studio/studio_domain/front";
-import { canAttemptInference, llamaDispatchLimits, type DeploymentRecord, type InferenceMonitoringSummary, type InferenceRequest, type InferenceRun } from "@p4studio/studio_domain/common";
+import { canAttemptInference, llamaDispatchLimits, llamaSequenceLimit, type DeploymentRecord, type InferenceMonitoringSummary, type InferenceRequest, type InferenceRun } from "@p4studio/studio_domain/common";
 import { useModel } from "../../model/useModel.js";
 import { useTranslation } from "../../i18n/useTranslation.js";
 import { formatMessage } from "../../i18n/format.js";
@@ -22,12 +23,15 @@ const MarkdownRenderer = lazy(async () => {
 });
 export function InferenceView({ history, historyRunId, requestId, onOpenHistory, onBackHistory, onOpenRequest, onOpenHistoryRequest, onBackRequest }: { history: boolean; historyRunId?: string; requestId?: string; onOpenHistory: (runId: string) => void; onBackHistory: () => void; onOpenRequest: (requestId: string) => void; onOpenHistoryRequest: (requestId: string, runId: string) => void; onBackRequest: (fromHistory: boolean, runId?: string) => void }) {
   const { t } = useTranslation(); const records = useModel(deployments.records).value; const activity = useModel(inference.activity).value;
-  const [modelId, setModelId] = useState(""); const models = records.filter(record => record.adapter === "llamacpp"); const readyCount = models.filter(canAttemptInference).length;
+  const { modelId } = useModel(inference.query).value; const setModelId = (modelId: string) => inference.query.mutate(value => { value.modelId = modelId; }); const models = records.filter(record => record.adapter === "llamacpp"); const readyCount = models.filter(canAttemptInference).length;
   useEffect(() => { startModels(); startInference(); }, []);
-  useEffect(() => { if (!models.some(record => record.id === modelId)) setModelId(models[0]?.id ?? ""); }, [modelId, models]);
+  useEffect(() => {
+    const selectedId = models.some(record => record.id === modelId) ? modelId : models[0]?.id ?? "";
+    if (selectedId !== modelId) setModelId(selectedId);
+  }, [modelId, models]);
   return <Box component="section" aria-label={history ? t[RSC.INFERENCE_HISTORY_TITLE_TEXT] : t[RSC.INFERENCE_TITLE_TEXT]}>
     <MenuHeader title={history ? t[RSC.INFERENCE_HISTORY_TITLE_TEXT] : t[RSC.INFERENCE_TITLE_TEXT]} actions={!history && <Chip size="small" label={formatMessage(t[RSC.INFERENCE_READY_COUNT_TEXT], { count: readyCount })} />} />
-    {activity.error && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{t[RSC.INFERENCE_ERROR_ALERT]}: {activity.error}</Alert>}
+    {activity.error && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{t[RSC.INFERENCE_ERROR_ALERT]}: {<InferenceError detail={activity.error} />}</Alert>}
     {requestId ? <RequestDetailPage requestId={requestId} onBack={() => onBackRequest(history, historyRunId)} /> : history ? historyRunId ? <HistoryDetailPage runId={historyRunId} onBack={onBackHistory} onOpenRequest={onOpenHistoryRequest} /> : <HistoryListPage onOpen={onOpenHistory} /> : <QueryPanel modelId={modelId} setModelId={setModelId} models={models} onOpenRequest={onOpenRequest} />}
   </Box>;
 }
@@ -35,11 +39,13 @@ function QueryPanel({ modelId, setModelId, models, onOpenRequest }: { modelId: s
   const { t } = useTranslation(); const runIds = useModel(inference.runIds).value; const activity = useModel(inference.activity).value; const currentRunId = runIds[0];
   const activeRunIds = useModel(inference.activeRunIds).value;
   const visibleRunIds = [...new Set([...activeRunIds, ...(currentRunId ? [currentRunId] : [])])];
-  const [prompt, setPrompt] = useState(""); const [concurrency, setConcurrency] = useState(1); const [repetitions, setRepetitions] = useState(1); const [intervalSeconds, setIntervalSeconds] = useState(0); const [maxTokens, setMaxTokens] = useState(MAX_OUTPUT_TOKENS);
+  const { prompt, concurrency, repetitions, intervalSeconds, maxTokens, repeatMode } = useModel(inference.query).value;
+  const updateQuery = <K extends keyof typeof inference.query.value>(key: K, data: typeof inference.query.value[K]) => inference.query.mutate(value => { value[key] = data; });
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(() => new Set());
   const selected = models.find(record => record.id === modelId); const limits = selected ? llamaDispatchLimits(selected.stages) : null;
   const maxTokensLimit = Math.min(MAX_OUTPUT_TOKENS, limits?.maxOutputTokensPerRequest ?? MAX_OUTPUT_TOKENS);
-  useEffect(() => { setMaxTokens(value => Math.min(value, maxTokensLimit)); }, [maxTokensLimit]);
+  useEffect(() => { if (maxTokens > maxTokensLimit) updateQuery("maxTokens", maxTokensLimit); }, [maxTokensLimit, maxTokens]);
+  const sequenceLimit = selected ? llamaSequenceLimit(selected) : null;
   useEffect(() => {
     setExpandedRunIds(current => {
       const next = new Set(current); let changed = false;
@@ -49,14 +55,18 @@ function QueryPanel({ modelId, setModelId, models, onOpenRequest }: { modelId: s
       return changed ? next : current;
     });
   }, [activeRunIds, currentRunId]);
-  const submit = () => { if (modelId && prompt.trim()) void inference.create({ modelId, prompt, concurrency, repetitions, intervalMs: intervalSeconds * 1000, maxTokens: Math.min(maxTokens, maxTokensLimit) }); };
+  const submit = () => { if (modelId && prompt.trim()) void inference.create({ modelId, prompt, concurrency, repetitions, intervalMs: intervalSeconds * 1000, repeatMode, maxTokens: Math.min(maxTokens, maxTokensLimit) }); };
   return <Box sx={{ display: "grid", gap: 2.5, minWidth: 0 }}><Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr repeat(4, 1fr)" }, gap: 1.5 }}>
     <TextField required select label={t[RSC.INFERENCE_MODEL_LABEL]} value={modelId} onChange={event => setModelId(event.target.value)}>{models.map(record => <MenuItem key={record.id} value={record.id}>{record.name}</MenuItem>)}</TextField>
-    <TextField type="number" label={t[RSC.INFERENCE_CONCURRENCY_LABEL]} value={concurrency} slotProps={{ htmlInput: { min: 1 } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) setConcurrency(value); }} />
-    <TextField type="number" label={t[RSC.INFERENCE_REPETITIONS_LABEL]} value={repetitions} slotProps={{ htmlInput: { min: 1 } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) setRepetitions(value); }} />
-    <TextField type="number" label={t[RSC.INFERENCE_INTERVAL_LABEL]} value={intervalSeconds} slotProps={{ htmlInput: { min: 0 } }} onChange={event => setIntervalSeconds(Math.max(0, Number(event.target.value)))} />
-    <TextField type="number" label={formatMessage(t[RSC.INFERENCE_MAX_TOKENS_LABEL], { limit: maxTokensLimit })} value={Math.min(maxTokens, maxTokensLimit)} slotProps={{ htmlInput: { min: 1, max: maxTokensLimit } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) setMaxTokens(Math.min(maxTokensLimit, value)); }} />
-  </Box><TextField required fullWidth multiline minRows={4} sx={{ mt: 2 }} label={t[RSC.INFERENCE_PROMPT_LABEL]} value={prompt} onChange={event => setPrompt(event.target.value)} /><Box sx={{ display: "flex", justifyContent: "end", mt: 2 }}><Button variant="contained" disabled={activity.busy || !modelId || !prompt.trim()} onClick={submit}>{activity.busy ? t[RSC.INFERENCE_SENDING_STATUS] : t[RSC.INFERENCE_SEND_BUTTON]}</Button></Box></Paper>
+    <TextField type="number" label={t[RSC.INFERENCE_CONCURRENCY_LABEL]} value={concurrency} slotProps={{ htmlInput: { min: 1 } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) updateQuery("concurrency", value); }} />
+    <TextField type="number" label={t[RSC.INFERENCE_REPETITIONS_LABEL]} value={repetitions} slotProps={{ htmlInput: { min: 1 } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) updateQuery("repetitions", value); }} />
+    <TextField type="number" label={t[RSC.INFERENCE_INTERVAL_LABEL]} value={intervalSeconds} slotProps={{ htmlInput: { min: 0 } }} onChange={event => updateQuery("intervalSeconds", Math.max(0, Number(event.target.value)))} />
+    <TextField type="number" label={formatMessage(t[RSC.INFERENCE_MAX_TOKENS_LABEL], { limit: maxTokensLimit })} value={Math.min(maxTokens, maxTokensLimit)} slotProps={{ htmlInput: { min: 1, max: maxTokensLimit } }} onChange={event => { const value = Number(event.target.value); if (Number.isSafeInteger(value) && value >= 1) updateQuery("maxTokens", Math.min(maxTokensLimit, value)); }} />
+  </Box><TextField select sx={{ mt: 2, minWidth: 300 }} label={t[RSC.INFERENCE_REPEAT_MODE_LABEL]} value={repeatMode} onChange={event => updateQuery("repeatMode", event.target.value as typeof repeatMode)}>
+    <MenuItem value="scheduled">{t[RSC.INFERENCE_REPEAT_SCHEDULED_TEXT]}</MenuItem><MenuItem value="after-completion">{t[RSC.INFERENCE_REPEAT_COMPLETION_TEXT]}</MenuItem>
+  </TextField>
+  {sequenceLimit !== null && concurrency > sequenceLimit && <Alert role="alert" severity="warning" data-testid="inference-slot-warning" sx={{ mt: 2 }}>{formatMessage(t[RSC.INFERENCE_SLOT_WARNING_ALERT], { limit: sequenceLimit })}</Alert>}
+  <TextField required fullWidth multiline minRows={4} sx={{ mt: 2 }} label={t[RSC.INFERENCE_PROMPT_LABEL]} value={prompt} onChange={event => updateQuery("prompt", event.target.value)} /><Box sx={{ display: "flex", justifyContent: "end", mt: 2 }}><Button variant="contained" disabled={activity.busy || !modelId || !prompt.trim()} onClick={submit}>{activity.busy ? t[RSC.INFERENCE_SENDING_STATUS] : t[RSC.INFERENCE_SEND_BUTTON]}</Button></Box></Paper>
   {!currentRunId ? <InferenceWaveResults onOpen={onOpenRequest} /> : <Box component="section" aria-label={t[RSC.INFERENCE_RESULTS_LABEL]} data-testid="inference-run-groups" sx={{ display: "grid", gap: .75, minWidth: 0 }}>
     <Typography variant="subtitle2">{t[RSC.INFERENCE_RESULTS_LABEL]}</Typography>
     {visibleRunIds.map(runId => <CurrentRunGroup key={runId} runId={runId} expanded={expandedRunIds.has(runId)} onToggle={() => setExpandedRunIds(current => { const next = new Set(current); if (next.has(runId)) next.delete(runId); else next.add(runId); return next; })} onDelete={() => inference.remove(runId)} onOpenRequest={onOpenRequest} />)}
@@ -72,6 +82,7 @@ function InferenceRunGroup({ run, expanded, onToggle, onDelete, onOpenRequest }:
   const settings = run.settings
     ? formatMessage(t[RSC.INFERENCE_RUN_SETTINGS_TEXT], { concurrency: run.settings.concurrency, repetitions: run.settings.repetitions, intervalSeconds: run.settings.intervalMs / 1000, maxTokens: run.settings.maxTokens })
     : t[RSC.INFERENCE_RUN_SETTINGS_UNAVAILABLE_MESSAGE];
+  const repeatModeText = run.settings ? t[run.settings.repeatMode === "after-completion" ? RSC.INFERENCE_REPEAT_COMPLETION_TEXT : RSC.INFERENCE_REPEAT_SCHEDULED_TEXT] : "";
   return <Paper component="article" data-testid="inference-run-group" aria-label={`${run.modelName} · ${run.id}`} variant="outlined" sx={{ minWidth: 0, overflow: "hidden" }}>
     <Box sx={{ display: "flex", alignItems: "center", gap: .75, minWidth: 0, px: 1, py: .5 }}>
       <IconButton size="small" aria-label={t[RSC.INFERENCE_RUN_DETAILS_TOGGLE_BUTTON]} aria-expanded={expanded} aria-controls={expanded ? detailsId : undefined} onClick={onToggle} sx={{ flex: "0 0 auto" }}><Icon name="chevron" fontSize="small" sx={{ transform: expanded ? "rotate(180deg)" : "none" }} /></IconButton>
@@ -79,13 +90,13 @@ function InferenceRunGroup({ run, expanded, onToggle, onDelete, onOpenRequest }:
         <Typography variant="body2" title={run.modelName} noWrap sx={{ minWidth: 0, flex: "0 1 260px", fontWeight: 500 }}>{run.modelName}</Typography>
         <Chip size="small" sx={{ flex: "0 0 auto" }} label={t[runState[run.state] ?? RSC.INFERENCE_UNKNOWN_STATUS]} color={run.state === "completed" ? "success" : ["failed", "unknown"].includes(run.state) ? "warning" : "default"} />
         <Typography variant="caption" color="text.secondary" noWrap sx={{ flex: "0 0 auto" }}>{run.requests.length} · {new Date(run.createdAt).toLocaleString()}</Typography>
-        <Typography variant="caption" color="text.secondary" title={settings} noWrap sx={{ minWidth: 0, flex: "1 1 220px" }}>{settings}</Typography>
+        <Typography variant="caption" color="text.secondary" title={`${settings} · ${repeatModeText}`} noWrap sx={{ minWidth: 0, flex: "1 1 220px" }}>{settings} · {repeatModeText}</Typography>
       </Box>
       <RunActions run={run} onDelete={onDelete} />
     </Box>
     <Box sx={{ px: 1.25, pb: .8 }}><SummaryOverview run={run} summary={summary} /></Box>
     {run.state === "cancelled" && <Typography role="status" variant="caption" sx={{ px: 1.25, pb: .8, display: "block" }}>{t[RSC.INFERENCE_CANCELLED_MESSAGE]}</Typography>}
-    {run.error && <Alert severity="warning" sx={{ mx: 1.25, mb: .8 }}>{run.error}</Alert>}
+    {run.error && <Alert severity="warning" sx={{ mx: 1.25, mb: .8 }}>{<InferenceError detail={run.error} />}</Alert>}
     <Collapse id={detailsId} data-testid="inference-run-details" in={expanded} timeout={0} unmountOnExit>
       <Divider />
       <Box sx={{ p: 1, display: "grid", gap: 1, minWidth: 0 }}>
@@ -115,6 +126,7 @@ function SummaryOverview({ run, summary }: { run: InferenceRun; summary: Inferen
   const { t } = useTranslation(); const performance = requestMetrics(run); const batch = batchUsageMetrics(run, summary);
   const rows = summary.stages.reduce((sum, stage) => sum + stage.rows, 0);
   return <Box data-testid="inference-run-summary" sx={{ display: "grid", minWidth: 0, gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, columnGap: 1, rowGap: .6 }}>
+    <SummaryMetric label={t[RSC.INFERENCE_REPEAT_MODE_LABEL]} value={run.settings ? t[run.settings.repeatMode === "after-completion" ? RSC.INFERENCE_REPEAT_COMPLETION_TEXT : RSC.INFERENCE_REPEAT_SCHEDULED_TEXT] : t[RSC.INFERENCE_RUN_SETTINGS_UNAVAILABLE_MESSAGE]} />
     <SummaryMetric label={t[RSC.INFERENCE_SUMMARY_PROGRESS_LABEL]} value={`${run.completed} / ${run.submitted}`} />
     <SummaryMetric label={t[RSC.INFERENCE_SUMMARY_TOKENS_LABEL]} value={performance.totalTokens} />
     <SummaryMetric label={t[RSC.INFERENCE_SUMMARY_TTFT_P50_LABEL]} value={metric(performance.ttftP50Ms, " ms")} />
@@ -195,7 +207,7 @@ function HistoryDetailPage({ runId, onBack, onOpenRequest }: { runId: string; on
 
 function HistoryDetail({ run, onOpenRequest }: { run: InferenceRun; onOpenRequest: (requestId: string, runId: string) => void }) {
   const { t } = useTranslation(); const summary = monitoringSummaryFor(run);
-  return <Box sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Paper variant="outlined" sx={{ p: 1.25, minWidth: 0 }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Typography variant="subtitle1">{run.modelName}</Typography></Box><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: .25 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(run.createdAt).toLocaleString()}</Typography><Box sx={{ mt: 1 }}><SummaryOverview run={run} summary={summary} /></Box>{run.error && <Alert severity="warning" sx={{ mt: 1 }}>{run.error}</Alert>}</Paper><RunObservability runId={run.id} /><Paper variant="outlined" sx={{ p: 1 }}><StageSummary summary={summary} /></Paper><InferenceWaveResults key={run.id} run={run} onOpen={requestId => onOpenRequest(requestId, run.id)} /></Box>;
+  return <Box sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Paper variant="outlined" sx={{ p: 1.25, minWidth: 0 }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Typography variant="subtitle1">{run.modelName}</Typography></Box><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: .25 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(run.createdAt).toLocaleString()}</Typography><Box sx={{ mt: 1 }}><SummaryOverview run={run} summary={summary} /></Box>{run.error && <Alert severity="warning" sx={{ mt: 1 }}>{<InferenceError detail={run.error} />}</Alert>}</Paper><RunObservability runId={run.id} /><Paper variant="outlined" sx={{ p: 1 }}><StageSummary summary={summary} /></Paper><InferenceWaveResults key={run.id} run={run} onOpen={requestId => onOpenRequest(requestId, run.id)} /></Box>;
 }
 
 function RequestDetailPage({ requestId, onBack }: { requestId: string; onBack: () => void }) {
@@ -217,5 +229,5 @@ function MarkdownAnswer({ request }: { request: InferenceRequest }) {
 
 function RequestDetail({ run, request }: { run: InferenceRun; request: InferenceRequest }) {
   const { t } = useTranslation(); const state = request.state ?? "unknown";
-  return <Box sx={{ display: "grid", gap: 2 }}><Paper variant="outlined" sx={{ p: 2 }}><Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}><Box sx={{ minWidth: 0 }}><Typography variant="h2">{run.modelName}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", overflowWrap: "anywhere" }}>{request.id}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(request.submittedAt).toLocaleString()}</Typography></Box><RunActions run={run} /><Chip size="small" label={t[runState[state] ?? RSC.INFERENCE_UNKNOWN_STATUS]} color={state === "completed" ? "success" : ["failed", "unknown"].includes(state) ? "warning" : "default"} /></Box>{request.error && <Alert severity="warning" sx={{ mt: 2 }}>{request.error}</Alert>}</Paper><RequestPerformanceMetrics request={request} /><Paper component="section" data-testid="inference-request-question" variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, minWidth: 0 }}><Typography variant="h2">{t[RSC.INFERENCE_QUESTION_LABEL]}</Typography><Typography component="div" sx={{ mt: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.7 }}>{request.prompt || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT]}</Typography></Paper><MarkdownAnswer request={request} /><Box component="section" aria-label={t[RSC.INFERENCE_REQUEST_MONITORING_TITLE]}><Typography variant="h2" sx={{ mb: 1.5 }}>{t[RSC.INFERENCE_REQUEST_MONITORING_TITLE]}</Typography><RequestMonitoringContent run={run} request={request} showContent={false} showMetrics={false} /></Box></Box>;
+  return <Box sx={{ display: "grid", gap: 2 }}><Paper variant="outlined" sx={{ p: 2 }}><Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}><Box sx={{ minWidth: 0 }}><Typography variant="h2">{run.modelName}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", overflowWrap: "anywhere" }}>{request.id}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(request.submittedAt).toLocaleString()}</Typography></Box><RunActions run={run} /><Chip size="small" label={t[runState[state] ?? RSC.INFERENCE_UNKNOWN_STATUS]} color={state === "completed" ? "success" : ["failed", "unknown"].includes(state) ? "warning" : "default"} /></Box>{request.error && <Alert severity="warning" sx={{ mt: 2 }}>{<InferenceError detail={request.error} />}</Alert>}</Paper><RequestPerformanceMetrics request={request} /><Paper component="section" data-testid="inference-request-question" variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, minWidth: 0 }}><Typography variant="h2">{t[RSC.INFERENCE_QUESTION_LABEL]}</Typography><Typography component="div" sx={{ mt: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.7 }}>{request.prompt || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT]}</Typography></Paper><MarkdownAnswer request={request} /><Box component="section" aria-label={t[RSC.INFERENCE_REQUEST_MONITORING_TITLE]}><Typography variant="h2" sx={{ mb: 1.5 }}>{t[RSC.INFERENCE_REQUEST_MONITORING_TITLE]}</Typography><RequestMonitoringContent run={run} request={request} showContent={false} showMetrics={false} /></Box></Box>;
 }

@@ -1,3 +1,4 @@
+import { InferenceError } from "./InferenceError.js";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from "@mui/material";
 import { memo, useState } from "react";
 import { inference, projectPhaseWorkSeries, requestBatchFillRatio, summarizeLegacyMonitoring } from "@p4studio/studio_domain/front";
@@ -5,6 +6,7 @@ import type { InferenceRequest, InferenceRun } from "@p4studio/studio_domain/com
 import { useModel } from "../../model/useModel.js";
 import { useTranslation } from "../../i18n/useTranslation.js";
 import { LineChart } from "./observability/LineChart.js";
+import { BatchRequestDistributionPanel } from "./observability/BatchRequestDistributionPanel.js";
 import { SpeculativeMetrics } from "./speculative/SpeculativeMetrics.js";
 import { RSC } from "./resource.js";
 
@@ -12,7 +14,7 @@ const fmt = (value: number | null, suffix = "") => value === null ? "—" : `${v
 
 const aggregateBatch = (points: InferenceRun["telemetrySeries"]["batches"]) => {
   const values = new Map<number, { rows: number; capacity: number; ready: number; prefill: number; decode: number; verify: number; replay: number }>();
-  for (const point of points) { const value = values.get(point.atUnixMs) ?? { rows: 0, capacity: 0, ready: 0, prefill: 0, decode: 0, verify: 0, replay: 0 }; value.rows += point.rows; value.capacity += point.capacityRows; value.ready = Math.max(value.ready, point.readyRowsMax); value.prefill += point.prefillRows; value.decode += point.decodeRows; value.verify += point.verifyRows; values.set(point.atUnixMs, value); }
+  for (const point of points) { const value = values.get(point.atUnixMs) ?? { rows: 0, capacity: 0, ready: 0, prefill: 0, decode: 0, verify: 0, replay: 0 }; value.rows += point.rows; value.capacity += point.capacityRows; value.ready = Math.max(value.ready, point.readyRowsMax); value.prefill += point.prefillRows; value.decode += point.decodeRows; value.verify += point.verifyRows; value.replay += point.replayRows; values.set(point.atUnixMs, value); }
   return [...values].sort(([left], [right]) => left - right);
 };
 
@@ -51,7 +53,9 @@ export const RunObservability = memo(function RunObservability({ runId }: { runI
         { label: t[RSC.INFERENCE_CHART_BATCH_FILL_LABEL], color: "#29b6f6", points: batches.map(([x, value]) => ({ x, y: value.rows })) },
         { label: t[RSC.INFERENCE_CHART_BATCH_CAPACITY_LABEL], color: "#ff7043", dash: "5 3", points: batches.filter(([, value]) => value.capacity > 0).map(([x, value]) => ({ x, y: value.capacity })) },
       ]} />
-      <LineChart title={t[RSC.INFERENCE_CHART_PHASES_TITLE]} description={t[RSC.INFERENCE_CHART_PHASES_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_PREFILL_LABEL], color: "#29b6f6", points: phaseWork.filter(point => point.prefillRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.prefillRowsPerBatch! })) }, { label: t[RSC.INFERENCE_CHART_DECODE_LABEL], color: "#66bb6a", points: phaseWork.filter(point => point.decodeRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.decodeRowsPerBatch! })) }]} />
+      <LineChart title={t[RSC.INFERENCE_CHART_PHASES_TITLE]} description={t[RSC.INFERENCE_CHART_PHASES_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_PREFILL_LABEL], color: "#29b6f6", points: phaseWork.filter(point => point.prefillRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.prefillRowsPerBatch! })) }, { label: t[RSC.INFERENCE_CHART_DECODE_LABEL], color: "#66bb6a", points: phaseWork.filter(point => point.decodeRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.decodeRowsPerBatch! })) },
+        { label: t[RSC.INFERENCE_CHART_VERIFY_LABEL], color: "#ab47bc", dash: "5 2", points: phaseWork.filter(point => point.verifyRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.verifyRowsPerBatch! })) },
+        { label: t[RSC.INFERENCE_CHART_REPLAY_LABEL], color: "#ff7043", dash: "2 2", points: phaseWork.filter(point => point.replayRowsPerBatch !== null).map(point => ({ x: point.atUnixMs, y: point.replayRowsPerBatch! })) }]} />
       <LineChart title={t[RSC.INFERENCE_CHART_READY_TITLE]} description={t[RSC.INFERENCE_CHART_READY_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_READY_LABEL], color: "#ffa726", points: batches.map(([x, value]) => ({ x, y: value.ready })) }]} />
       <LineChart title={t[RSC.INFERENCE_CHART_STAGE_TITLE]} description={t[RSC.INFERENCE_CHART_STAGE_MESSAGE]} series={stageIndexes.map((stageIndex, index) => ({ label: `${t[RSC.INFERENCE_STAGE_LABEL]} ${stageIndex + 1}`, color: stageColors[index % stageColors.length]!, dash: stageDashes[index % stageDashes.length], points: telemetrySeries.spans.filter(point => point.stageIndex === stageIndex).map(point => ({ x: point.atUnixMs, y: point.spans ? point.stageMs / point.spans : 0 })) }))} />
       <LineChart percent showLatestValues title={t[RSC.INFERENCE_CHART_RESOURCE_TITLE]} description={t[RSC.INFERENCE_CHART_RESOURCE_MESSAGE]} series={[{ label: t[RSC.INFERENCE_CHART_GPU_LABEL], color: theme.palette.primary.main, points: resources.filter(point => point.utilization !== null).map(point => ({ x: point.x, y: point.utilization! })) }, { label: t[RSC.INFERENCE_CHART_VRAM_LABEL], color: theme.palette.error.main, points: resources.filter(point => point.memory !== null).map(point => ({ x: point.x, y: point.memory! })) }]} />
@@ -60,6 +64,7 @@ export const RunObservability = memo(function RunObservability({ runId }: { runI
         { label: t[RSC.INFERENCE_CHART_COMPLETION_RETAINED_LABEL], color: theme.palette.success.main, points: delivery.filter(point => point.completion !== null).map(point => ({ x: point.x, y: point.completion! })) },
       ]} />
       <SpeculativeMetrics value={snapshot.speculative} />
+      <BatchRequestDistributionPanel value={snapshot.batchRequestDistributions} />
     </Box>
   </Box>;
 });
@@ -67,7 +72,7 @@ export const RunObservability = memo(function RunObservability({ runId }: { runI
 export function RequestPerformanceMetrics({ request }: { request: InferenceRequest }) {
   const { t } = useTranslation(); const telemetry = request.telemetry; const fill = requestBatchFillRatio(request); const e2e = request.completedAt ? Date.parse(request.completedAt) - Date.parse(request.submittedAt) : null;
   return <Box data-testid="inference-request-metrics" sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5 }}>{[
-    [t[RSC.INFERENCE_TTFT_LABEL], fmt(request.ttftMs, " ms")], [t[RSC.INFERENCE_REQUEST_MONITORING_E2E_LABEL], fmt(e2e, " ms")], [t[RSC.INFERENCE_FINAL_TPS_LABEL], fmt(request.finalTps)], [t[RSC.INFERENCE_GENERATION_TPS_LABEL], fmt(request.generationTps)],
+    [t[RSC.INFERENCE_TTFT_LABEL], fmt(request.ttftMs, " ms")], [t[RSC.INFERENCE_ADMISSION_WAIT_LABEL], t[RSC.INFERENCE_TIMING_UNMEASURABLE_TEXT]], [t[RSC.INFERENCE_ADMITTED_FIRST_LABEL], t[RSC.INFERENCE_TIMING_UNMEASURABLE_TEXT]], [t[RSC.INFERENCE_REQUEST_MONITORING_E2E_LABEL], fmt(e2e, " ms")], [t[RSC.INFERENCE_FINAL_TPS_LABEL], fmt(request.finalTps)], [t[RSC.INFERENCE_GENERATION_TPS_LABEL], fmt(request.generationTps)],
     [t[RSC.INFERENCE_REQUEST_MONITORING_BATCH_FILL_LABEL], fmt(fill === null ? null : fill * 100, "%")], [t[RSC.INFERENCE_REQUEST_MONITORING_ISSUES_LABEL], telemetry.issueCount], [t[RSC.INFERENCE_REQUEST_MONITORING_MULTI_REQUEST_LABEL], telemetry.multiRequestPhysicalBatches], [t[RSC.INFERENCE_REQUEST_MONITORING_PREFILL_ROWS_LABEL], telemetry.prefillRows], [t[RSC.INFERENCE_REQUEST_MONITORING_DECODE_ROWS_LABEL], telemetry.decodeRows],
   ].map(([label, value]) => <Paper variant="outlined" sx={{ p: 1.5 }} key={String(label)}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography sx={{ mt: .25, fontWeight: 500 }}>{value}</Typography></Paper>)}</Box>;
 }
@@ -81,6 +86,7 @@ export function RequestMonitoringContent({ run, request, showContent = true, sho
       <Paper variant="outlined" sx={{ p: 1.5, minWidth: 0 }}><Typography variant="caption" color="text.secondary">{t[RSC.INFERENCE_OUTPUT_LABEL]}</Typography><Box component="pre" data-testid="inference-monitoring-answer" sx={{ mt: .75, mb: 0, maxHeight: 240, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", font: "inherit" }}>{request.text || request.error || t[RSC.INFERENCE_VALUE_UNAVAILABLE_TEXT]}</Box></Paper>
     </Box>}
     {showMetrics && <RequestPerformanceMetrics request={request} />}
+    <Typography variant="caption" color="text.secondary">{t[RSC.INFERENCE_ADMISSION_UNAVAILABLE_MESSAGE]}</Typography>
     {telemetry.stages.length === 0 ? <Paper variant="outlined" sx={{ p: 2 }}><Typography color="text.secondary">{t[RSC.INFERENCE_REQUEST_MONITORING_UNAVAILABLE_MESSAGE]}</Typography></Paper> : <Box><Typography sx={{ fontWeight: 500, mb: 1 }}>{t[RSC.INFERENCE_REQUEST_MONITORING_WATERFALL_LABEL]}</Typography><Box sx={{ display: "grid", gap: 1 }}>{telemetry.stages.map(stage => { const start = stage.firstIngressUnixMs ?? min, end = stage.lastForwardUnixMs ?? start; return <Box key={`${stage.stageIndex}-${stage.nodeId}`} sx={{ display: "grid", gridTemplateColumns: "120px minmax(180px, 1fr) 100px", gap: 1, alignItems: "center" }}><Typography variant="body2">{t[RSC.INFERENCE_STAGE_LABEL]} {stage.stageIndex + 1}</Typography><Box sx={{ height: 20, bgcolor: "action.hover", position: "relative", overflow: "hidden" }}><Box sx={{ position: "absolute", insetBlock: 3, left: `${(start - min) * 100 / range}%`, width: `${Math.max(1, (end - start) * 100 / range)}%`, bgcolor: "primary.main" }} /></Box><Typography variant="caption" align="right">{Math.max(0, end - start)} ms</Typography></Box>; })}</Box></Box>}
     <Box sx={{ overflowX: "auto" }}><Table size="small" aria-label={t[RSC.INFERENCE_REQUEST_MONITORING_STAGE_TABLE_LABEL]}><TableHead><TableRow><TableCell>{t[RSC.INFERENCE_STAGE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_EXECUTIONS_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_INGRESS_QUEUE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_SHARED_STAGE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_FORWARD_LABEL]}</TableCell></TableRow></TableHead><TableBody>{telemetry.stages.map(stage => <TableRow key={`${stage.stageIndex}-${stage.nodeId}`}><TableCell>{stage.agentName} · {stage.nodeId}</TableCell><TableCell align="right">{stage.executions}</TableCell><TableCell align="right">{stage.ingressQueueMs} ms</TableCell><TableCell align="right">{stage.sharedStageMs} ms</TableCell><TableCell align="right">{stage.forwardMs} ms</TableCell></TableRow>)}</TableBody></Table></Box>
     <Typography variant="caption" color="text.secondary">{t[RSC.INFERENCE_REQUEST_MONITORING_SHARED_TIME_MESSAGE]}</Typography>

@@ -1,4 +1,6 @@
 export enum RSC {
+  INFERENCE_SPECULATIVE_REPLAY_WARNING_MESSAGE = "inference.speculative.replay.warning.message",
+
   INFERENCE_SPECULATIVE_TITLE = "inference.speculative.title",
   INFERENCE_SPECULATIVE_UNAVAILABLE_MESSAGE = "inference.speculative.unavailable.message",
   INFERENCE_SPECULATIVE_ACCEPTANCE_LABEL = "inference.speculative.acceptance.label",
