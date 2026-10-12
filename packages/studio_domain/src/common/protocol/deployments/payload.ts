@@ -60,6 +60,21 @@ export function llamaPlanSummary(text: string) {
   if (!artifact) throw new Error("Plan requires --model");
   return { artifact, layerStart: number("--layer-begin"), layerEnd: number("--layer-end"), device: get("--device", "-dev") ?? "" };
 }
+
+/** 계획의 실행 slot 수. resource_profile.max_requests(보관 예산)와 별개다. */
+export function llamaSequenceLimit(input: DeploymentInput): number | null {
+  if (input.adapter !== "llamacpp" || !input.stages.length) return null;
+  try {
+    const limits = input.stages.map(stage => {
+      const tokens = planTokens(String(buildLoadPayload(input, stage, 1).plan));
+      const values = tokens.flatMap((token, index) => token === "--n-seq-max" ? [tokens[index + 1] ?? ""] : token.startsWith("--n-seq-max=") ? [token.slice(12)] : []);
+      const value = Number(values[0]);
+      if (values.length !== 1 || !/^\d+$/.test(values[0]!) || !Number.isSafeInteger(value) || value < 1) throw new Error("잘못된 --n-seq-max");
+      return value;
+    });
+    return Math.min(...limits);
+  } catch { return null; }
+}
 export function readLlamaPayload(stage: PlacementStage, generation: number): Record<string, unknown> {
   const options: unknown = JSON.parse(stage.loadOptionsJson ?? "{}");
   if (!options || typeof options !== "object" || Array.isArray(options)) throw new Error("LOAD options must be a JSON object");

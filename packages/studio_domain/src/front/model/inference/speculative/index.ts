@@ -42,3 +42,11 @@ export function recordSpeculativeRound(run: InferenceRun, round: P4SpeculativeRo
   accumulate(run.speculative, round, atUnixMs); accumulate(request.speculative, round, atUnixMs);
   return true;
 }
+// 2026-10-12 Qwen MTP 기준선 replay 약 65% 관측에 따른 설명 노출 기준(성능 인과 판정 아님).
+// see docs/api.md#speculative-decoding. 특정 선별 run(n_max 2)은 40.95%였음.
+export const SPECULATIVE_REPLAY_WARNING_RATIO = 0.65;
+export function speculativePathRatios(value: { rounds: number; full: number; direct: number; replay: number } | undefined) {
+  return { full: value && value.rounds > 0 ? value.full / value.rounds : null,
+    direct: value && value.rounds > 0 ? value.direct / value.rounds : null,
+    replay: value && value.rounds > 0 ? value.replay / value.rounds : null };
+}

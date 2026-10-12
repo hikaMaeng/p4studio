@@ -11,6 +11,7 @@ export const inferenceRunInputSchema = z.object({
   concurrency: z.number().int().min(1),
   repetitions: z.number().int().min(1),
   intervalMs: z.number().int().min(0).max(86400000),
+  repeatMode: z.enum(["scheduled", "after-completion"]).optional(),
   // P4 combines prompt and generated tokens in one finite per-sequence
   // context. Studio therefore always sends an explicit, positive output cap.
   maxTokens: z.number().int().min(1).max(0xffff_ffff),
@@ -20,6 +21,7 @@ export type InferenceRunInput = z.infer<typeof inferenceRunInputSchema>;
 export const inferenceOwnerSettlementSchema = z.object({ ownerToken: z.string().uuid(), loadGeneration: nonNegative, pendingSettlement: z.literal(0), submitted: nonNegative }).strict();
 
 export const inferenceRunSettingsSchema = z.object({
+  repeatMode: z.enum(["scheduled", "after-completion"]).optional(),
   concurrency: z.number().int().min(1),
   repetitions: z.number().int().min(1),
   intervalMs: z.number().int().min(0).max(86400000),
@@ -216,7 +218,20 @@ export const inferenceTelemetrySeriesSchema = z.object({
 }).default({ version: 1, output: [], batches: [], spans: [] });
 export type InferenceTelemetrySeries = z.infer<typeof inferenceTelemetrySeriesSchema>;
 
+const batchRequestDistributionSchema = z.object({
+  buckets: z.tuple([nonNegative, nonNegative, nonNegative, nonNegative, nonNegative]),
+  batches: nonNegative, requests: nonNegative, multiRequestBatches: nonNegative,
+});
+export const batchRequestDistributionsSchema = z.object({
+  all: batchRequestDistributionSchema,
+  prefill: batchRequestDistributionSchema, decode: batchRequestDistributionSchema,
+  verify: batchRequestDistributionSchema, replay: batchRequestDistributionSchema,
+});
+export type BatchRequestDistribution = z.infer<typeof batchRequestDistributionSchema>;
+export type BatchRequestDistributions = z.infer<typeof batchRequestDistributionsSchema>;
+
 export const inferenceRunSchema = z.object({
+  batchRequestDistributions: batchRequestDistributionsSchema.optional(),
   speculative: inferenceSpeculativeSchema.optional(),
   id: identifier,
   modelId: identifier,

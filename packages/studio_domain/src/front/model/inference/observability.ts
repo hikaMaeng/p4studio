@@ -8,6 +8,7 @@ import type {
 } from "../../../common/protocol/inference/index.js";
 
 type StageIdentity = { stageIndex: number; agentName: string; nodeId: string };
+import { addBatchRequestDistributions, emptyBatchRequestDistributions } from "./batch-requests.js";
 const SECOND_MS = 1000;
 const SERIES_POINT_LIMIT = 3600;
 const SERIES_TRIM_CHUNK = 128;
@@ -94,6 +95,7 @@ export function recordOutputObservability(run: InferenceRun, receivedAtUnixMs: n
 }
 
 export function recordBatchObservability(run: InferenceRun, stage: StageIdentity, value: P4BatchObservation, observedAt: string) {
+  addBatchRequestDistributions(run.batchRequestDistributions ??= emptyBatchRequestDistributions(), value);
   const index = indexesFor(run);
   const atUnixMs = bucket(numericTime(observedAt));
   const key = stageBucketKey(atUnixMs, stage.stageIndex);
@@ -192,6 +194,8 @@ export type PhaseWorkPoint = {
   /** Average prefill rows per physical batch in the bucket; null when the bucket recorded no physical batch. */
   prefillRowsPerBatch: number | null;
   decodeRowsPerBatch: number | null;
+  verifyRowsPerBatch: number | null;
+  replayRowsPerBatch: number | null;
   /** Largest ready-rows snapshot seen in the bucket (a point-in-time sample, not an average). */
   readyRowsMax: number;
 };
@@ -203,12 +207,14 @@ export type PhaseWorkPoint = {
  * Storage buckets and throughput accounting are unchanged.
  */
 export function projectPhaseWorkSeries(points: readonly InferenceTelemetrySeries["batches"][number][]): PhaseWorkPoint[] {
-  const buckets = new Map<number, { batches: number; prefill: number; decode: number; ready: number }>();
+  const buckets = new Map<number, { batches: number; prefill: number; decode: number; verify: number; replay: number; ready: number }>();
   for (const point of points) {
-    const value = buckets.get(point.atUnixMs) ?? { batches: 0, prefill: 0, decode: 0, ready: 0 };
+    const value = buckets.get(point.atUnixMs) ?? { batches: 0, prefill: 0, decode: 0, verify: 0, replay: 0, ready: 0 };
     value.batches += point.physicalBatches;
     value.prefill += point.prefillRows;
     value.decode += point.decodeRows;
+    value.verify += point.verifyRows;
+    value.replay += point.replayRows;
     value.ready = Math.max(value.ready, point.readyRowsMax);
     buckets.set(point.atUnixMs, value);
   }
@@ -216,6 +222,8 @@ export function projectPhaseWorkSeries(points: readonly InferenceTelemetrySeries
     atUnixMs,
     prefillRowsPerBatch: value.batches > 0 ? value.prefill / value.batches : null,
     decodeRowsPerBatch: value.batches > 0 ? value.decode / value.batches : null,
+    verifyRowsPerBatch: value.batches > 0 ? value.verify / value.batches : null,
+    replayRowsPerBatch: value.batches > 0 ? value.replay / value.batches : null,
     readyRowsMax: value.ready,
   }));
 }

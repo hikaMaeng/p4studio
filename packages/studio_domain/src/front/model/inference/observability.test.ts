@@ -100,8 +100,8 @@ describe("inference observability aggregation", () => {
     expect(value.telemetrySeries.batches.map(({ atUnixMs, physicalBatches, prefillRows }) => ({ atUnixMs, physicalBatches, prefillRows })))
       .toEqual([{ atUnixMs: 1_789_430_401_000, physicalBatches: 2, prefillRows: 20 }, { atUnixMs: 1_789_430_402_000, physicalBatches: 1, prefillRows: 10 }]);
     expect(projectPhaseWorkSeries(value.telemetrySeries.batches)).toEqual([
-      { atUnixMs: 1_789_430_401_000, prefillRowsPerBatch: 10, decodeRowsPerBatch: 0, readyRowsMax: 6 },
-      { atUnixMs: 1_789_430_402_000, prefillRowsPerBatch: 10, decodeRowsPerBatch: 0, readyRowsMax: 6 },
+      { atUnixMs: 1_789_430_401_000, prefillRowsPerBatch: 10, decodeRowsPerBatch: 0, verifyRowsPerBatch: 0, replayRowsPerBatch: 0, readyRowsMax: 6 },
+      { atUnixMs: 1_789_430_402_000, prefillRowsPerBatch: 10, decodeRowsPerBatch: 0, verifyRowsPerBatch: 0, replayRowsPerBatch: 0, readyRowsMax: 6 },
     ]);
   });
 
@@ -111,8 +111,8 @@ describe("inference observability aggregation", () => {
     recordBatchObservability(value, stage1, { ...withCap(10, [6]), ready_rows: 11 }, "2026-09-15T00:00:01.200Z");
     recordBatchObservability(value, stage0, { ...withCap(10, []), ready_rows: 3 }, "2026-09-15T00:00:02.100Z");
     const projected = projectPhaseWorkSeries(value.telemetrySeries.batches);
-    expect(projected[0]).toEqual({ atUnixMs: 1_789_430_401_000, prefillRowsPerBatch: 6, decodeRowsPerBatch: 0, readyRowsMax: 11 });
-    expect(projected[1]).toEqual({ atUnixMs: 1_789_430_402_000, prefillRowsPerBatch: null, decodeRowsPerBatch: null, readyRowsMax: 3 });
+    expect(projected[0]).toEqual({ atUnixMs: 1_789_430_401_000, prefillRowsPerBatch: 6, decodeRowsPerBatch: 0, verifyRowsPerBatch: 0, replayRowsPerBatch: 0, readyRowsMax: 11 });
+    expect(projected[1]).toEqual({ atUnixMs: 1_789_430_402_000, prefillRowsPerBatch: null, decodeRowsPerBatch: null, verifyRowsPerBatch: null, replayRowsPerBatch: null, readyRowsMax: 3 });
     expect(projectPhaseWorkSeries([])).toEqual([]);
     for (const point of projected) for (const field of [point.prefillRowsPerBatch, point.decodeRowsPerBatch]) expect(field === null || Number.isFinite(field)).toBe(true);
   });
@@ -137,4 +137,10 @@ describe("inference observability aggregation", () => {
     expect(value.telemetrySeries.batches[0]).toMatchObject({ stageIndex: 1, observations: 1 });
     expect(value.telemetrySeries.spans[0]).toMatchObject({ stageIndex: 1, spans: 1 });
   });
+});
+
+it("verify와 replay가 포함된 생성 구간의 실제 행 수를 평균으로 투영한다", () => {
+  const value = run();
+  recordBatchObservability(value, stage0, { ...batch, physical_batches: [{ ...batch.physical_batches[0]!, verify_rows: 6, replay_rows: 3 }] }, "2026-09-15T00:00:01.200Z");
+  expect(projectPhaseWorkSeries(value.telemetrySeries.batches)[0]).toMatchObject({ verifyRowsPerBatch: 6, replayRowsPerBatch: 3 });
 });

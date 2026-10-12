@@ -2,7 +2,7 @@ import { SliceModel } from "../SliceModel.js";
 import { isActiveInference } from "./cancellation/control.js";
 import type { InferenceMonitoring, InferenceRun, InferenceRunInput } from "../../../common/protocol/inference/index.js";
 
-export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries" | "monitoring" | "monitoringSummary" | "speculative"> & {
+export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries" | "monitoring" | "monitoringSummary" | "speculative" | "batchRequestDistributions"> & {
   requestCount: number;
   coveredRequestCount: number;
 };
@@ -10,6 +10,7 @@ export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries
 const OBSERVABILITY_PUBLISH_INTERVAL_MS = 1000;
 const observabilitySnapshot = (run: InferenceRun): InferenceObservabilitySnapshot => ({
   telemetrySeries: run.telemetrySeries,
+  batchRequestDistributions: run.batchRequestDistributions,
   speculative: run.speculative,
   monitoring: run.monitoring,
   monitoringSummary: run.monitoringSummary,
@@ -27,6 +28,7 @@ export interface InferenceGateway {
 }
 
 export class InferenceStore {
+  readonly query = new SliceModel({ modelId: "", prompt: "", concurrency: 1, repetitions: 1, intervalSeconds: 0, maxTokens: 4000, repeatMode: "scheduled" as "scheduled" | "after-completion" });
   readonly runs = new SliceModel<InferenceRun[]>([]);
   readonly runIds = new SliceModel<string[]>([]);
   readonly activeRunIds = new SliceModel<string[]>([]);
