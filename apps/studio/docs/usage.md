@@ -60,7 +60,8 @@ Compose에서 Windows 호스트의 로컬 agent를 등록할 때 agent는 `0.0.0
 - `P4STUDIO_AGENT_TUNNELS` 기본 `[]`. 항목은 `{agentHost, agentPort, sshHost, sshPort, sshUser, localPort}`. 등록 주소는 P4의 실제 advertise 주소를 유지하며 localPort는 컨테이너 loopback 전용이다.
 - SSH 키와 검증된 known_hosts를 `apps/studio/docker/volumes/ssh/{id_ed25519,known_hosts}`에 둔다. Git 제외·읽기 전용 mount이며 runtime이 키를 임시 0600 파일로 복사한다. SSH host key 검증을 생략하지 않는다. 터널은 연결 종료 5초 후 재시도하고 Studio 종료 시 정리한다.
 - browser WebSocket이 SQLite agent ID를 열면 server bridge가 동일 [dial resolver](../src/server/agent-socket/routes.ts)를 사용해 TCP만 연다. LOAD/UNLOAD/SESSION/PREFILL과 응답 판정은 브라우저가 수행한다. 터널은 agent 사이의 네트워크를 만들지 않으므로 배치의 agent 간 forwarding 주소는 서로 도달 가능해야 한다.
-- `register-recorded-models.mjs`는 기록된 주소 또는 같은 호스트·관리 이름의 현재 등록을 재사용한다. 운영 포트 변경 후에도 기존 ID·모델 참조를 보존한다.
+- `register-recorded-models.mjs`를 실행하기 전 등록 계약 v1을 지원하는 Studio가 실행 중이어야 한다. 스크립트는 읽기 전용 capability·snapshot·배치 목록 확인을 마친 뒤에만 등록 POST를 보낸다. 기록된 주소 또는 같은 호스트·관리 이름의 현재 등록을 재사용하며, 운영 포트 변경 후에도 기존 ID·모델 참조를 보존한다.
+- 등록 중 실패하면 보고서의 `partial`, 실패 단계, 오류와 `applied` ID를 확인한다. 자동 롤백하지 않으므로 관리 화면에서 자원 사용 여부를 확인하고 사람이 정리한다. 배치는 원격 LOAD 상태와 노드 소유를 확인하기 전 삭제하지 않는다. 같은 입력 재실행은 이미 있는 agent·배치·카탈로그 항목을 재사용한다.
 
 모델 LOAD/UNLOAD·부분 실패·재적재와 이전 노드 등록 URL의 이행은 [노드 수명](../../../docs/node-lifecycle.md)을 따른다.
 

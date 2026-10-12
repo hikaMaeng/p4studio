@@ -53,11 +53,15 @@ Qwen source: `F:/dev/p4/tests/reports/verify-round-batching-20261012/runs/<run>/
 
 선별 보고는 n_seq_max5→16의 동시5 처리량 개선·agent 배칭 knob 개선을 확인하지 못했다. 창1·min rows5는 깨끗한 MTP 반복 대비 절반 이하이며 창1에는 CPU 경쟁이 섞였다. 이는 해당 corpus·장치·현 P4 구조의 한정 관찰이다. MiMo 이전 핀 비회귀도 당시 보고의 한정 판정이다. 다른 환경에서의 최적 설정으로 광고하지 않는다.
 
+선행조건은 등록 계약 v1을 지원하는 Studio가 실행 중인 것이다. 스크립트는 쓰기 전에 읽기 전용 `GET /api/capabilities`, `GET /api/snapshot`, `GET /api/model-deployments`를 확인한다. 배치의 `insightNotes`와 모델 카탈로그 `notes` 보존, 이 스크립트가 사용하는 등록 경로가 capability에 없으면 POST 없이 중단하고 오류 보고서를 남긴다.
+
 사람의 별도 승인 후 운영 Studio에 선언만 등록하는 명령(이번 작업에서 실행하지 않음):
 
 ```powershell
 node scripts/register-recorded-models.mjs http://127.0.0.1:43120 tests/reports/studio-revamp/approved-registration.json qwen38-none-seq16,qwen38-mtp-nmax2,mimo-dflash-nmax4
 ```
+
+각 agent·배치·카탈로그 생성 응답을 받으면 종류·ID·단계를 보고서 `applied`에 원자적으로 기록한다. 실패 보고서는 `status: "partial"`, 실패 단계, 원문 오류와 적용 목록을 보존한다. 자동 롤백은 하지 않는다. 부분 적용 시 보고서의 ID와 Studio 관리 화면을 대조하고, 배치가 원격 자원을 소유하는지 확인한 뒤 사람이 정리한다. 사용 중인 배치는 원격 LOAD/UNLOAD 상태와 노드 소유를 먼저 확인하고 정리한다. 같은 입력 재실행은 기존 agent·배치·카탈로그 항목을 재사용한다.
 
 별도 검증 인스턴스는43180과 worktree 안 tmp/revamp.db를 사용한다. deploy·push·병합과 운영 DB 쓰기는 하지 않는다. 등록된 선언은 적재·SESSION·정상 응답 근거가 아니다.
 

@@ -19,6 +19,17 @@ export const createApp = (
   app.disable("x-powered-by");
   app.use(express.json({ limit: "1mb" }));
   app.get("/health", (_request, response) => response.json({ status: "ok", database: "ready", instance: hostname() }));
+  app.get("/api/capabilities", (_request, response) => response.json({
+    contractVersion: 1,
+    recordedModelRegistration: {
+      deploymentInsightNotes: true,
+      catalogNotesPreserved: true,
+      endpoints: [
+        "GET /api/snapshot", "GET /api/model-deployments", "POST /api/agents",
+        "POST /api/model-deployments", "POST /api/models",
+      ],
+    },
+  }));
   app.use(createDeploymentRouter(database));
   const leases = new OperationLeases(database.connection);
   app.use(createLeaseRouter(database.connection, leases));

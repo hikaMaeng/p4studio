@@ -10,6 +10,8 @@ npm run build
 
 재사용 회귀 시험은 source 옆의 `*.test.ts`, 브라우저 시험은 `tests/browser/`, 격리 연동 시험은 `tests/integration/`, headless 입력은 `tests/headless/`에 둔다. 실행 보고·로그·스크린샷·trace·스냅샷은 `tests/artifacts/` 같은 무시된 로컬 경로에 쓴다. 일회성 시험 계획·날짜별 이력은 커밋하지 않으며 지속 검증 조건은 이 문서와 각 패키지의 testing 문서에 유지한다.
 
+기록 모델 등록 스크립트의 호환 사전 검사, 부분 실패 진행 보고, 정상 등록, 재실행 중복 방지는 `node tests/integration/register-recorded-models.mjs --out tests/reports/studio-revamp/r3`로 메모리 HTTP 서버에서 검사한다. 같은 실행기가 TEMP 복사본에서 배치·카탈로그의 즉시 기록 호출을 제거한 변이도 검사한다. 결과 JSON은 무시된 `tests/reports/studio-revamp/r3/registration-report.json`에 남긴다.
+
 | 경계 | 검증 코드 / 계약 |
 | --- | --- |
 | P4 wire와 고정 응답 bytes | [Protocol testing](../packages/p4-protocol/docs/testing.md) |

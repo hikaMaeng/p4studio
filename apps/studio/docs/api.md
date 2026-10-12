@@ -65,3 +65,5 @@ UI: `/agent-groups`, `/agent-groups/new`, `/agent-groups/:id`, `/agent-groups/:i
 [관측·워크로드·SESSION 계약](../../../docs/studio-revamp.md)이 네 phase·소유 요청 분포·입장 미측정·경로 비율·반복 방식·v4/v5·합의 실패 의미를 소유한다. [model editor](../src/front/features/models/ModelEditorPage.tsx)의 기본 구성에서 기록된 preset과 insightNotes를 표시·편집한다. 저장·조회는 optional notes를 그대로 보존하며 서버는 SESSION·PREFILL을 실행하지 않는다.
 
 [InferenceError](../src/front/features/inference/InferenceError.tsx)는 SESSION 사전 거부 코드 6종을 feature resource key로 번역한다. activity/history에는 코드를 유지하며 언어 변경 시 새 번역을 표시한다. 알려지지 않은 P4 오류의 원문 보존과 기존 submission/owner 정산은 유지한다. 모델 선택의 초기 정규화는 현재 값이 달라질 때만 query slice를 갱신한다.
+
+기록 모델 등록기는 [등록 capability](../src/server/app.ts)의 `GET /api/capabilities`에서 계약 버전, 배치 `insightNotes`, 카탈로그 notes 보존 및 사용하는 endpoint를 먼저 확인한다. 이 조회는 읽기 전용이며 capability가 없거나 맞지 않으면 등록 POST를 보내지 않는다.
