@@ -154,8 +154,10 @@ export class InferenceCancellation {
       entry.terminal = true;
       const request = this.run.requests.find(value => value.id === owner.request_id)!;
       if (request.state === "completed") throw new Error("Error conflicts with natural completion");
-      request.state = entry.refused ? "cancelled" : "failed"; request.completedAt = new Date().toISOString(); request.error = error.detail;
-      if (!this.requested) { this.run.error = error.detail; void this.cancel(); }
+      const detail = error.code === "LLAMA_PIPELINE_AGREEMENT_FAILED"
+        ? `${error.code} [${"submission" in error ? "submission" : "owner"}]: ${error.detail}` : error.detail;
+      request.state = entry.refused ? "cancelled" : "failed"; request.completedAt = new Date().toISOString(); request.error = detail;
+      if (!this.requested) { this.run.error = detail; void this.cancel(); }
     }
     if (!this.requested && this.run.state === "settling") this.finishNatural();
     this.notify(); return true;

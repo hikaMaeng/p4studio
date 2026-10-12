@@ -133,3 +133,14 @@ it("waits for an already pending SESSION proof write before UNLOAD records its n
   finishWrite(); await pending;
   expect(operation).toHaveBeenCalledTimes(1);
 });
+it.each(["submission", "owner"])("합의 실패 %s 오류는 정확한 제출만 정산하고 설명 신원을 보존한다", async kind => {
+  const f = fixture(["one"]);
+  f.control.consume(f.reply("one", P4_INFERENCE_ERROR_CONTENT_TYPE, { code: "LLAMA_PIPELINE_AGREEMENT_FAILED", detail: "계약 불일치",
+    ...(kind === "submission" ? { submission: { load_generation: 42, session_id: "run", request_id: "one", submission_event_id: "prefill-one" } }
+      : { owner: { load_generation: 42, session_id: "run", request_id: "one", incarnation: 3 } }) }));
+  expect(f.run.requests[0]!.error).toContain(`LLAMA_PIPELINE_AGREEMENT_FAILED [${kind}]`);
+  expect(f.run.pendingSettlement).toBe(kind === "submission" ? 0 : 1);
+  if (kind === "owner") f.control.consume(f.release("one"));
+  f.control.consume(f.closed()); await vi.advanceTimersByTimeAsync(100);
+  expect(f.run.pendingSettlement).toBe(0); expect(f.run.state).toBe("failed");
+});
