@@ -46,6 +46,50 @@ const emit = (original: P4Event, contentType: string, body: unknown) => {
   wire.listeners.forEach(listener => listener(reply, performance.now()));
 };
 const prefills = () => wire.events.filter(event => event.contentType.includes("prefill-v3"));
+const speculativeType = "application/vnd.p4.llamacpp.speculative-round-v1+json";
+function speculative(original: P4Event, changes = {}) {
+  const body = payload(original), source = original.source as Extract<P4Endpoint, { kind: "outer" }>;
+  return { observation_id: "round-one", load_generation: 42, session_id: body.session_id, request_id: body.request_id,
+    reply: { ingress_agent: source.address, channel: source.channel, connection_generation: source.generation, correlation_id: original.correlationId, deadline_unix_ms: original.deadline },
+    sequence_id: 0, incarnation: 3, position: 12, drafted: 3, accepted: 2, path: "direct", emitted_tokens: 1, ...changes };
+}
+function emitSpeculative(original: P4Event, body: unknown, source = original.target, eventClass = 3) {
+  const reply = { ...original, eventId: crypto.randomUUID(), source, target: original.source, class: eventClass, contentType: speculativeType, payload: new TextEncoder().encode(JSON.stringify(body)) };
+  wire.listeners.forEach(listener => listener(reply, performance.now()));
+}
+it("consumes owner-bound head speculative telemetry once and persists run/request metrics", async () => {
+  const { inference, id } = await start({ concurrency: 1, repetitions: 1, intervalMs: 0 });
+  const original = prefills()[0]!, body = speculative(original);
+  expect(payload(original).speculative_observations).toBe(true);
+  emitSpeculative(original, body); emitSpeculative(original, body);
+  await vi.advanceTimersByTimeAsync(3000);
+  const run = inference.runModel(id).value!;
+  expect(run.speculative).toMatchObject({ rounds: 1, drafted: 3, accepted: 2, emittedTokens: 1 });
+  expect(run.requests[0]!.speculative).toEqual(run.speculative);
+  const saved = vi.mocked(window.localStorage.setItem).mock.calls.filter(([key]) => key === "p4studio.inference.history.v1").at(-1)!;
+  expect(JSON.parse(saved[1]).runs[0].speculative.accepted).toBe(2);
+});
+it.each(["load", "session", "request", "owner", "tail", "class"])("rejects speculative %s identity mismatches before collecting metrics", async mismatch => {
+  const { inference, id } = await start({ concurrency: 1, repetitions: 1, intervalMs: 0 });
+  const original = prefills()[0]!, body = speculative(original);
+  if (mismatch === "load") body.load_generation = 41;
+  if (mismatch === "session") body.session_id = "old-run";
+  if (mismatch === "request") body.request_id = "other-request";
+  if (mismatch === "owner") body.reply.channel = "other-owner";
+  emitSpeculative(original, body, mismatch === "tail" ? { ...original.target, kind: "node", nodeId: "tail", generation: 9 } : original.target, mismatch === "class" ? 2 : 3);
+  await vi.advanceTimersByTimeAsync(250);
+  expect(inference.runModel(id).value!.speculative).toBeUndefined();
+  expect(inference.runModel(id).value!.error).toMatch(/speculative/);
+});
+it("binds speculative incarnation to the subsequent OUTPUT owner", async () => {
+  const { inference, id } = await start({ concurrency: 1, repetitions: 1, intervalMs: 0 });
+  const original = prefills()[0]!;
+  emitSpeculative(original, speculative(original, { incarnation: 4 }));
+  streamedOutput(original, 0, 0, false);
+  await vi.advanceTimersByTimeAsync(250);
+  expect(inference.runModel(id).value!.error).toMatch(/incarnation/);
+  expect(inference.runModel(id).value!.requests[0]!.receivedTokens).toBe(0);
+});
 const scopeCloses = () => wire.events.filter(event => event.contentType.includes("scope-close-v1"));
 const closeScope = () => {
   const event = scopeCloses().at(-1)!;
@@ -63,6 +107,51 @@ function complete(original: P4Event, sequence: number) {
   emit(original, "application/vnd.p4.llamacpp.output-v6+json", { load_generation: 42, session_id: body.session_id, request_id: body.request_id, submission_event_id: original.eventId, sequence_id: sequence, incarnation: 3, token: 1, text: "partial answer", position: 0, stop: "length", output_ordinal: 0, release_operation_id: 10 });
   emit(original, P4_RELEASE_RECEIPT_CONTENT_TYPE, { load_generation: 42, session_id: body.session_id, members: [{ request_id: body.request_id, submission_event_id: original.eventId, sequence_id: sequence, incarnation: 3, operation_id: 10 }] });
 }
+function streamedOutput(original: P4Event, sequence: number, ordinal: number, terminal: boolean) {
+  const body = payload(original);
+  emit(original, "application/vnd.p4.llamacpp.output-v6+json", { load_generation: 42, session_id: body.session_id, request_id: body.request_id, submission_event_id: original.eventId, sequence_id: sequence, incarnation: 3, token: ordinal + 1, text: "answer", position: ordinal, stop: terminal ? "length" : null, output_ordinal: ordinal, release_operation_id: terminal ? 10 : null });
+  if (terminal) emit(original, P4_RELEASE_RECEIPT_CONTENT_TYPE, { load_generation: 42, session_id: body.session_id, members: [{ request_id: body.request_id, submission_event_id: original.eventId, sequence_id: sequence, incarnation: 3, operation_id: 10 }] });
+}
+it("measures TTFT and 160-second responses from each of ten overlapping five-second waves", async () => {
+  const { inference, id } = await start({ concurrency: 10, repetitions: 10, intervalMs: 5000 });
+  const { groupInferenceWaves } = await import("@p4studio/studio_domain/front");
+  const firstSentAt = wire.sentTimes[0]!;
+  for (let wave = 0; wave < 10; wave += 1) {
+    const originals = prefills().slice(wave * 10, (wave + 1) * 10);
+    expect(originals).toHaveLength(10);
+    originals.forEach((original, lane) => {
+      const sequence = wave * 10 + lane;
+      setTimeout(() => streamedOutput(original, sequence, 0, false), 500);
+      setTimeout(() => streamedOutput(original, sequence, 1, true), 160_000);
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+  }
+  let run = inference.runModel(id).value!;
+  expect(run.requests.map(request => request.ttftMs)).toEqual(Array(100).fill(500));
+  expect(groupInferenceWaves(run).map(wave => wave.elapsedMs)).toEqual(Array(10).fill(null));
+  await vi.advanceTimersByTimeAsync(firstSentAt + 160_250 - performance.now());
+  run = inference.runModel(id).value!;
+  expect(groupInferenceWaves(run).map(wave => wave.elapsedMs)).toEqual([160_000, ...Array(9).fill(null)]);
+  await vi.advanceTimersByTimeAsync(45_000);
+  run = inference.runModel(id).value!;
+  expect(run).toMatchObject({ state: "completed", submitted: 100, completed: 100 });
+  expect(groupInferenceWaves(run).map(wave => ({ ttft: wave.ttftP50Ms, elapsed: wave.elapsedMs }))).toEqual(Array(10).fill({ ttft: 500, elapsed: 160_000 }));
+  expect(run.requests.map(request => Date.parse(request.completedAt!) - Date.parse(request.submittedAt))).toEqual(Array(100).fill(160_000));
+  expect(wire.closed).toBe(true);
+});
+it("includes waiting after a later wave is sent while excluding its five-second dispatch interval", async () => {
+  const { inference, id } = await start({ concurrency: 1, repetitions: 2, intervalMs: 5000 });
+  const { groupInferenceWaves } = await import("@p4studio/studio_domain/front");
+  await vi.advanceTimersByTimeAsync(500); streamedOutput(prefills()[0]!, 0, 0, false);
+  await vi.advanceTimersByTimeAsync(4500); expect(prefills()).toHaveLength(2);
+  await vi.advanceTimersByTimeAsync(1500); streamedOutput(prefills()[1]!, 1, 0, false);
+  await vi.advanceTimersByTimeAsync(3500); streamedOutput(prefills()[0]!, 0, 1, true);
+  await vi.advanceTimersByTimeAsync(5000); streamedOutput(prefills()[1]!, 1, 1, true);
+  await vi.advanceTimersByTimeAsync(50);
+  const run = inference.runModel(id).value!;
+  expect(run.state).toBe("completed");
+  expect(groupInferenceWaves(run).map(wave => ({ ttft: wave.ttftP50Ms, elapsed: wave.elapsedMs }))).toEqual([{ ttft: 500, elapsed: 10_000 }, { ttft: 1500, elapsed: 10_000 }]);
+});
 it("sends ten requests every five seconds for ten waves without waiting for any output", async () => {
   const { inference, id } = await start({ concurrency: 10, repetitions: 10, intervalMs: 5000 });
   const startedAt = wire.sentTimes[0]!;

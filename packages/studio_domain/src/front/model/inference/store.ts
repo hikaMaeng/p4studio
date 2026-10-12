@@ -2,7 +2,7 @@ import { SliceModel } from "../SliceModel.js";
 import { isActiveInference } from "./cancellation/control.js";
 import type { InferenceMonitoring, InferenceRun, InferenceRunInput } from "../../../common/protocol/inference/index.js";
 
-export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries" | "monitoring" | "monitoringSummary"> & {
+export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries" | "monitoring" | "monitoringSummary" | "speculative"> & {
   requestCount: number;
   coveredRequestCount: number;
 };
@@ -10,6 +10,7 @@ export type InferenceObservabilitySnapshot = Pick<InferenceRun, "telemetrySeries
 const OBSERVABILITY_PUBLISH_INTERVAL_MS = 1000;
 const observabilitySnapshot = (run: InferenceRun): InferenceObservabilitySnapshot => ({
   telemetrySeries: run.telemetrySeries,
+  speculative: run.speculative,
   monitoring: run.monitoring,
   monitoringSummary: run.monitoringSummary,
   requestCount: run.requests.length,
@@ -139,7 +140,8 @@ export class InferenceStore {
     if (!model) return;
     const current = Date.now();
     const terminal = !isActiveInference(run);
-    if (!terminal && current - (this.observabilityPublishedAt.get(run.id) ?? 0) < OBSERVABILITY_PUBLISH_INTERVAL_MS) return;
+    const firstSpeculativeObservation = !model.value?.speculative && !!run.speculative;
+    if (!terminal && !firstSpeculativeObservation && current - (this.observabilityPublishedAt.get(run.id) ?? 0) < OBSERVABILITY_PUBLISH_INTERVAL_MS) return;
     model.set(observabilitySnapshot(run));
     this.observabilityPublishedAt.set(run.id, current);
   }

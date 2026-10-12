@@ -62,6 +62,14 @@ it("allows heterogeneous backends only with explicit physical v4 and matching kn
   const second = { ...first, backend_inventory: "Metal" };
   expect(() => checkBuilds([first, second])).toThrow(/backend_inventory/);
   expect(() => checkBuilds([first, second], "physical-wire-v4")).not.toThrow();
+  expect(() => checkBuilds([
+    { ...first, stage_wire_abi: first.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
+    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
+  ], "physical-wire-v4")).not.toThrow();
+  expect(() => checkBuilds([
+    first,
+    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
+  ], "physical-wire-v4")).toThrow(/stage_wire_abi/);
   expect(() => checkBuilds([first, { ...second, stage_wire_abi: "unknown" }], "physical-wire-v4")).toThrow(/ABI/);
   expect(() => checkBuilds([first, { ...second, patch_set: "different" }], "physical-wire-v4")).toThrow(/patch_set/);
 });

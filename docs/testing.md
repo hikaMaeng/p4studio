@@ -26,6 +26,7 @@ npm run build
 node tests/browser/socket-lifecycle.mjs --url <studio-url> --out tests/artifacts/socket-lifecycle
 node tests/browser/inference-cancellation.mjs --url <studio-url> --out tests/artifacts/inference-cancellation
 node tests/browser/wave-results.mjs --url <studio-url> --out tests/artifacts/wave-results
+node tests/browser/speculative-decoding.mjs --url <studio-url> --out tests/artifacts/speculative-decoding
 node --import tsx tests/integration/connection-teardown.mjs --agent-binary=<test-owned-p4-agent.exe> --output=tests/artifacts/connection-teardown
 ```
 

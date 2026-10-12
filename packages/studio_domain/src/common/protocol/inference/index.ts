@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { inferenceSpeculativeSchema } from "./speculative.js";
 
 const identifier = z.string().trim().min(1).max(4096).refine(value => !value.includes("\0"));
 const nonNegative = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
@@ -26,6 +27,7 @@ export const inferenceRunSettingsSchema = z.object({
 });
 
 export const inferenceRequestSchema = z.object({
+  speculative: inferenceSpeculativeSchema.optional(),
   id: identifier,
   state: z.enum(["queued", "streaming", "completed", "cancelled", "failed", "unknown"]),
   prompt: z.string(),
@@ -215,6 +217,7 @@ export const inferenceTelemetrySeriesSchema = z.object({
 export type InferenceTelemetrySeries = z.infer<typeof inferenceTelemetrySeriesSchema>;
 
 export const inferenceRunSchema = z.object({
+  speculative: inferenceSpeculativeSchema.optional(),
   id: identifier,
   modelId: identifier,
   modelName: identifier,
@@ -258,3 +261,4 @@ export const parseInferenceRuns = (value: unknown): InferenceRunsResponse => inf
 export const parseInferenceRun = (value: unknown): InferenceRun => inferenceRunSchema.parse(value);
 export const parseInferenceMonitoring = (value: unknown): InferenceMonitoring => inferenceMonitoringSchema.parse(value);
 export * from "./telemetry.js";
+export * from "./speculative.js";

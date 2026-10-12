@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "Completadas {completed} / solicitadas {total}",
   "models.compatibility.label": "Compatibilidad del runtime",
   "models.exact.build.text": "Compilación idéntica",
-  "models.physical.wire.text": "Physical wire v4 · dispositivos mixtos",
+  "models.physical.wire.text": "Physical wire ABI · dispositivos mixtos",
   "models.reference.ingress.label": "Agente de entrada original",
   "models.reference.agent.label": "Agente propietario original",
   "models.stage.routing.text": "Nodo destinatario",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "Recuperación forzada del agente",
   "models.requests.error.message": "Las solicitudes no se limpiaron. El trabajo restante en P4 puede requerir recuperar el agente.",
   "models.requests.history.message": "El número de solicitudes corresponde a la cabecera; las pendientes son un subconjunto. No se suman las etapas. Las ejecuciones sin liquidar son una cuenta separada.",
-  "models.requests.inspection.error.message": "No se pudieron consultar las solicitudes sin resolver."
+  "models.requests.inspection.error.message": "No se pudieron consultar las solicitudes sin resolver.",
+  "inference.speculative.title": "Decodificación especulativa",
+  "inference.speculative.unavailable.message": "Sin recopilar · Aún no se han recibido eventos de rondas especulativas.",
+  "inference.speculative.acceptance.label": "Tasa de aceptación",
+  "inference.speculative.chart.message": "Aceptados / propuestos × 100 en intervalos de recepción de un segundo. Solo se muestran intervalos con propuestas.",
+  "inference.speculative.drafted.label": "Propuestas por ronda",
+  "inference.speculative.accepted.label": "Aceptados / propuestos",
+  "inference.speculative.rounds.label": "Rondas observadas",
+  "inference.speculative.full.label": "Aceptación completa (full)",
+  "inference.speculative.direct.label": "Aceptación parcial (direct)",
+  "inference.speculative.replay.label": "Reejecución (replay)",
+  "inference.speculative.total.message": "Tasa global = aceptados totales / propuestas totales, según las decisiones informadas por P4.",
+  "inference.speculative.trimmed.message": "El gráfico conserva los últimos 3.600 intervalos. Los totales incluyen todas las rondas observadas."
 }

@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "المكتمل {completed} / المطلوب {total}",
   "models.compatibility.label": "توافق بيئة التشغيل",
   "models.exact.build.text": "بناء مطابق",
-  "models.physical.wire.text": "Physical wire v4 · أجهزة مختلفة",
+  "models.physical.wire.text": "Physical wire ABI · أجهزة مختلفة",
   "models.reference.ingress.label": "وكيل الدخول الأصلي",
   "models.reference.agent.label": "الوكيل المالك الأصلي",
   "models.stage.routing.text": "عقدة وجهة الأمر",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "استرداد الوكيل قسريًا",
   "models.requests.error.message": "لم تُمسح الطلبات. قد يتطلب العمل المتبقي في P4 استرداد الوكيل.",
   "models.requests.history.message": "عدد الطلبات من المرحلة الأولى، والمعلقة جزء منه. لا تُجمع أعداد المراحل. تُحسب التشغيلات غير المسواة بصورة مستقلة.",
-  "models.requests.inspection.error.message": "تعذر فحص الطلبات غير المحسومة."
+  "models.requests.inspection.error.message": "تعذر فحص الطلبات غير المحسومة.",
+  "inference.speculative.title": "فك الترميز التخميني",
+  "inference.speculative.unavailable.message": "لم تُجمع البيانات · لم تصل أحداث جولات تخمينية بعد.",
+  "inference.speculative.acceptance.label": "نسبة القبول",
+  "inference.speculative.chart.message": "المقبول / المقترح × 100 ضمن فترات وصول مدتها ثانية. تُعرض الفترات التي تتضمن مقترحات فقط.",
+  "inference.speculative.drafted.label": "المقترحات لكل جولة",
+  "inference.speculative.accepted.label": "المقبول / المقترح",
+  "inference.speculative.rounds.label": "الجولات المرصودة",
+  "inference.speculative.full.label": "قبول كامل (full)",
+  "inference.speculative.direct.label": "قبول جزئي (direct)",
+  "inference.speculative.replay.label": "إعادة التنفيذ (replay)",
+  "inference.speculative.total.message": "النسبة الإجمالية = مجموع المقبول / مجموع المقترح، وفق أعداد القرارات التي يبلغ عنها P4.",
+  "inference.speculative.trimmed.message": "يحتفظ الرسم بآخر 3,600 فترة. تشمل المجاميع جميع الجولات المرصودة."
 }

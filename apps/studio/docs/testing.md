@@ -16,6 +16,8 @@
 
 ## Browser locator contract
 
+- Speculative metrics use the named `section` `inference-speculative` within a run or request, `inference-speculative-summary`, `inference-speculative-rate`, and `inference-speculative-annotation`. Exactly one percentage chart has `role="img"` named by translated acceptance title/description. [speculative-decoding.mjs](../../../tests/browser/speculative-decoding.mjs) tests framed mock P4 live events, weighted rate, duplicate suppression, history/reload, request deep URL/back/forward, responsive width and Arabic RTL. No native GPU acceptance is claimed.
+
 - 단일 `main`, 이름 있는 `navigation`·`section`·폼과 `status`·`alert`·`progressbar`를 사용한다. 버튼·textbox·combobox는 번역된 accessible name으로 찾는다.
 - 에이전트 목록은 `agent-row`의 `<관리 이름> 상세 보기`, 상세는 `agent-detail`, 복귀는 `에이전트 목록으로`, 편집은 `<관리 이름> 등록정보 편집`이다. 노드 목록은 `agent-node-card`, 값은 `node-value-capsule`이다. 미조회와 조회 결과 0개를 구분한다.
 - 모델 카드는 이름 있는 `article`이다. `model-row`, `model-row-status`, `model-row-agent`, `model-row-name`, `model-row-summary`, `model-row-details`를 사용한다. 토글은 `aria-expanded`, 새로고침은 이름 있는 버튼·progressbar와 `status`를 가진다. 생성·편집은 `/models/new`, `/models/:id/edit` URL로 복원한다.

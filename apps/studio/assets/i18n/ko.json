@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "완료 {completed} / 요청 {total}",
   "models.compatibility.label": "런타임 호환성",
   "models.exact.build.text": "동일 빌드",
-  "models.physical.wire.text": "Physical wire v4 · 이종 장치",
+  "models.physical.wire.text": "Physical wire ABI · 이종 장치",
   "models.reference.ingress.label": "원본 진입 에이전트",
   "models.reference.agent.label": "원본 소속 에이전트",
   "models.stage.routing.text": "명령 대상 노드",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "에이전트 강제 회수",
   "models.requests.error.message": "클리어하지 못했습니다. P4 작업이 남아 있으면 에이전트 회수가 필요합니다.",
   "models.requests.history.message": "요청 수는 head 기준이며 대기는 그 일부입니다. 단계별 수를 합산하지 않습니다. 미정산 실행은 요청 수와 별개입니다.",
-  "models.requests.inspection.error.message": "미결 요청을 조회하지 못했습니다."
+  "models.requests.inspection.error.message": "미결 요청을 조회하지 못했습니다.",
+  "inference.speculative.title": "스페큘러티브 디코딩",
+  "inference.speculative.unavailable.message": "미수집 · 스페큘러티브 라운드 이벤트가 아직 없습니다.",
+  "inference.speculative.acceptance.label": "채택률",
+  "inference.speculative.chart.message": "수신 시각 기준 1초 구간의 채택 / 추천 × 100. 추천이 있는 구간만 표시합니다.",
+  "inference.speculative.drafted.label": "라운드당 추천",
+  "inference.speculative.accepted.label": "채택 / 추천",
+  "inference.speculative.rounds.label": "관측 라운드",
+  "inference.speculative.full.label": "전체 채택 (full)",
+  "inference.speculative.direct.label": "부분 채택 (direct)",
+  "inference.speculative.replay.label": "재실행 (replay)",
+  "inference.speculative.total.message": "전체 채택률 = 누적 채택 / 누적 추천. P4가 보고한 판정 수를 사용합니다.",
+  "inference.speculative.trimmed.message": "그래프는 최근 3,600개 구간입니다. 전체 수치는 모든 관측 라운드를 포함합니다."
 }

@@ -2,6 +2,7 @@ import { sameEndpoint, type P4Event } from "@p4studio/p4-protocol";
 import { P4_INFERENCE_ERROR_CONTENT_TYPE, P4_RELEASE_RECEIPT_CONTENT_TYPE, P4_SCOPE_CLOSE_CONTENT_TYPE, P4_SCOPE_CLOSED_CONTENT_TYPE, p4InferenceErrorSchema, p4ReleaseReceiptSchema, p4ScopeClosedSchema, type P4ScopeCloseCommand } from "../../../../common/protocol/inference/cancellation.js";
 import type { InferenceRun } from "../../../../common/protocol/inference/index.js";
 import type { P4ApprovedOutput } from "../../../../common/protocol/inference/output.js";
+import type { P4SpeculativeRound } from "../../../../common/protocol/inference/speculative.js";
 
 type Submission = { event: P4Event; incarnation?: number; sequence?: number; operation?: number; terminal: boolean; released: boolean; refused: boolean; held: number };
 export const isActiveInference = (run: InferenceRun) => ["preparing", "running", "settling", "cancelling"].includes(run.state);
@@ -44,6 +45,16 @@ export class InferenceCancellation {
     if (entry.terminal && output.stop !== null) throw new Error("Natural OUTPUT conflicts with cancellation terminal");
     if (output.stop !== null) entry.operation = output.release_operation_id ?? undefined;
     entry.incarnation = output.incarnation; entry.sequence = output.sequence_id; entry.held = held;
+  }
+  observeSpeculativeOwner(round: P4SpeculativeRound) {
+    const entry = this.submissions.get(round.request_id), source = entry?.event.source;
+    const reply = round.reply;
+    if (!entry || source?.kind !== "outer" || reply.ingress_agent !== source.address || reply.channel !== source.channel
+      || reply.connection_generation !== source.generation || reply.correlation_id !== entry.event.correlationId
+      || (reply.deadline_unix_ms ?? null) !== entry.event.deadline) throw new Error("P4 speculative round names another return owner");
+    if (entry.incarnation !== undefined && entry.incarnation !== round.incarnation
+      || entry.sequence !== undefined && entry.sequence !== round.sequence_id) throw new Error("P4 speculative round changed request incarnation");
+    entry.incarnation = round.incarnation; entry.sequence = round.sequence_id;
   }
   finishNatural() {
     if (this.requested || this.run.requests.some(request => ["queued", "streaming"].includes(request.state))) return;

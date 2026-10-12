@@ -1,7 +1,7 @@
 import { P4_DELIVERY_FAILURE_CONTENT_TYPE, parseP4DeliveryFailure, type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
 import {
   canAttemptInference, deploymentRoutes, llamaDispatchLimits, parseDeploymentList, parseInferenceRuns,
-  classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, type DeploymentRecord, type GraphAgent,
+  classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, parseP4SpeculativeRound, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
   P4_SCOPE_CLOSE_CONTENT_TYPE,
 } from "@p4studio/studio_domain/common";
@@ -17,6 +17,7 @@ import {
   recordOutputTiming,
   recordSpanObservability,
   recordSpanSummary,
+  recordSpeculativeRound,
   emptyRequestTelemetry,
   type InferenceGateway,
   type RequestTiming,
@@ -359,11 +360,17 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
             if (value.load_generation !== model.loadGeneration || value.session_id !== run.id) throw new Error("P4 batch observation identity does not match the active run");
             telemetry.recordBatch(model.id, stage.address, stage.nodeId, stage.generation, value, observedAt);
             if (recordBatchSummary(run, stage, value, observedAt)) { recordBatchTiming(run, value, timings); recordBatchObservability(run, stage, value, observedAt); }
-          } else {
+          } else if (telemetryKind === "stage-span") {
             const value = parseP4StageSpan(JSON.parse(new TextDecoder().decode(event.payload)));
             if (value.load_generation !== model.loadGeneration || value.session_id !== run.id) throw new Error("P4 stage span identity does not match the active run");
             telemetry.recordSpan(model.id, stage.address, stage.nodeId, stage.generation, value, observedAt);
             if (recordSpanSummary(run, stage, value, observedAt)) recordSpanObservability(run, stage, value, observedAt);
+          } else {
+            if (stage.stageIndex !== 0 || event.class !== 3) throw new Error("P4 speculative round route does not match the run head");
+            const value = parseP4SpeculativeRound(JSON.parse(new TextDecoder().decode(event.payload)));
+            if (value.load_generation !== model.loadGeneration || value.session_id !== run.id) throw new Error("P4 speculative round identity does not match the active run");
+            cancellation.observeSpeculativeOwner(value);
+            recordSpeculativeRound(run, value, Date.parse(observedAt));
           }
           publish(run); return;
         }
@@ -412,7 +419,7 @@ async function execute(run: InferenceRun, model: DeploymentRecord, input: Infere
         const id = `${run.id}-${repetition + 1}-${lane + 1}`;
         const maxTokens = wireMaxTokens(model, input.maxTokens);
         outputs.set(id, new OutputOrdinalBuffer(maxTokens));
-        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: wireOptions(model), max_tokens: maxTokens }, 1);
+        const receipt = connection.dispatch({ kind: "node", address: stages[0]!.address, nodeId: stages[0]!.nodeId, generation: stages[0]!.generation }, "llamacpp", PREFILL, { load_generation: model.loadGeneration, session_id: run.id, request_id: id, prompt: wirePrompt(model, input.prompt), options: wireOptions(model), max_tokens: maxTokens, speculative_observations: true }, 1);
         if (run.returnScope) run.returnScope.nextSequence = receipt.event.sequence + 1;
         submissions.set(receipt.event.eventId, id);
         cancellation.submitted(id, receipt.event);

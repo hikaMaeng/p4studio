@@ -1,11 +1,26 @@
 import { expect, it, vi } from "vitest";
 import type { InferenceRun } from "../../../common/protocol/inference/index.js";
 import { InferenceStore, type InferenceGateway } from "./store.js";
+import { inferenceRequestSchema, parseP4SpeculativeRound } from "../../../common/protocol/inference/index.js";
+import { recordSpeculativeRound } from "./speculative/index.js";
 
 const run = (id: string): InferenceRun => ({
   id, modelId: "model", modelName: "Model", state: "completed", submitted: 1, completed: 1,
   createdAt: "2026-10-04T00:00:00.000Z", error: null, nUbatch: 8, monitoring: [], monitoringSummary: null,
   telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [],
+});
+
+it("publishes the first speculative observation immediately within the normal chart throttle", async () => {
+  const active = { ...run("live"), loadGeneration: 42, state: "running" as const,
+    requests: [inferenceRequestSchema.parse({ id: "request", state: "queued", prompt: "", text: "", receivedTokens: 0, prefillTps: null, generationTps: null, ttftMs: null, finalTps: null, submittedAt: "", completedAt: null, error: null })] };
+  let deliver: (value: InferenceRun) => void = () => {};
+  const gateway = { list: async () => [active], subscribe: (_id: string, listener: typeof deliver) => { deliver = listener; return () => {}; } } as unknown as InferenceGateway;
+  const store = new InferenceStore(); store.start(gateway); await vi.waitFor(() => expect(store.runIds.value).toEqual(["live"]));
+  const projection = store.runObservabilityModel("live");
+  const changed = vi.fn(); projection.subscribe(changed);
+  recordSpeculativeRound(active, parseP4SpeculativeRound({ observation_id: "one", load_generation: 42, session_id: "live", request_id: "request", reply: { ingress_agent: "tcp://head:52000", channel: "outer", connection_generation: 1, correlation_id: "operation" }, sequence_id: 0, incarnation: 1, position: 12, drafted: 3, accepted: 2, path: "direct", emitted_tokens: 1 }), Date.now());
+  deliver(active);
+  expect(changed).toHaveBeenCalledOnce(); expect(projection.value!.speculative!.accepted).toBe(2);
 });
 
 it("removes only the selected completed run", async () => {

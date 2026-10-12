@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "Completed {completed} / requested {total}",
   "models.compatibility.label": "Runtime compatibility",
   "models.exact.build.text": "Exact build",
-  "models.physical.wire.text": "Physical wire v4 · mixed devices",
+  "models.physical.wire.text": "Physical wire ABI · mixed devices",
   "models.reference.ingress.label": "Original ingress agent",
   "models.reference.agent.label": "Original owning agent",
   "models.stage.routing.text": "Command target node",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "Force agent recovery",
   "models.requests.error.message": "Requests were not cleared. Remaining P4 work may require agent recovery.",
   "models.requests.history.message": "The request count is from the head; pending is a subset. Counts across stages are not added. Unsettled runs are separate from request counts.",
-  "models.requests.inspection.error.message": "Could not inspect unresolved requests."
+  "models.requests.inspection.error.message": "Could not inspect unresolved requests.",
+  "inference.speculative.title": "Speculative decoding",
+  "inference.speculative.unavailable.message": "Not collected · No speculative round events received yet.",
+  "inference.speculative.acceptance.label": "Acceptance rate",
+  "inference.speculative.chart.message": "Accepted / drafted × 100 in one-second arrival-time windows. Only windows with drafts are plotted.",
+  "inference.speculative.drafted.label": "Drafts per round",
+  "inference.speculative.accepted.label": "Accepted / drafted",
+  "inference.speculative.rounds.label": "Observed rounds",
+  "inference.speculative.full.label": "Full acceptance (full)",
+  "inference.speculative.direct.label": "Partial acceptance (direct)",
+  "inference.speculative.replay.label": "Replay (replay)",
+  "inference.speculative.total.message": "Overall rate = total accepted / total drafted, using decision counts reported by P4.",
+  "inference.speculative.trimmed.message": "The chart retains the latest 3,600 windows. Totals include every observed round."
 }

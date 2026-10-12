@@ -1,5 +1,7 @@
 # Constraints
 
+- Speculative run/request UI consumes [domain speculative counters](../../../packages/studio_domain/docs/api.md#speculative-decoding); the locator contract is [Studio testing](testing.md#browser-locator-contract). Missing events cannot prove disabled speculation. Draft counts are annotations; acceptance is the sole speculative chart.
+
 - Docker 영구 저장소는 `p4studio_studio-data:/app/data`; SQLite 경로는 `/app/data/p4studio.db`로 고정한다. 상세 수명·백업 경계는 [영구 저장소 계약](usage.md#persistent-storage)을 따른다.
 
 - 한 화면에 하나의 `main` landmark

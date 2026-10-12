@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { deployments } from "@p4studio/studio_domain/front";
 import { canStartDeployment, type DeploymentInput } from "@p4studio/studio_domain/common";
@@ -68,6 +68,10 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><Typography component="h2" variant="h2">{t[RSC.MODELS_GENERAL_TEXT]}</Typography><Button size="small" onClick={() => setGeneralOpen(false)}>{t[RSC.MODELS_PANEL_CLOSE_BUTTON]}</Button></Box>
           <TextField required label={t[RSC.MODELS_NAME_LABEL]} value={value.name} onChange={(event) => update("name", event.target.value)} />
           <Typography variant="body2" color="text.secondary">{t[RSC.MODELS_RECEPTION_MESSAGE]}</Typography>
+          <TextField select label={t[RSC.MODELS_COMPATIBILITY_LABEL]} value={value.pipelineCompatibility ?? "exact-build"} onChange={(event) => update("pipelineCompatibility", event.target.value as "exact-build" | "physical-wire-v4")}>
+            <MenuItem value="exact-build">{t[RSC.MODELS_EXACT_BUILD_TEXT]}</MenuItem>
+            <MenuItem value="physical-wire-v4">{t[RSC.MODELS_PHYSICAL_WIRE_TEXT]}</MenuItem>
+          </TextField>
           <TextField required type="number" label={t[RSC.MODELS_TOTAL_LAYERS_LABEL]} value={value.totalLayers} slotProps={{ htmlInput: { min: 1 } }} onChange={(event) => update("totalLayers", Number(event.target.value))} />
           <TextField required type="number" label={t[RSC.MODELS_TIMEOUT_LABEL]} value={value.timeoutMs} slotProps={{ htmlInput: { min: 1, max: 86400000 } }} onChange={(event) => update("timeoutMs", Number(event.target.value))} />
         </Paper>}

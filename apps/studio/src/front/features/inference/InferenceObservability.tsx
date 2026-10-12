@@ -4,48 +4,11 @@ import { inference, projectPhaseWorkSeries, requestBatchFillRatio, summarizeLega
 import type { InferenceRequest, InferenceRun } from "@p4studio/studio_domain/common";
 import { useModel } from "../../model/useModel.js";
 import { useTranslation } from "../../i18n/useTranslation.js";
+import { LineChart } from "./observability/LineChart.js";
+import { SpeculativeMetrics } from "./speculative/SpeculativeMetrics.js";
 import { RSC } from "./resource.js";
 
-type Point = { x: number; y: number };
-type Series = { label: string; color: string; dash?: string; points: Point[] };
 const fmt = (value: number | null, suffix = "") => value === null ? "—" : `${value.toFixed(suffix.trim() === "ms" ? 0 : 2)}${suffix}`;
-const CHART_POINT_LIMIT = 640;
-
-function chartPoints(points: Point[]) {
-  if (points.length <= CHART_POINT_LIMIT) return points;
-  const bucketCount = Math.floor(CHART_POINT_LIMIT / 2);
-  const indexes = new Set<number>([0, points.length - 1]);
-  for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
-    const start = Math.floor(bucketIndex * points.length / bucketCount);
-    const end = Math.max(start + 1, Math.floor((bucketIndex + 1) * points.length / bucketCount));
-    let minIndex = start, maxIndex = start;
-    for (let index = start + 1; index < end; index += 1) {
-      if (points[index]!.y < points[minIndex]!.y) minIndex = index;
-      if (points[index]!.y > points[maxIndex]!.y) maxIndex = index;
-    }
-    indexes.add(minIndex); indexes.add(maxIndex);
-  }
-  return [...indexes].sort((left, right) => left - right).map(index => points[index]!);
-}
-
-function LineChart({ title, description, series, percent = false, showLatestValues = false }: { title: string; description: string; series: Series[]; percent?: boolean; showLatestValues?: boolean }) {
-  const theme = useTheme(); const width = 800, height = 220, left = 52, right = 16, top = 16, bottom = 32;
-  const plottedSeries = series.map(item => ({ ...item, points: chartPoints([...item.points].sort((a, b) => a.x - b.x)) }));
-  const points = plottedSeries.flatMap(item => item.points); if (!points.length) return <Paper variant="outlined" sx={{ p: 1 }}><Typography sx={{ fontSize: ".8rem", fontWeight: 500 }}>{title}</Typography><Typography sx={{ fontSize: ".7rem" }} color="text.secondary">{description}</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>—</Typography></Paper>;
-  const { minX, maxX, largestY } = points.reduce((bounds, point) => ({ minX: Math.min(bounds.minX, point.x), maxX: Math.max(bounds.maxX, point.x), largestY: Math.max(bounds.largestY, point.y) }), { minX: Number.POSITIVE_INFINITY, maxX: Number.NEGATIVE_INFINITY, largestY: 1 });
-  const maxY = percent ? 100 : largestY * 1.08;
-  const sx = (x: number) => left + (maxX === minX ? .5 : (x - minX) / (maxX - minX)) * (width - left - right);
-  const sy = (y: number) => top + (1 - Math.min(maxY, Math.max(0, y)) / maxY) * (height - top - bottom);
-  return <Paper component="figure" variant="outlined" sx={{ p: 1, m: 0, minWidth: 0 }}>
-    <Typography component="figcaption" sx={{ fontSize: ".8rem", lineHeight: 1.25, fontWeight: 500 }}>{title}</Typography><Typography sx={{ fontSize: ".7rem", lineHeight: 1.25 }} color="text.secondary">{description}</Typography>
-    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: .5 }}>{plottedSeries.map(item => { const latest = item.points.at(-1); const label = showLatestValues && latest ? `${item.label} ${percent ? `${latest.y.toFixed(1)}%` : latest.y.toFixed(0)}` : item.label; return <Box key={item.label} sx={{ display: "flex", gap: .5, alignItems: "center" }}><svg aria-hidden="true" width="16" height="8"><line x1="0" x2="16" y1="4" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray={item.dash} /></svg><Typography sx={{ fontSize: ".65rem", fontVariantNumeric: "tabular-nums" }}>{label}</Typography></Box>; })}</Box>
-    <Box sx={{ mt: .5, width: "100%", overflow: "hidden" }}><svg role="img" aria-label={`${title}. ${description}`} viewBox={`0 0 ${width} ${height}`} width="100%" height="180">
-      {[0, .25, .5, .75, 1].map(fraction => { const y = top + fraction * (height - top - bottom); const value = maxY * (1 - fraction); return <g key={fraction}><line x1={left} x2={width - right} y1={y} y2={y} stroke={theme.palette.divider} strokeWidth="1" /><text x={left - 8} y={y + 4} textAnchor="end" fill={theme.palette.text.secondary} fontSize="11">{percent ? `${Math.round(value)}%` : value.toFixed(value < 10 ? 1 : 0)}</text></g>; })}
-      {plottedSeries.map(item => { const path = item.points.map((point, index) => `${index ? "L" : "M"}${sx(point.x)},${sy(point.y)}`).join(" "); const latest = item.points.at(-1); return <path key={item.label} d={path} fill="none" stroke={item.color} strokeWidth="1.5" strokeDasharray={item.dash} strokeLinejoin="round" strokeLinecap="round" aria-label={item.label}>{latest && <title>{`${item.label}: ${latest.y.toFixed(2)} · ${new Date(latest.x).toLocaleTimeString()}`}</title>}</path>; })}
-      <text x={left} y={height - 8} fill={theme.palette.text.secondary} fontSize="11">{new Date(minX).toLocaleTimeString()}</text><text x={width - right} y={height - 8} textAnchor="end" fill={theme.palette.text.secondary} fontSize="11">{new Date(maxX).toLocaleTimeString()}</text>
-    </svg></Box>
-  </Paper>;
-}
 
 const aggregateBatch = (points: InferenceRun["telemetrySeries"]["batches"]) => {
   const values = new Map<number, { rows: number; capacity: number; ready: number; prefill: number; decode: number; verify: number; replay: number }>();
@@ -96,6 +59,7 @@ export const RunObservability = memo(function RunObservability({ runId }: { runI
         { label: t[RSC.INFERENCE_CHART_INPUT_RETAINED_LABEL], color: theme.palette.info.main, points: delivery.filter(point => point.input !== null).map(point => ({ x: point.x, y: point.input! })) },
         { label: t[RSC.INFERENCE_CHART_COMPLETION_RETAINED_LABEL], color: theme.palette.success.main, points: delivery.filter(point => point.completion !== null).map(point => ({ x: point.x, y: point.completion! })) },
       ]} />
+      <SpeculativeMetrics value={snapshot.speculative} />
     </Box>
   </Box>;
 });
@@ -120,6 +84,7 @@ export function RequestMonitoringContent({ run, request, showContent = true, sho
     {telemetry.stages.length === 0 ? <Paper variant="outlined" sx={{ p: 2 }}><Typography color="text.secondary">{t[RSC.INFERENCE_REQUEST_MONITORING_UNAVAILABLE_MESSAGE]}</Typography></Paper> : <Box><Typography sx={{ fontWeight: 500, mb: 1 }}>{t[RSC.INFERENCE_REQUEST_MONITORING_WATERFALL_LABEL]}</Typography><Box sx={{ display: "grid", gap: 1 }}>{telemetry.stages.map(stage => { const start = stage.firstIngressUnixMs ?? min, end = stage.lastForwardUnixMs ?? start; return <Box key={`${stage.stageIndex}-${stage.nodeId}`} sx={{ display: "grid", gridTemplateColumns: "120px minmax(180px, 1fr) 100px", gap: 1, alignItems: "center" }}><Typography variant="body2">{t[RSC.INFERENCE_STAGE_LABEL]} {stage.stageIndex + 1}</Typography><Box sx={{ height: 20, bgcolor: "action.hover", position: "relative", overflow: "hidden" }}><Box sx={{ position: "absolute", insetBlock: 3, left: `${(start - min) * 100 / range}%`, width: `${Math.max(1, (end - start) * 100 / range)}%`, bgcolor: "primary.main" }} /></Box><Typography variant="caption" align="right">{Math.max(0, end - start)} ms</Typography></Box>; })}</Box></Box>}
     <Box sx={{ overflowX: "auto" }}><Table size="small" aria-label={t[RSC.INFERENCE_REQUEST_MONITORING_STAGE_TABLE_LABEL]}><TableHead><TableRow><TableCell>{t[RSC.INFERENCE_STAGE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_EXECUTIONS_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_INGRESS_QUEUE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_SHARED_STAGE_LABEL]}</TableCell><TableCell align="right">{t[RSC.INFERENCE_REQUEST_MONITORING_FORWARD_LABEL]}</TableCell></TableRow></TableHead><TableBody>{telemetry.stages.map(stage => <TableRow key={`${stage.stageIndex}-${stage.nodeId}`}><TableCell>{stage.agentName} · {stage.nodeId}</TableCell><TableCell align="right">{stage.executions}</TableCell><TableCell align="right">{stage.ingressQueueMs} ms</TableCell><TableCell align="right">{stage.sharedStageMs} ms</TableCell><TableCell align="right">{stage.forwardMs} ms</TableCell></TableRow>)}</TableBody></Table></Box>
     <Typography variant="caption" color="text.secondary">{t[RSC.INFERENCE_REQUEST_MONITORING_SHARED_TIME_MESSAGE]}</Typography>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "repeat(2, minmax(0, 1fr))" }, gap: .75, minWidth: 0 }}><SpeculativeMetrics value={request.speculative} /></Box>
   </Box>;
 }
 

@@ -6,6 +6,8 @@
 
 <a id="browser-owned-inference"></a>
 
+Speculative decoding follows the domain [speculative contract](../../../packages/studio_domain/docs/api.md#speculative-decoding). [api.ts](../src/front/features/inference/api.ts) receives the planned head `speculative-round-v1` event and [SpeculativeMetrics](../src/front/features/inference/speculative/SpeculativeMetrics.tsx) shows a percentage chart with draft annotation, run/request counters, and explicit uncollected state. The persisted projection follows existing live run, `/inference/history/:runId`, and request detail URLs. This consumer is ready for the planned producer; browser fixtures do not establish native GPU telemetry support.
+
 SESSION_READY 확인이 모든 stage에서 끝나면 head 접수 연결만 PREFILL·OUTPUT·RELEASE 반환 경로로 유지하고 나머지 준비 연결은 FINISH/ACK로 회수한다. P4의 40분 유휴 종료 정책은 그대로 유지한다. 종료된 접수 연결은 캐시에서 제거하고 다음 제어 요청에서 새 OUTER endpoint로 연결하며, 완료가 불명인 기존 명령은 재전송하지 않는다. head 반환 연결의 단절은 기존 요청의 미정산 상태와 다음 실행 차단을 유지한다.
 
 각 run은 입력 당시 `concurrency`, `repetitions`, `intervalMs`, `maxTokens`를 보존한다. query 결과는 run 단위로 묶이고, `inference-run-group`의 접힘 요약에 설정·실행 통계가 남는다. 상세를 열면 전체 run observability graph, wave/stage 집계와 해당 run의 개별 요청 표를 확인하고 각 요청 상세에서 질문·답변을 연다. 예전 localStorage 기록에 없는 실행 설정은 역산하지 않고 미기록으로 표시한다.

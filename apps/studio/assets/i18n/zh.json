@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "完成 {completed} / 请求 {total}",
   "models.compatibility.label": "运行时兼容性",
   "models.exact.build.text": "相同构建",
-  "models.physical.wire.text": "Physical wire v4 · 混合设备",
+  "models.physical.wire.text": "Physical wire ABI · 混合设备",
   "models.reference.ingress.label": "原始入口代理",
   "models.reference.agent.label": "原始所属代理",
   "models.stage.routing.text": "命令目标节点",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "强制回收代理",
   "models.requests.error.message": "请求未清理。P4 中剩余的工作可能需要回收代理。",
   "models.requests.history.message": "请求数取自首阶段，等待数是其子集。不累加各阶段数量。未结算运行数与请求数分开统计。",
-  "models.requests.inspection.error.message": "无法查询未解决的请求。"
+  "models.requests.inspection.error.message": "无法查询未解决的请求。",
+  "inference.speculative.title": "推测解码",
+  "inference.speculative.unavailable.message": "未采集 · 尚未收到推测解码轮次事件。",
+  "inference.speculative.acceptance.label": "接受率",
+  "inference.speculative.chart.message": "按接收时间划分一秒区间：接受数 / 候选数 × 100。仅显示有候选的区间。",
+  "inference.speculative.drafted.label": "每轮候选数",
+  "inference.speculative.accepted.label": "接受数 / 候选数",
+  "inference.speculative.rounds.label": "观测轮次",
+  "inference.speculative.full.label": "全部接受 (full)",
+  "inference.speculative.direct.label": "部分接受 (direct)",
+  "inference.speculative.replay.label": "重放 (replay)",
+  "inference.speculative.total.message": "总体接受率 = 累计接受数 / 累计候选数，使用 P4 报告的判定数量。",
+  "inference.speculative.trimmed.message": "图表保留最近 3,600 个区间。汇总包含所有观测轮次。"
 }

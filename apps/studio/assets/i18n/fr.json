@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "Terminées {completed} / demandées {total}",
   "models.compatibility.label": "Compatibilité du runtime",
   "models.exact.build.text": "Build identique",
-  "models.physical.wire.text": "Physical wire v4 · appareils mixtes",
+  "models.physical.wire.text": "Physical wire ABI · appareils mixtes",
   "models.reference.ingress.label": "Agent d’entrée d’origine",
   "models.reference.agent.label": "Agent propriétaire d’origine",
   "models.stage.routing.text": "Nœud destinataire",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "Récupération forcée de l’agent",
   "models.requests.error.message": "Les requêtes n’ont pas été vidées. Le travail restant dans P4 peut nécessiter une récupération de l’agent.",
   "models.requests.history.message": "Le nombre de requêtes vient de la tête ; celles en attente en sont une partie. Les étapes ne sont pas additionnées. Les exécutions non soldées sont comptées séparément.",
-  "models.requests.inspection.error.message": "Impossible d’inspecter les requêtes non résolues."
+  "models.requests.inspection.error.message": "Impossible d’inspecter les requêtes non résolues.",
+  "inference.speculative.title": "Décodage spéculatif",
+  "inference.speculative.unavailable.message": "Non collecté · Aucun événement de tour spéculatif reçu.",
+  "inference.speculative.acceptance.label": "Taux d’acceptation",
+  "inference.speculative.chart.message": "Acceptés / proposés × 100 par intervalle de réception d’une seconde. Seuls les intervalles avec propositions sont affichés.",
+  "inference.speculative.drafted.label": "Propositions par tour",
+  "inference.speculative.accepted.label": "Acceptés / proposés",
+  "inference.speculative.rounds.label": "Tours observés",
+  "inference.speculative.full.label": "Acceptation complète (full)",
+  "inference.speculative.direct.label": "Acceptation partielle (direct)",
+  "inference.speculative.replay.label": "Réexécution (replay)",
+  "inference.speculative.total.message": "Taux global = total accepté / total proposé, selon les décisions rapportées par P4.",
+  "inference.speculative.trimmed.message": "Le graphique conserve les 3 600 derniers intervalles. Les totaux incluent tous les tours observés."
 }

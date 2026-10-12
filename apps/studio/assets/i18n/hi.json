@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "पूरे {completed} / अनुरोध {total}",
   "models.compatibility.label": "रनटाइम संगतता",
   "models.exact.build.text": "समान बिल्ड",
-  "models.physical.wire.text": "Physical wire v4 · मिश्रित उपकरण",
+  "models.physical.wire.text": "Physical wire ABI · मिश्रित उपकरण",
   "models.reference.ingress.label": "मूल प्रवेश एजेंट",
   "models.reference.agent.label": "मूल स्वामी एजेंट",
   "models.stage.routing.text": "आदेश का लक्ष्य नोड",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "एजेंट की बलपूर्वक रिकवरी",
   "models.requests.error.message": "अनुरोध साफ़ नहीं हुए। P4 में बचे काम के लिए एजेंट रिकवरी आवश्यक हो सकती है।",
   "models.requests.history.message": "अनुरोध संख्या हेड चरण से है; लंबित उसका हिस्सा हैं। चरणों की संख्याएँ नहीं जोड़ी जातीं। अनिपटाए रन अलग गिने जाते हैं।",
-  "models.requests.inspection.error.message": "अनसुलझे अनुरोधों की जाँच नहीं हो सकी।"
+  "models.requests.inspection.error.message": "अनसुलझे अनुरोधों की जाँच नहीं हो सकी।",
+  "inference.speculative.title": "स्पेक्युलेटिव डिकोडिंग",
+  "inference.speculative.unavailable.message": "संग्रहित नहीं · अभी तक कोई स्पेक्युलेटिव राउंड घटना प्राप्त नहीं हुई।",
+  "inference.speculative.acceptance.label": "स्वीकृति दर",
+  "inference.speculative.chart.message": "प्राप्ति समय के एक-सेकंड अंतराल में स्वीकृत / प्रस्तावित × 100। केवल प्रस्ताव वाले अंतराल दिखाए जाते हैं।",
+  "inference.speculative.drafted.label": "प्रति राउंड प्रस्ताव",
+  "inference.speculative.accepted.label": "स्वीकृत / प्रस्तावित",
+  "inference.speculative.rounds.label": "देखे गए राउंड",
+  "inference.speculative.full.label": "पूर्ण स्वीकृति (full)",
+  "inference.speculative.direct.label": "आंशिक स्वीकृति (direct)",
+  "inference.speculative.replay.label": "पुनः निष्पादन (replay)",
+  "inference.speculative.total.message": "कुल दर = कुल स्वीकृत / कुल प्रस्तावित, P4 द्वारा रिपोर्ट की गई निर्णय संख्याओं के आधार पर।",
+  "inference.speculative.trimmed.message": "ग्राफ़ नवीनतम 3,600 अंतराल रखता है। कुल में सभी देखे गए राउंड शामिल हैं।"
 }

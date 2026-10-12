@@ -292,7 +292,7 @@
   "models.evidence.counts.message": "Concluídas {completed} / solicitadas {total}",
   "models.compatibility.label": "Compatibilidade do runtime",
   "models.exact.build.text": "Build idêntica",
-  "models.physical.wire.text": "Physical wire v4 · dispositivos mistos",
+  "models.physical.wire.text": "Physical wire ABI · dispositivos mistos",
   "models.reference.ingress.label": "Agente de entrada original",
   "models.reference.agent.label": "Agente proprietário original",
   "models.stage.routing.text": "Nó de destino",
@@ -574,5 +574,17 @@
   "models.requests.recovery.button": "Recuperação forçada do agente",
   "models.requests.error.message": "As solicitações não foram limpas. O trabalho restante no P4 pode exigir recuperação do agente.",
   "models.requests.history.message": "A contagem vem da etapa inicial; as pendentes são um subconjunto. As etapas não são somadas. Execuções não liquidadas são contadas separadamente.",
-  "models.requests.inspection.error.message": "Não foi possível consultar as solicitações não resolvidas."
+  "models.requests.inspection.error.message": "Não foi possível consultar as solicitações não resolvidas.",
+  "inference.speculative.title": "Decodificação especulativa",
+  "inference.speculative.unavailable.message": "Não coletado · Nenhum evento de rodada especulativa recebido.",
+  "inference.speculative.acceptance.label": "Taxa de aceitação",
+  "inference.speculative.chart.message": "Aceitos / propostos × 100 em intervalos de recebimento de um segundo. Apenas intervalos com propostas são exibidos.",
+  "inference.speculative.drafted.label": "Propostas por rodada",
+  "inference.speculative.accepted.label": "Aceitos / propostos",
+  "inference.speculative.rounds.label": "Rodadas observadas",
+  "inference.speculative.full.label": "Aceitação completa (full)",
+  "inference.speculative.direct.label": "Aceitação parcial (direct)",
+  "inference.speculative.replay.label": "Reexecução (replay)",
+  "inference.speculative.total.message": "Taxa geral = total aceito / total proposto, conforme as decisões informadas pelo P4.",
+  "inference.speculative.trimmed.message": "O gráfico mantém os últimos 3.600 intervalos. Os totais incluem todas as rodadas observadas."
 }

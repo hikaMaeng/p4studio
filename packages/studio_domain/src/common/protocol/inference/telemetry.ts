@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { P4_SPECULATIVE_ROUND_CONTENT_TYPE } from "./speculative.js";
 
 const nonNegative = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const identifier = z.string().min(1).max(4096);
@@ -6,10 +7,11 @@ const identifier = z.string().min(1).max(4096);
 // P4 llamacpp adapter v2/mod.rs BATCH_OBSERVATION_CONTENT_TYPE / STAGE_SPAN_CONTENT_TYPE.
 export const P4_BATCH_OBSERVATION_CONTENT_TYPE = "application/vnd.p4.llamacpp.batch-observation-v5+json";
 export const P4_STAGE_SPAN_CONTENT_TYPE = "application/vnd.p4.llamacpp.stage-span-v5+json";
-const TELEMETRY_FAMILY = /^application\/vnd\.p4\.llamacpp\.(?:batch-observation|stage-span)-/;
+const TELEMETRY_FAMILY = /^application\/vnd\.p4\.llamacpp\.(?:batch-observation|stage-span|speculative-round)-/;
 
 /** Exact current contracts only; another version of a telemetry family is "unsupported", never current. */
-export function classifyP4Telemetry(contentType: string): "batch-observation" | "stage-span" | "unsupported" | null {
+export function classifyP4Telemetry(contentType: string): "batch-observation" | "stage-span" | "speculative-round" | "unsupported" | null {
+  if (contentType === P4_SPECULATIVE_ROUND_CONTENT_TYPE) return "speculative-round";
   if (contentType === P4_BATCH_OBSERVATION_CONTENT_TYPE) return "batch-observation";
   if (contentType === P4_STAGE_SPAN_CONTENT_TYPE) return "stage-span";
   return TELEMETRY_FAMILY.test(contentType) ? "unsupported" : null;
