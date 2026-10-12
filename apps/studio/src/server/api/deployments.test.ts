@@ -8,6 +8,19 @@ import { StudioDatabase } from "../database/client.js";
 const databases: StudioDatabase[] = [];
 afterEach(() => databases.splice(0).forEach(database => database.close()));
 
+it("인사이트 노트는 HTTP·SQLite·편집에 보존하고 필드 없는 과거 선언도 허용한다", async () => {
+  const database = new StudioDatabase(":memory:"); databases.push(database);
+  const agent = database.createAgent({ name: "근거 시험", host: "127.0.0.1", port: 51055 });
+  const app = createApp(database);
+  const input = { ...emptyDeployment(), name: "실측 구성", stages: [{ ...emptyStage(), agentId: agent.id, nodeId: "new-node", artifact: "fixture.gguf", binary: "fixture", endpoint: "127.0.0.1:52001", layerStart: 0, layerEnd: 1 }] };
+  const old = await request(app).post("/api/model-deployments").send(input).expect(201);
+  expect(old.body.insightNotes).toBeUndefined();
+  const insightNotes = "실측5/5 · source/run · useful TPS의 분모를 보존";
+  await request(app).put(`/api/model-deployments/${old.body.id}`).send({ ...input, insightNotes }).expect(200);
+  const listed = await request(app).get("/api/model-deployments").expect(200);
+  expect(listed.body.deployments[0].insightNotes).toBe(insightNotes);
+});
+
 it("stores declarations and browser receipts but rejects server-side P4 execution", async () => {
   const database = new StudioDatabase(":memory:"); databases.push(database);
   const agent = database.createAgent({ name: "ingress", host: "127.0.0.1", port: 51055 });

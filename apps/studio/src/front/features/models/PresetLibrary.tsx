@@ -15,7 +15,7 @@ export function PresetLibrary({ snapshot }: { snapshot: StudioSnapshot }) {
     {!open && value.presetId && <Typography variant="body2" sx={{ mt: 1 }}>{deploymentPresets.find(p => p.id === value.presetId)?.name}</Typography>}
     {open && <Box>
     <Typography variant="body2" color="text.secondary" sx={{ mt: .7, mb: 2 }}>{t[RSC.MODELS_PRESETS_MESSAGE]}</Typography>
-    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>{deploymentPresets.map(preset => <Box key={preset.id} sx={{ border: "1px solid", borderColor: value.presetId === preset.id ? "primary.main" : "divider", borderRadius: 1.5, p: 2, minWidth: 0 }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>{deploymentPresets.map(preset => <Box component="article" data-testid="model-preset-card" aria-label={preset.name} key={preset.id} sx={{ border: "1px solid", borderColor: value.presetId === preset.id ? "primary.main" : "divider", borderRadius: 1.5, p: 2, minWidth: 0 }}>
       <Typography component="h3" variant="h2">{preset.name}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>{formatMessage(t[RSC.MODELS_SUMMARY_MESSAGE], { adapter: preset.adapter, agents: new Set(preset.stages.map(s => s.referenceAgent)).size, nodes: preset.stages.length, layers: preset.totalLayers })}</Typography>
       <Chip size="small" color={preset.source.passed ? "default" : "warning"} label={t[preset.source.passed ? RSC.MODELS_EVIDENCE_COMPLETED_TEXT : RSC.MODELS_EVIDENCE_PARTIAL_TEXT]} />

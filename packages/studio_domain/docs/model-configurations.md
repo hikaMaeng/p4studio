@@ -24,3 +24,9 @@ Each generated data file includes config/artifact SHA-256, original directory, b
 HY3 opts into the fleet checkout's `physical-wire-v4` compatibility policy: all stages must identify upstream, patch set and backend, and agree on a recognized native `stage_wire_abi` (`p4pb4le64` or `p4pb5le64`); backend inventories may differ. The ABI string must match across every stage, so v4 and v5 binaries cannot be mixed. `exact-build` remains the default and requires matching inventories. A runtime lacking a recognized native ABI cannot pass this policy. This is a LOAD readiness check, not SESSION setup or inference acceptance.
 
 [Tests](../src/server/deployments/presets.test.ts) cover preserved source payloads, text edits/roundtrip, stale summaries, legacy migration and heterogeneous build agreement. [App integration](../../../apps/studio/src/server/api/deployments.test.ts) covers HTTP receipt persistence and generation preservation. See [testing](testing.md) for runtime evidence boundaries.
+
+## Qwen·MiMo 실측 구성
+
+[추가 preset 원본](../src/common/protocol/deployments/presets.ts)은 Qwen none seq16, Qwen MTP n_max2, MiMo DFlash n_max4를 포함한다. [실측 표·원본 run·분모·등록 명령](../../../docs/studio-revamp.md#실측-데이터와-등록)이 수치의 권위다. source.artifactFile은 inference.json.gz이며 artifactSha256은 압축 파일 바이트의 해시다. source.evidenceFiles에는 여러 run의 config/analysis/summary/inference/binding 파일 SHA를 보존한다. source.measurements는 워밍업 제외·출력 종류·창·지연한도를 보존한다. optional insightNotes는 현재 모델의 운영 노트다. 기존 필드 없는 저장 문서를 허용한다.
+
+[import-deployment-preset.mjs](../../../scripts/import-deployment-preset.mjs)는 artifact.json 또는 inference.json.gz를 읽으며 optional 다섯째 인자로 insightNotes/measurements/evidenceFiles JSON을 받는다. 생성된 원본 데이터만 제품에 포함하고 프롬프트·답변·P4 소스를 복사하지 않는다. [register-recorded-models.mjs](../../../scripts/register-recorded-models.mjs)는 optional 셋째 인자의 preset ID 목록만 선언 등록하고 기존 사용자 수정은 덮어쓰지 않는다. agent probe와 폐기된 빈 node 생성 API를 호출하지 않는다. 새 stage ID/node ID를 부여하며 현재 remote 존재를 추정하지 않는다.

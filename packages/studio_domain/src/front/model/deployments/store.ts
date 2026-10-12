@@ -58,7 +58,7 @@ class DeploymentStore {
   applyPreset(preset: DeploymentPreset, agents: { id: string; host: string; port: number }[]) {
     const find = (address: string) => agents.find(a => `tcp://${a.host.includes(":") ? `[${a.host}]` : a.host}:${a.port}` === address)?.id ?? "";
     const input = emptyDeployment(), suffix = crypto.randomUUID().slice(0, 8);
-    Object.assign(input, { name: preset.name, presetId: preset.id, adapter: preset.adapter,
+    Object.assign(input, { name: preset.name, presetId: preset.id, insightNotes: preset.insightNotes, adapter: preset.adapter,
       ingressAgentId: find(preset.ingressAddress), totalLayers: preset.totalLayers, timeoutMs: preset.timeoutMs,
       pipelineCompatibility: preset.source.pipelineCompatibility ?? "exact-build" });
     input.stages = preset.stages.map((stage, index) => {

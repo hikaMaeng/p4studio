@@ -18,6 +18,7 @@ export const deploymentInputSchema = z.object({
   contextSize: positive, sequenceCapacity: positive, nBatch: positive, nUbatch: positive,
   timeoutMs: positive.max(86400000),
   presetId: z.string().max(256).optional(),
+  insightNotes: z.string().max(32768).optional(),
   pipelineCompatibility: z.enum(["exact-build", "physical-wire-v4"]).optional(),
   loadContentType: z.string().max(256), loadedContentType: z.string().max(256),
   unloadContentType: z.string().max(256), unloadedContentType: z.string().max(256), errorContentType: z.string().max(256),

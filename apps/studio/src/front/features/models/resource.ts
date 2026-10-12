@@ -1,4 +1,6 @@
 export enum RSC {
+  MODELS_INSIGHT_NOTES_LABEL = "models.insight.notes.label",
+
   RECOVERY_HISTORY_PREVIOUS_BUTTON = "recovery.historyPrevious.button", RECOVERY_HISTORY_NEXT_BUTTON = "recovery.historyNext.button",
   RECOVERY_MODEL_HISTORY_TEXT = "recovery.modelHistory.text",
   RECOVERY_MODEL_HISTORY_OPEN_BUTTON = "recovery.modelHistoryOpen.button",

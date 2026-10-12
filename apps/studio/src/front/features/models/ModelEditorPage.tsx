@@ -11,6 +11,7 @@ import { PlacementEditor } from "./PlacementEditor.js";
 import { RSC } from "./resource.js";
 import { useGraphInventory } from "../../p4/inventory.js";
 import { GraphFeedback } from "./GraphNameEditor.js";
+import { PresetLibrary } from "./PresetLibrary.js";
 
 export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, onSaved }: { snapshot: StudioSnapshot; recordId?: string; onClose: () => void; onSaved: (id: string) => void }) {
   const snapshot = useGraphInventory(initialSnapshot);
@@ -67,6 +68,8 @@ export function ModelEditorPage({ snapshot: initialSnapshot, recordId, onClose, 
         {generalOpen && <Paper id="model-general-settings" component="section" aria-label={t[RSC.MODELS_GENERAL_TEXT]} variant="outlined" sx={{ position: "absolute", insetInlineEnd: 12, top: 12, zIndex: 6, p: 2, width: 380, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflowY: "auto", boxSizing: "border-box", boxShadow: 8, display: "grid", gap: 1.5, ...inspectorStyle }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><Typography component="h2" variant="h2">{t[RSC.MODELS_GENERAL_TEXT]}</Typography><Button size="small" onClick={() => setGeneralOpen(false)}>{t[RSC.MODELS_PANEL_CLOSE_BUTTON]}</Button></Box>
           <TextField required label={t[RSC.MODELS_NAME_LABEL]} value={value.name} onChange={(event) => update("name", event.target.value)} />
+          {!saveLocked && <PresetLibrary snapshot={snapshot} />}
+          <TextField multiline minRows={4} label={t[RSC.MODELS_INSIGHT_NOTES_LABEL]} value={value.insightNotes ?? ""} onChange={event => update("insightNotes", event.target.value)} />
           <Typography variant="body2" color="text.secondary">{t[RSC.MODELS_RECEPTION_MESSAGE]}</Typography>
           <TextField select label={t[RSC.MODELS_COMPATIBILITY_LABEL]} value={value.pipelineCompatibility ?? "exact-build"} onChange={(event) => update("pipelineCompatibility", event.target.value as "exact-build" | "physical-wire-v4")}>
             <MenuItem value="exact-build">{t[RSC.MODELS_EXACT_BUILD_TEXT]}</MenuItem>
