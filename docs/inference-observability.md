@@ -119,3 +119,7 @@ P4 공통 계층에는 request lifecycle, transport, broker, telemetry health처
 4. **운영 export:** request ID 없는 Prometheus histogram/counter/gauge와 trace exemplar를 추가하고 SLO·alert를 연결한다.
 
 각 단계의 수용 조건은 값의 분모·시간창·topology·정상 종료 조건·telemetry coverage를 함께 표시하고, graph의 point를 request/execution 원증거로 내려갈 수 있는 것이다.
+
+## 개편 관측 계약
+
+[Studio 개편](studio-revamp.md#관측-해석)은 physical batch당 네 phase 평균, owned_requests 분포, 공개 입장 시각 부재와 speculative 경로 비율의 분모를 소유한다. 기존 문서의 prefill/decode 두 계열 설명은 네 계열로 확장됐다. 원본 측정과 UI 표시를 구분하고 render 검증은 [시험](testing.md)을 따른다.

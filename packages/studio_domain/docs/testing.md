@@ -33,3 +33,7 @@ P4 wire 호환은 [protocol testing](../../p4-protocol/docs/testing.md), 화면�
 [routing.test.ts](../src/common/protocol/agent-groups/routing.test.ts)는 그룹별 gateway 선택, 비소속 직접 경로, 누락/다중 소속 거부를 검증한다. 실제 HTTP·browser·bridge 소비 경로는 [Studio tests](../../../apps/studio/docs/testing.md#gateway-group-verification)와 연결한다.
 
 수명 codec·browser runtime·단절/부분 실패 회수와 UI 검증은 [노드 수명 검증 계약](../../../docs/testing.md)을 따른다.
+
+[session.test.ts](../src/common/protocol/deployments/session.test.ts)는 v4/v5·일부 부재·불일치·오래된 LOAD·중복/누락 보고를 검사한다. [batch-requests.test.ts](../src/front/model/inference/batch-requests.test.ts)는 입력 불변·고유 owner·1/2/3/4/5+·phase 혼합·정확한 평균·미관측·history 호환을 검사한다. observability 시험은 verify/replay의 평균·null을 포함한다. presets 시험은 세 새 구성의 payload·slot·노트·SHA 형식을 검사한다. [CC 오류 시험](../src/front/model/inference/cancellation/control.test.ts)은 exact submission 즉시 정산과 owner RELEASE 대기를 분리한다.
+
+SESSION 시험은 계약 불일치·일부 누락·null/빈 문자열/NUL·LOAD 세대 불일치/부재의 정확한 오류 코드를 검사한다. A2 연결은 [앱 소비 시험](../../../apps/studio/src/front/features/inference/api.test.ts)의 실제 BatchObservation 수신, 같은 stage 중복 제거, 다른 stage 별도 누적, 저장 및 새 API 인스턴스 복원으로 검증한다. [변이 시험](../../../tests/integration/studio-revamp-mutation.mjs)은 TEMP 도메인 복사본의 분포 누적 호출을 제거해 이 연결 시험이 실패하는지 확인한다. 순수 계산 시험만으로 수신 연결을 승인하지 않는다.

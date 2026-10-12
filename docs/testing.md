@@ -31,3 +31,9 @@ node --import tsx tests/integration/connection-teardown.mjs --agent-binary=<test
 ```
 
 연결 회수 시험은 명시한 테스트 소유 P4 바이너리, 임시 SQLite와 실제 Chromium/bridge를 사용해 INSPECT/FINISH ACK 및 해당 PID의 연결 부재를 검사한다. 제품 배포나 모델 적재를 수행하지 않는다. 단위·mock 시험의 통과를 실제 GPU 수용으로 확대하지 않는다.
+
+개편 회귀는 [앱 시험 계약](../apps/studio/docs/testing.md#개편-회귀)과 [도메인 시험](../packages/studio_domain/docs/testing.md)을 따른다. `node tests/browser/studio-revamp.mjs --url http://127.0.0.1:43180 --out tests/artifacts/studio-revamp/scenario`. 격리 서버를 build 산출물로 실행하고 worktree 안 임시 SQLite를 명시한다. 운영 Studio를 교체하는 npm run deploy는 이 검증에서 사용하지 않는다.
+
+Windows에서는 [시험 실행기](../tests/browser/run-studio-revamp.ps1)를 사용한다. `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/browser/run-studio-revamp.ps1 -Url http://127.0.0.1:43180 -Out tests/reports/studio-revamp/browser`. `SetErrorMode(0x8003)`를 자식에게 상속하고 Chromium의 breakpad·crash reporter·오류 대화상자를 끈다. 실행 후 테스트 전용 Chromium 경로의 잔류 프로세스 0 및 새 WER 프로세스 0을 검사한다. 사용자의 Chrome/WebView 프로세스는 종료하지 않는다.
+
+숨김 디렉터리(`.cache`) 아래에서 Express의 정적 파일 처리가 404를 반환하면 `dist/front`, `dist/server`를 TEMP의 일반 경로로 복사해 같은 산출물을 실행한다. 임시 SQLite는 계속 작업 트리 안에 둔다. 숨김 파일 보호 정책을 시험 편의로 바꾸지 않는다. A2 변이 검사는 build 이후 `node tests/integration/studio-revamp-mutation.mjs --out tests/reports/studio-revamp/mutation`으로 실행한다. 정상 복사본 통과·호출 제거 복사본 실패·제품 파일 해시 유지가 모두 필요하다.

@@ -10,6 +10,7 @@ P4 에이전트와 모델·노드·파이프라인 지식을 관리하는 독립
 | Usage | [docs/usage.md](docs/usage.md) |
 | Constraints | [docs/constraints.md](docs/constraints.md) |
 | Internals | [docs/internals.md](docs/internals.md) |
+| 관측·워크로드·SESSION 개편 | [docs/studio-revamp.md](docs/studio-revamp.md) |
 | Testing | [docs/testing.md](docs/testing.md) |
 | Agent instructions | [AGENTS.md](AGENTS.md) |
 | P4 OUTER reference | [docs/p4-reference.md](docs/p4-reference.md) |
@@ -21,3 +22,5 @@ Turbo remote cache는 기본 비활성이다. 공유 캐시 소유자와 자격 
 - [노드 LOAD/UNLOAD 수명](docs/node-lifecycle.md)
 
 Git에는 재사용 소스·시험·현재 계약을 보존한다. 단순 실행 이력과 생성물의 제외 경로는 [.gitignore](.gitignore), 검증 코드와 실행 방법은 [Testing](docs/testing.md)을 따른다.
+
+개편의 오류 코드·번역·수신 분포 연결과 Windows 브라우저 실행·변이 검사는 [개편 계약](docs/studio-revamp.md#회귀-검증-경로)에서 탐색한다.

@@ -21,3 +21,7 @@
 - 인퍼런스는 ready llama.cpp 모델만 선택하며, 브라우저가 새 session identity와 모든 stage의 `SESSION_READY` 뒤에 PREFILL을 보낸다. SSE 실행 controller는 사용하지 않는다.
 - `inference-run-stop`은 번역된 visible text를 가진 버튼이다. 질의 `inference-run-group`, 기록 `inference-history-row`, 상세 `inference-history-detail`에서 대상 run으로 범위를 지정한다. preparing/running 동안 enabled, cancelling 동안 disabled이며 종료 상태에서는 숨긴다. 목록의 action 열은 번역된 문구 길이를 수용한다.
 - 프리필 TPS는 해당 요청의 `BatchObservation.owned_requests.prefill_rows`가 도착한 뒤에만 계산한다. 관측이 없으면 0으로 표시하지 않는다. GPU 활성률은 inspection의 `utilization_gpu_percent` 표본이며 SM 포화율이 아니다.
+
+- 개편 화면의 locator는 inference-batch-request-distribution(이름 있는 table), inference-slot-warning(alert), inference-replay-warning(alert), model-preset-card(이름 있는 article)다. 반복 방식과 실측 인사이트·출처는 visible label을 사용한다. [개편 계약](../../../docs/studio-revamp.md). Query draft는 domain InferenceStore.query slice가 소유하고 React는 그 slice에 구독한다.
+- SESSION 사전 거부는 번역된 `alert`로 찾는다. API가 검증한 오류 코드를 화면에 번역하며 시험이 완성된 오류 문자열을 주입하지 않는다. 모델 목록을 읽기 전 같은 빈 선택값을 계속 emit하지 않는다.
+- 배치 요청 분포 표는 최소 폭을 유지하고 좁은 화면에서 가로 스크롤한다. 페이즈명을 한 글자씩 압축해 줄바꿈하지 않는다.

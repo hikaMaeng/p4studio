@@ -16,3 +16,5 @@
 - 게이트웨이는 전체 Studio의 단일 대표가 아니라 그룹별 대표다. 한 agent는 최대 한 그룹에 속하고, 대표는 그 그룹 구성원이어야 한다. 그룹 구성원에 대한 직접 bridge open은 거부하며 접수 장애를 직접 접속으로 우회하지 않는다. 상세는 [그룹 계약](../packages/studio_domain/docs/api.md#agent-groups).
 
 - Agent-target LOAD/UNLOAD와 최종 lifecycle 결과만 노드 생성·제거 계약이다. 중복 ID 거부는 기존 노드를 회수하지 않고, 불명 LOAD는 별도 연결의 순간적인 부재만으로 해소하지 않는다. [회수 계약](node-lifecycle.md).
+
+[개편 계약](studio-revamp.md): 입장 시각·다른 OUTER 소유자·과거 분포를 추정하지 않는다. 실측 preset은 원격 적재 가능성의 증거가 아니며 운영 DB 등록은 별도 승인 후 공개 API로 수행한다.

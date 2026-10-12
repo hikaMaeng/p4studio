@@ -10,6 +10,8 @@
 
 공개 진입점은 [package.json](../package.json)의 exports와 [common](../src/common/index.ts), [server](../src/server/index.ts), [front](../src/front/index.ts)를 대조한다. P4 원본으로 내려가는 경로는 [기능별 참조표](../../../docs/p4-reference.md#source-map)가 소유한다.
 
+개편 탐색: [SESSION 선택·거부 코드](../src/common/protocol/deployments/session.ts) → [API 계약](api.md#session-contract) → [앱 오류 번역](../../../apps/studio/src/front/features/inference/InferenceError.tsx). [분포 계산](../src/front/model/inference/batch-requests.ts) → [실제 수신 누적](../../../apps/studio/src/front/features/inference/api.ts) → [연결·변이 검증](testing.md).
+
 그래프 관리: [common graph-inventory](../src/common/protocol/graph-inventory/index.ts)는 이름 projection·검증·route, [front GraphInventoryStore](../src/front/model/graph-inventory/store.ts)는 관리 이름·관측·조회 상태·편집 draft를 소유한다. HTTP/SQL/WebSocket I/O는 [Studio 연결부](../../../apps/studio/src/front/p4/inventory.ts)에 주입한다.
 
 그룹 관리: [common agent-groups](../src/common/protocol/agent-groups/index.ts)는 그룹 schema·접수 선택, [front AgentGroupsStore](../src/front/model/agent-groups/store.ts)는 topology·편집·저장 상태를 소유한다. 소비자와 불변식은 [constraints](constraints.md#agent-group-consumers), 실행 경로는 [api](api.md#agent-groups)를 따른다.

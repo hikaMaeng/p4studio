@@ -32,3 +32,6 @@
 - `front` AgentGroupsStore consumer: [AgentGroupsView](../../../apps/studio/src/front/features/agent-groups/AgentGroupsView.tsx). draft는 React 밖에 있고 API 성공 후 topology를 갱신한다. 임시 UI 설정을 원격 연결 성공으로 표시하지 않는다.
 
 `common` lifecycle/runtime 소비자는 browser model gateway다. 최종 Agent 결과의 node/generation/operation/adapter 및 opaque load generation을 검증하고 첫 오류·cleanup 오류를 보존한다. `rejected/present` LOAD의 기존 노드는 회수 대상이 아니다.
+
+- [개편 계약](../../../docs/studio-revamp.md): common/session 소비자는 browser SESSION 실행기이며 LOAD 원문 계약·세대 일치만 권위로 삼는다. front/batch-requests 소비자는 run 관측·이력·분포 패널이며 다른 OUTER 소유자·과거 분포를 추정하지 않는다. common/insightNotes 소비자는 SQLite·HTTP·editor·preset·등록 스크립트이고 필드 부재를 허용한다. n_seq_max는 plan 파서를 재사용하며 retained request budget과 섞지 않는다.
+- SESSION 사전 거부 코드의 소비자는 앱 API·activity/history·오류 화면이다. 도메인은 번역 문자열을 반환하지 않는다. 코드 변경은 8개 언어 resource key와 앱 소비 시험을 함께 갱신한다.

@@ -20,3 +20,5 @@
 노드 수명·다중 stage 회수의 계약과 소비자는 [노드 수명](node-lifecycle.md)이 소유한다. 저장된 stage는 적재 계획이며 기존 노드를 연결하는 빈 슬롯이 아니다.
 
 추론은 모든 stage의 SESSION_READY를 확인한 뒤 head의 접수 연결만 OUTPUT·RELEASE 반환 경로로 유지하고 다른 SESSION 준비 연결은 FINISH/ACK로 회수한다. 접수된 요청이 남아 있는 동안 P4는 40분 무통신만으로 반환 연결을 끊지 않는다. 사용자가 중지하거나 모델/노드를 내릴 때 Studio는 그 실행의 원래 OUTER에서 head로 SCOPE_CLOSE를 보내고, exact closed barrier와 요청 정산을 UNLOAD보다 먼저 기다린다. 연결이 이미 사라진 경우 새 OUTER로 과거 scope를 닫거나 결과를 복원할 수 없고, 명령도 자동 재전송하지 않는다.
+
+개편 관측·반복·SESSION와 실측 선언은 [계약·소유 경로](studio-revamp.md)를 따른다. 계산은 domain, 브라우저 P4/HTTP I/O는 app에 유지한다.

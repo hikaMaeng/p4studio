@@ -101,3 +101,17 @@ loadGeneration은 inference run에 결속한다. 복원된 active run은 unknown
 [정산 소비자](../src/front/model/inference/cancellation/control.ts)는 delivery-not-started refusal, exact terminal/RELEASE, 자연 completion race와 prefix를 분리한다. 모든 wave total을 첫 SESSION 전에 예산과 대조한다. [회귀 시험](testing.md).
 
 History Recover passes the run LOAD generation through `DeploymentStore.operate(id, "unload", expectedLoadGeneration)`. The browser gateway checks the current server record before any inference cancellation; unknown or changed generations cannot authorize current-model recovery.
+
+## 배치 요청 분포
+
+<a id="batch-request-distribution"></a>
+[summarizeBatchRequestDistributions](../src/front/model/inference/batch-requests.ts)는 입력을 변경하지 않는 순수 함수다. owned_requests의 고유 ID, phase별 양수 owner rows로 분포·평균·다중 비율을 계산한다. run.batchRequestDistributions는 optional이며 과거 기록에 소급하지 않는다. [상세 계약](../../../docs/studio-revamp.md#관측-해석).
+
+<a id="session-contract"></a>
+## SESSION 계약 선택
+
+[llamaSessionContract](../src/common/protocol/deployments/session.ts)는 모든 현재 LOAD 보고의 speculative_contract를 비교하고 전체 부재=v4, 전체 동일=현재 CC의 stage_contracts 배열 v5를 반환한다. 일부 누락·불일치·잘못된 값·stale 세대는 송신 전에 거부한다. browser api.ts는 head→tail READY 순서를 유지한다. [CC 오류·정산](../../../docs/studio-revamp.md#cc-session와-오류).
+
+DeploymentInput.insightNotes는 optional 최대32768자이며 선언 JSON·API·편집·preset 적용에 보존된다. inference settings/input.repeatMode는 optional scheduled/after-completion이며 과거 값은 scheduled 의미다. speculative 패널은 경로 rounds 비율과 replay>=0.65 설명을 제공한다. 입장 시각은 wire에 없어 두 TTFT 하위 구간은 측정 불가다.
+
+`llamaSessionContract`의 사전 거부는 `Error.message`에 [SESSION_CONTRACT_ERRORS](../src/common/protocol/deployments/session.ts) 코드만 반환한다. 추가 인자는 없다. `stages/reports/generation/invalid/partial/mismatch`는 각각 stage 수 부족, LOAD 보고 누락·중복, 세대 불일치, 잘못된 계약 문자열, 일부 계약 누락, 계약 불일치다. 소비자는 코드를 그대로 보존하고 [InferenceError](../../../apps/studio/src/front/features/inference/InferenceError.tsx)가 resource key로 번역한다.
