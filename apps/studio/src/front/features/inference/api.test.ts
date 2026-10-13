@@ -47,6 +47,22 @@ const emit = (original: P4Event, contentType: string, body: unknown) => {
   wire.listeners.forEach(listener => listener(reply, performance.now()));
 };
 const prefills = () => wire.events.filter(event => event.contentType.includes("prefill-v3"));
+it.each(["after-completion", "scheduled"] as const)("반복 %s의 실제 보관 요청 수로 LOAD 한도를 검사한다", async repeatMode => {
+  const originalFetch = fetch;
+  vi.stubGlobal("fetch", async (url: string) => {
+    const response = await originalFetch(url), body = await response.json();
+    for (const model of body.deployments ?? []) for (const stage of model.stages) {
+      const options = JSON.parse(stage.loadOptionsJson);
+      options.resource_profile.max_requests = 2;
+      options.resource_profile.max_output_tokens = 200;
+      stage.loadOptionsJson = JSON.stringify(options);
+    }
+    return new Response(JSON.stringify(body));
+  });
+  const { inference } = await start({ concurrency: 2, repetitions: 2, intervalMs: 0, repeatMode });
+  if (repeatMode === "after-completion") expect(prefills()).toHaveLength(2);
+  else { expect(prefills()).toHaveLength(0); expect(inference.activity.value.error).toContain("larger LOAD resource profile"); }
+});
 const speculativeType = "application/vnd.p4.llamacpp.speculative-round-v1+json";
 function speculative(original: P4Event, changes = {}) {
   const body = payload(original), source = original.source as Extract<P4Endpoint, { kind: "outer" }>;

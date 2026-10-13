@@ -264,9 +264,12 @@ export type InferenceRun = z.infer<typeof inferenceRunSchema>;
 
 export const inferenceRunsSchema = z.object({ runs: z.array(inferenceRunSchema) });
 export type InferenceRunsResponse = z.infer<typeof inferenceRunsSchema>;
+export type InferenceHistoryErrorResponse = { error: { code: "inference_history_rejected"; message: string } };
 
 export const inferenceRoutes = {
   runs: { path: "/api/inference/runs", method: "GET" },
+  saveRun: { path: "/api/inference/runs/:id", method: "PUT" },
+  removeRun: { path: "/api/inference/runs/:id", method: "DELETE" },
   createRun: { path: "/api/inference/runs", method: "POST" },
   runEvents: { path: "/api/inference/runs/:id/events", method: "GET" },
   monitoring: { path: "/api/inference/models/:id/monitoring", method: "GET" },

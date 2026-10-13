@@ -1,5 +1,5 @@
 import { Router, json } from 'express';
-import { parseInferenceRun, type InferenceRun, type InferenceRunsResponse, type DeploymentErrorResponse } from '@p4studio/studio_domain/common';
+import { inferenceRoutes, parseInferenceRun, type InferenceRun, type InferenceRunsResponse, type InferenceHistoryErrorResponse } from '@p4studio/studio_domain/common';
 import { historyWriteError, historyDeleteError } from '@p4studio/studio_domain/server';
 import type { StudioDatabase } from '../database/client.js';
 
@@ -12,13 +12,13 @@ export function createInferenceHistoryRouter(database: StudioDatabase) {
     const row = db.prepare('SELECT document FROM inference_history WHERE id=?').get(id);
     return row ? parseInferenceRun(JSON.parse(String(row.document))) : undefined;
   };
-  const rejected = (message: string): DeploymentErrorResponse => ({ error: { code: 'inference_history_rejected', message } });
+  const rejected = (message: string): InferenceHistoryErrorResponse => ({ error: { code: 'inference_history_rejected', message } });
   router.use('/api/inference/runs', json({ limit: '16mb' }));
-  router.get('/api/inference/runs', (_req, res) => {
+  router.get(inferenceRoutes.runs.path, (_req, res) => {
     const runs = db.prepare('SELECT document FROM inference_history').all().map(row => parseInferenceRun(JSON.parse(String(row.document))));
     res.json({ runs } satisfies InferenceRunsResponse);
   });
-  router.put('/api/inference/runs/:id', (req, res) => {
+  router.put(inferenceRoutes.saveRun.path, (req, res) => {
     let run: InferenceRun;
     try { run = parseInferenceRun(req.body); } catch { return res.status(400).json(rejected('실행 기록 형식이 잘못되었습니다.')); }
     if (run.id !== req.params.id) return res.status(400).json(rejected('실행 ID가 일치하지 않습니다.'));
@@ -27,7 +27,7 @@ export function createInferenceHistoryRouter(database: StudioDatabase) {
     db.prepare('INSERT INTO inference_history(id,document) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET document=excluded.document').run(run.id, JSON.stringify(run));
     return res.json(run);
   });
-  router.delete('/api/inference/runs/:id', (req, res) => {
+  router.delete(inferenceRoutes.removeRun.path, (req, res) => {
     const run = get(String(req.params.id)), error = run && historyDeleteError(run);
     if (error) return res.status(409).json(rejected(error));
     db.prepare('DELETE FROM inference_history WHERE id=?').run(String(req.params.id));

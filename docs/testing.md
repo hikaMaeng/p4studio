@@ -50,3 +50,7 @@ node tests/integration/no-binary-preset-import.mjs
 ```
 
 브라우저 시험은 이 worktree의 `apps/studio/dist`를 TEMP에 그대로 복사해 실행한다. `.cache` 경로를 Express `sendFile`이 숨김 경로로 거부하는 문제를 피해 제품 빌드 산출물을 검사하며 운영 서버·DB는 열지 않는다.
+
+## 운영 실측 구성 브라우저 실행
+
+[등록·실행 동선](../tests/browser/recorded-model-runs.mjs)은 운영 URL을 받아 모델 구성의 필드·stage 추가/편집·저장, 질의 설정·전송, 완료와 응답 전문·관측 화면을 검사한다. 직접 HTTP 등록·추론 호출은 하지 않는다. 실행 로그·JSON·스크린샷은 Git 제외 tests/reports에 둔다. 공유 이력은 새 브라우저 context의 기록 메뉴에서 복원해 확인한다. 다른 브라우저의 기록은 원래 OUTER 연결이나 실행 권한을 복원하지 않는다.

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { wireOptions, wirePrompt } from "./prompt.js";
 
 describe("Studio inference prompt", () => {
+  it("TUF 실측의 명시적 no-thinking 입력을 중복 포맷하지 않는다", () => {
+    const input = '<|im_start|>user\n타입스크립트를 두 문장으로 설명하라<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n';
+    expect(wirePrompt({ stages: [{ artifact: 'C:/models/Qwen3.8-27B.gguf' }] }, input)).toBe(input);
+  });
   it("MiMo 실측 입력과 샘플링을 그대로 생성한다", () => {
     const model = { stages: [{ artifact: '/models/MiMo-V2.6-Flash-RL-MXFP4.gguf' }] };
     expect(wirePrompt(model, ' 타입스크립트에 대해 설명하라 ')).toBe('<|im_start|>user\n타입스크립트에 대해 설명하라<|im_end|><|im_start|>assistant\n<think></think>');

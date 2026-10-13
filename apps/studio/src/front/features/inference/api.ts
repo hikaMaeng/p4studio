@@ -238,12 +238,15 @@ const gateway: InferenceGateway = {
     const maxAllowed = Math.min(MAX_OUTPUT_TOKENS, limits.maxOutputTokensPerRequest);
     if (input.maxTokens > maxAllowed) throw new Error(`Requested ${input.maxTokens} generated tokens exceed the limit of ${maxAllowed}`);
     const total = input.concurrency * input.repetitions;
+    // 완료 후 반복은 앞 웨이브가 종료된 뒤 새 웨이브를 보낸다.
+    // LOAD 보관 한도는 누적 제출 수가 아니라 동시에 보관할 요청에 적용한다.
+    const retained = input.repeatMode === "after-completion" ? input.concurrency : total;
     const promptBytes = new TextEncoder().encode(wirePrompt(model, input.prompt)).byteLength;
     // A deliberately conservative admission estimate. The adapter alone owns actual tokenization and Rust allocation capacities.
     const promptTokenEstimate = promptBytes + 32;
     const requestByteEstimate = 4096 + 8 * promptBytes + 2 * new TextEncoder().encode(wireOptions(model)).byteLength;
-    if (requestByteEstimate > limits.maxRequestBytes || total * requestByteEstimate > limits.maxRequestRetainedBytes || total * promptTokenEstimate > limits.maxInputTokens) throw new Error(`The submitted prompt needs a larger LOAD resource profile under the conservative input estimate (per-request bytes ${requestByteEstimate}, retained bytes ${total * requestByteEstimate}, input tokens ${total * promptTokenEstimate}); unload and expand the model before running`);
-    if (!Number.isSafeInteger(total) || total > limits.maxRequests || total * input.maxTokens > limits.maxOutputTokens) throw new Error(`The requested ${total} submissions require a larger LOAD resource profile (requests ${limits.maxRequests}, output tokens ${limits.maxOutputTokens}); unload and expand the model before running`);
+    if (requestByteEstimate > limits.maxRequestBytes || retained * requestByteEstimate > limits.maxRequestRetainedBytes || retained * promptTokenEstimate > limits.maxInputTokens) throw new Error(`The submitted prompt needs a larger LOAD resource profile under the conservative input estimate (per-request bytes ${requestByteEstimate}, retained bytes ${retained * requestByteEstimate}, input tokens ${retained * promptTokenEstimate}); unload and expand the model before running`);
+    if (!Number.isSafeInteger(total) || retained > limits.maxRequests || retained * input.maxTokens > limits.maxOutputTokens) throw new Error(`The requested ${retained} retained submissions require a larger LOAD resource profile (requests ${limits.maxRequests}, output tokens ${limits.maxOutputTokens}); unload and expand the model before running`);
     // LOAD 계약 불일치는 접속 전에 거부한다. 송신 순서는 head→tail을 유지한다.
     llamaSessionContract(model);
     const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens, repeatMode: input.repeatMode ?? "scheduled" }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };

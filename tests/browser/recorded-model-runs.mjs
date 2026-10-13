@@ -36,6 +36,37 @@ export async function startRecordedRun(page, modelName, { concurrency, repetitio
   await page.getByLabel(/최대.*토큰/).fill(String(maxTokens));
   await page.getByRole('combobox', { name: '반복 방식', exact: true }).click();
   await page.getByRole('option', { name: repeatMode === 'after-completion' ? /앞 웨이브.*완료/ : /예정/ }).click();
-  await page.getByLabel('프롬프트', { exact: true }).fill(prompt);
+  await page.getByLabel('프롬프트', { exact: false }).fill(prompt);
+  const previous = await page.getByTestId('inference-run-group').evaluateAll(es => es.map(e => e.getAttribute('aria-label')));
   await page.getByRole('button', { name: '질의 전송', exact: true }).click();
+  await page.waitForFunction(previous => [...document.querySelectorAll('[data-testid="inference-run-group"]')].some(e => !previous.includes(e.getAttribute('aria-label'))), previous, { timeout: 30000 });
+  const current = (await page.getByTestId('inference-run-group').evaluateAll(es => es.map(e => e.getAttribute('aria-label')))).find(name => !previous.includes(name));
+  return current.slice(current.lastIndexOf(' · ') + 3);
+}
+
+export async function finishRecordedRun(page, artifactDirectory, label, runId) {
+  const fs = await import('node:fs/promises');
+  const group = page.getByTestId('inference-run-group').first();
+  await group.waitFor({ timeout: 30000 });
+  const name = await group.getAttribute('aria-label');
+  const id = runId ?? name.slice(name.lastIndexOf(' · ') + 3);
+  await page.waitForFunction(id => {
+    const raw = localStorage.getItem('p4studio.inference.history.v1');
+    const run = raw && JSON.parse(raw).runs.find(r => r.id === id);
+    return run && !['preparing','running','settling','cancelling'].includes(run.state);
+  }, id, { timeout: 1200000 });
+  const run = await page.evaluate(id => JSON.parse(localStorage.getItem('p4studio.inference.history.v1')).runs.find(r => r.id === id), id);
+  await page.getByRole('button', { name: '기록', exact: true }).click();
+  await page.getByTestId('inference-history-row').first().getByTestId('inference-history-open').click();
+  await page.waitForURL(`**/inference/history/${id}`);
+  await page.getByTestId('inference-history-detail').waitFor();
+  const text = await page.getByTestId('inference-history-detail').innerText();
+  await fs.writeFile(`${artifactDirectory}/${label}.run.json`, JSON.stringify(run, null, 2));
+  await fs.writeFile(`${artifactDirectory}/${label}.screen.txt`, text);
+  await page.screenshot({ path: `${artifactDirectory}/${label}.png`, fullPage: true });
+  const ttft = text.match(/TTFT p95\s+([^\n]+)/)?.[1];
+  const tps = text.match(/출력 TPS 평균 \/ 최고\s+([^\n]+)/)?.[1];
+  const result = { label, id, modelId: run.modelId, modelName: run.modelName, state: run.state, submitted: run.submitted, completed: run.completed, pendingSettlement: run.pendingSettlement, settings: run.settings, TPS: tps, TTFT: ttft, error: run.error, screenshot: `${label}.png`, 응답길이: run.requests.map(r => r.text.length), 분포: run.batchRequestDistributions, 라운드: run.speculative?.rounds };
+  if (run.state !== 'completed' || run.completed !== run.submitted || run.requests.some(r => !r.text.trim() || r.error)) throw new Error(`실행 실패: ${JSON.stringify(result)}`);
+  return result;
 }

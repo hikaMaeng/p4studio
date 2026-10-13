@@ -1,5 +1,7 @@
 /** Model-specific prompt formatting belongs to the Studio OUTER. */
 export function wirePrompt(model: { stages: readonly { artifact: string }[] }, prompt: string): string {
+  // 실측의 명시적 대화 입력은 다시 감싸지 않는다. 끝의 개행도 계약의 일부다.
+  if (prompt.startsWith("<|im_start|>user\n") && prompt.includes("<|im_start|>assistant\n")) return prompt;
   if (model.stages.some(stage => /mimo/i.test(stage.artifact))) {
     return `<|im_start|>user\n${prompt.trim()}<|im_end|><|im_start|>assistant\n<think></think>`;
   }
