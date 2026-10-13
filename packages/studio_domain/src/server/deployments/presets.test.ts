@@ -73,19 +73,23 @@ it("does not turn occupied observed nodes into planned LOAD targets", () => {
   expect(deployments.editor.value.input.stages.every(s => !s.nodeId.startsWith("occupied"))).toBe(true);
 });
 it("allows heterogeneous backends only with explicit physical v4 and matching known ABI", () => {
-  const wire = `p4pb4le64:${"a".repeat(64)}:types=0/1/4,1/1/2,2/32/18`;
+  const wire = `p4pb6le64:${"a".repeat(64)}:types=0/1/4,1/1/2,2/32/18`;
   const first = { upstream_commit: "pin", patch_set: "patch", backend_inventory: "CUDA", stage_wire_abi: wire };
   const second = { ...first, backend_inventory: "Metal" };
   expect(() => checkBuilds([first, second])).toThrow(/backend_inventory/);
   expect(() => checkBuilds([first, second], "physical-wire-v4")).not.toThrow();
   expect(() => checkBuilds([
-    { ...first, stage_wire_abi: first.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
-    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
+    { ...first, stage_wire_abi: first.stage_wire_abi.replace("aaaa", "bbbb") },
+    { ...second, stage_wire_abi: second.stage_wire_abi.replace("aaaa", "bbbb") },
   ], "physical-wire-v4")).not.toThrow();
   expect(() => checkBuilds([
     first,
-    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb4le64:", "p4pb5le64:") },
-  ], "physical-wire-v4")).toThrow(/stage_wire_abi/);
+    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb6le64:", "p4pb5le64:") },
+  ], "physical-wire-v4")).toThrow(/ABI/);
+  expect(() => checkBuilds([
+    { ...first, stage_wire_abi: first.stage_wire_abi.replace("p4pb6le64:", "p4pb4le64:") },
+    { ...second, stage_wire_abi: second.stage_wire_abi.replace("p4pb6le64:", "p4pb4le64:") },
+  ], "physical-wire-v4")).toThrow(/ABI/);
   expect(() => checkBuilds([first, { ...second, stage_wire_abi: "unknown" }], "physical-wire-v4")).toThrow(/ABI/);
   expect(() => checkBuilds([first, { ...second, patch_set: "different" }], "physical-wire-v4")).toThrow(/patch_set/);
 });

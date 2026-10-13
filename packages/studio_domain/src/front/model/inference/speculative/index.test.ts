@@ -32,6 +32,14 @@ it("does not infer acceptance from replay path or emitted output; zero-draft rep
   expect(speculativeAcceptance(value.speculative)).toBe(2 / 3);
   expect(value.speculative!.points[1]!.drafted).toBe(0);
 });
+it("includes zero-draft W rounds in the drafts-per-round range without changing acceptance", () => {
+  const value = run();
+  recordSpeculativeRound(value, round({ drafted: 2, accepted: 2 }), 1000);
+  recordSpeculativeRound(value, round({ observation_id: "second", drafted: 1, accepted: 0 }), 2000);
+  recordSpeculativeRound(value, round({ observation_id: "w30", drafted: 0, accepted: 0 }), 3000);
+  expect(value.speculative).toMatchObject({ rounds: 3, drafted: 3, accepted: 2, draftedMin: 0, draftedMax: 2 });
+  expect(speculativeAcceptance(value.speculative)).toBe(2 / 3);
+});
 it("deduplicates observations and accepts delayed positions without losing earlier rounds", () => {
   const value = run(); recordSpeculativeRound(value, round(), 1000);
   expect(recordSpeculativeRound(value, round(), 2000)).toBe(false);

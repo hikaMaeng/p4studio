@@ -158,4 +158,9 @@ export enum RSC {
   MODELS_GRAPH_LOAD_MESSAGE = "models.graph.load.message",
   MODELS_ABSENT_STATUS = "models.absent.status",
   MODELS_PREVIOUS_LOAD_UNKNOWN_MESSAGE = "models.previous.load.unknown.message",
+  MODELS_CC_EVIDENCE_LABEL = "models.cc.evidence.label",
+  MODELS_CC_EVIDENCE_MESSAGE = "models.cc.evidence.message",
+  MODELS_CC_UNSET_TEXT = "models.cc.unset.text",
+  MODELS_CC_UNREPORTED_TEXT = "models.cc.unreported.text",
+  MODELS_CC_NOEVIDENCE_TEXT = "models.cc.noevidence.text",
 }

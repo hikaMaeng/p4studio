@@ -3,6 +3,8 @@ import type { DeploymentInput, DeploymentRecord, PlacementStage, StageReport } f
 import { buildLoadPayload, LLAMA_TYPES, llamaPlanSummary } from "./payload.js";
 import { buildNodeLifecyclePayload, stageNeedsRecovery } from "./lifecycle.js";
 import { checkBuilds } from "./compatibility.js";
+import { checkCcEnvironmentAgreement } from "./cc-env.js";
+import { checkLoadStageContracts } from "./session.js";
 import { stageResourceProfile } from "./resource-profile.js";
 
 export interface BrowserOwnedDeploymentTransport {
@@ -65,6 +67,10 @@ export function validateDeploymentLoad(plan: DeploymentInput): void {
     try { stageResourceProfile(stage); }
     catch (error) { throw new Error(`Stage ${index + 1} (${stage.nodeId}): ${error instanceof Error ? error.message : String(error)}`); }
   });
+  // Declared CC/W environments must agree across stages before a LOAD is sent.
+  // P4 reads these knobs per stage at LOAD; actual contracts are checked again
+  // against LOAD reports before the deployment is confirmed loaded.
+  checkCcEnvironmentAgreement(plan.stages);
 }
 
 /** Agent terminal results own readiness/removal; browser owns multi-stage recovery. */
@@ -155,7 +161,13 @@ export async function runBrowserDeployment(record: DeploymentRecord, action: "lo
         if (persistenceError) { failed = true; record.error ||= persistenceError; break; }
       }
       if (!failed && record.adapter === "llamacpp") {
-        try { checkBuilds(record.reports.map(report => report.telemetry as Record<string, unknown>), record.pipelineCompatibility); }
+        try {
+          checkBuilds(record.reports.map(report => report.telemetry as Record<string, unknown>), record.pipelineCompatibility);
+          // 전체 loaded 확정 전에 현재 generation의 build 일치와 speculative
+          // stage 계약 일치를 모두 마친다. 불일치는 아래 기존 역순 UNLOAD
+          // 회수 경로로 회수되며 성공 stage·결과 불명·회수 실패 보고는 보존된다.
+          checkLoadStageContracts(record);
+        }
         catch (error) { failed = true; record.error = String(error); }
       }
       if (!failed) {

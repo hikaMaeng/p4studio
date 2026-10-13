@@ -6,10 +6,11 @@ const empty = (): InferenceSpeculative => ({ rounds: 0, drafted: 0, accepted: 0,
 export const speculativeAcceptance = (value: Pick<InferenceSpeculative, "drafted" | "accepted"> | undefined) => value?.drafted ? value.accepted / value.drafted : null;
 
 function accumulate(value: InferenceSpeculative, round: P4SpeculativeRound, atUnixMs: number) {
-  if (round.drafted > 0) {
-    value.draftedMin = Math.min(value.draftedMin ?? round.drafted, round.drafted);
-    value.draftedMax = Math.max(value.draftedMax ?? round.drafted, round.drafted);
-  }
+  // Zero-draft rounds are real rounds: W fixes every round at W rows, so a
+  // (c,d)=(3,0) round reports drafted 0 and the range must show actual 0–2.
+  // Acceptance stays a sum ratio and is unaffected by zero drafts.
+  value.draftedMin = Math.min(value.draftedMin ?? round.drafted, round.drafted);
+  value.draftedMax = Math.max(value.draftedMax ?? round.drafted, round.drafted);
   // The producer owns whether a replay carries a new decision; never infer counters from path/output rows.
   const delta = { rounds: 1, drafted: round.drafted,
     accepted: round.accepted, emittedTokens: round.emitted_tokens,

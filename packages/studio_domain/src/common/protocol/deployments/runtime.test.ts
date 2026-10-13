@@ -172,6 +172,43 @@ it("rolls back all loaded stages after build incompatibility", async () => {
   await run(record, wire); expect(record.status).toBe("absent"); expect(record.error).toContain("agree");
   expect(wire.calls.filter(c => c.action === "unload")).toHaveLength(3);
 });
+const contractedTransport = (contracts: Record<string, string | undefined>, unloadReject?: string) => transport((event, metadata) => {
+  if (metadata.operation === "load") {
+    const body: Record<string, unknown> = { load_generation: 42, upstream_commit: "pin", patch_set: "patch", backend_inventory: "CPU" };
+    const contract = metadata.node_id in contracts ? contracts[metadata.node_id] : "cc/2/5/3";
+    if (contract !== undefined) body.speculative_contract = contract;
+    event.payload = encodeLifecycleMetadata(metadata, new TextEncoder().encode(JSON.stringify(body))); return event;
+  }
+  if (metadata.node_id === unloadReject) Object.assign(metadata, { status: "rejected", resource_state: "present", adapter_content_type: LLAMA_TYPES.errorContentType, first_error: "busy or occupied" });
+});
+it("confirms loaded only after every current-generation stage contract agrees", async () => {
+  const record = model(); record.adapter = "llamacpp";
+  const wire = contractedTransport({});
+  await run(record, wire); expect(record.status).toBe("loaded"); expect(record.error).toBe("");
+});
+it("rolls back loaded stages after speculative contract disagreement instead of staying loaded", async () => {
+  const record = model(); record.adapter = "llamacpp";
+  const wire = contractedTransport({ n1: "checkpoint/2/3/3" });
+  await run(record, wire);
+  expect(record.status).toBe("absent"); expect(record.error).toContain("SESSION_SPECULATIVE_CONTRACT_MISMATCH");
+  expect(wire.calls.filter(c => c.action === "unload")).toHaveLength(3);
+  expect(record.reports[0]).toMatchObject({ loadOutcome: "succeeded" });
+  expect((record.reports[0]?.telemetry as Record<string, unknown>).speculative_contract).toBe("cc/2/5/3");
+});
+it("rolls back loaded stages after a partially missing stage contract", async () => {
+  const record = model(); record.adapter = "llamacpp";
+  const wire = contractedTransport({ n0: "cc/2/5/3", n1: undefined, n2: "cc/2/5/3" });
+  await run(record, wire);
+  expect(record.status).toBe("absent"); expect(record.error).toContain("SESSION_SPECULATIVE_CONTRACT_MISSING");
+  expect(wire.calls.filter(c => c.action === "unload")).toHaveLength(3);
+});
+it("preserves recovery failure instead of loaded after contract disagreement with failed reclaim", async () => {
+  const record = model(); record.adapter = "llamacpp";
+  const wire = contractedTransport({ n1: "checkpoint/2/3/3" }, "n1");
+  await run(record, wire);
+  expect(record.status).toBe("failed"); expect(record.error).toContain("SESSION_SPECULATIVE_CONTRACT_MISMATCH");
+  expect(record.reports[1]).toMatchObject({ loadOutcome: "succeeded", cleanupError: "busy or occupied" });
+});
 it("recovers owned resources even if saving the loaded receipt fails", async () => {
   const record = model(), wire = transport();
   await runBrowserDeployment(record, "load", addresses, wire, async () => { if (record.reports[0]?.state === "loaded") throw new Error("storage unavailable"); });

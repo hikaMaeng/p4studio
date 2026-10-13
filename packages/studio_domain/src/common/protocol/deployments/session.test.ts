@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { llamaSessionContract, LLAMA_SESSION_V4, LLAMA_SESSION_V5, SESSION_CONTRACT_ERRORS } from "./session.js";
+import { checkLoadStageContracts, llamaSessionContract, LLAMA_SESSION_V4, LLAMA_SESSION_V5, SESSION_CONTRACT_ERRORS } from "./session.js";
 import type { DeploymentRecord } from "./index.js";
 const model = (contracts: unknown[]) => ({ loadGeneration: 42, stages: contracts.map((_, index) => ({ id: String(index), agentId: "agent", nodeId: String(index), nodeGeneration: 1,
   artifact: "model.gguf", layerStart: index, layerEnd: index + 1, binary: "binary", endpoint: "", device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" })),
@@ -30,4 +30,13 @@ it("오래된 LOAD 세대와 중복·누락 보고를 거부한다", () => {
 });
 it("stage 수 부족도 오류 코드로 거부한다", () => {
   expect(() => llamaSessionContract(model([undefined]))).toThrow(new Error(SESSION_CONTRACT_ERRORS.stages));
+});
+it("LOAD 계약 검사는 전체 일치를 반환하고 계약 미보고 구 adapter를 legacy로 분리한다", () => {
+  expect(checkLoadStageContracts(model(["cc/2/5/3", "cc/2/5/3"]))).toBe("cc/2/5/3");
+  expect(checkLoadStageContracts(model([undefined, undefined]))).toBeNull();
+  expect(checkLoadStageContracts(model(["cc/2/5/3"]))).toBe("cc/2/5/3");
+  expect(checkLoadStageContracts(model([undefined]))).toBeNull();
+  expect(() => checkLoadStageContracts(model(["cc/2/5/3", "checkpoint/2/3/3"]))).toThrow(new Error(SESSION_CONTRACT_ERRORS.mismatch));
+  expect(() => checkLoadStageContracts(model(["cc/2/5/3", undefined]))).toThrow(new Error(SESSION_CONTRACT_ERRORS.partial));
+  expect(() => checkLoadStageContracts(model([null, null]))).toThrow(new Error(SESSION_CONTRACT_ERRORS.invalid));
 });

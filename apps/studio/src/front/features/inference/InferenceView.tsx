@@ -10,6 +10,7 @@ import { startModels } from "../models/api.js";
 import { MAX_OUTPUT_TOKENS, startInference } from "./api.js";
 import { RSC } from "./resource.js";
 import { RequestMonitoringContent, RequestPerformanceMetrics, RunObservability } from "./InferenceObservability.js";
+import { SpeculativeContract, contractForRun } from "./speculative/SpeculativeContract.js";
 import { InferenceWaveResults } from "./InferenceWaveResults.js";
 import { Icon } from "../../shared/components/Icon.js";
 import { MenuHeader } from "../../shared/components/MenuHeader.js";
@@ -32,7 +33,7 @@ export function InferenceView({ history, historyRunId, requestId, onOpenHistory,
   return <Box component="section" aria-label={history ? t[RSC.INFERENCE_HISTORY_TITLE_TEXT] : t[RSC.INFERENCE_TITLE_TEXT]}>
     <MenuHeader title={history ? t[RSC.INFERENCE_HISTORY_TITLE_TEXT] : t[RSC.INFERENCE_TITLE_TEXT]} actions={!history && <Chip size="small" label={formatMessage(t[RSC.INFERENCE_READY_COUNT_TEXT], { count: readyCount })} />} />
     {activity.error && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{t[RSC.INFERENCE_ERROR_ALERT]}: {<InferenceError detail={activity.error} />}</Alert>}
-    {requestId ? <RequestDetailPage requestId={requestId} onBack={() => onBackRequest(history, historyRunId)} /> : history ? historyRunId ? <HistoryDetailPage runId={historyRunId} onBack={onBackHistory} onOpenRequest={onOpenHistoryRequest} /> : <HistoryListPage onOpen={onOpenHistory} /> : <QueryPanel modelId={modelId} setModelId={setModelId} models={models} onOpenRequest={onOpenRequest} />}
+    {requestId ? <RequestDetailPage requestId={requestId} onBack={() => onBackRequest(history, historyRunId)} /> : history ? historyRunId ? <HistoryDetailPage runId={historyRunId} models={models} onBack={onBackHistory} onOpenRequest={onOpenHistoryRequest} /> : <HistoryListPage onOpen={onOpenHistory} /> : <QueryPanel modelId={modelId} setModelId={setModelId} models={models} onOpenRequest={onOpenRequest} />}
   </Box>;
 }
 function QueryPanel({ modelId, setModelId, models, onOpenRequest }: { modelId: string; setModelId: (value: string) => void; models: DeploymentRecord[]; onOpenRequest: (requestId: string) => void }) {
@@ -69,15 +70,16 @@ function QueryPanel({ modelId, setModelId, models, onOpenRequest }: { modelId: s
   <TextField required fullWidth multiline minRows={4} sx={{ mt: 2 }} label={t[RSC.INFERENCE_PROMPT_LABEL]} value={prompt} onChange={event => updateQuery("prompt", event.target.value)} /><Box sx={{ display: "flex", justifyContent: "end", mt: 2 }}><Button variant="contained" disabled={activity.busy || !modelId || !prompt.trim()} onClick={submit}>{activity.busy ? t[RSC.INFERENCE_SENDING_STATUS] : t[RSC.INFERENCE_SEND_BUTTON]}</Button></Box></Paper>
   {!currentRunId ? <InferenceWaveResults onOpen={onOpenRequest} /> : <Box component="section" aria-label={t[RSC.INFERENCE_RESULTS_LABEL]} data-testid="inference-run-groups" sx={{ display: "grid", gap: .75, minWidth: 0 }}>
     <Typography variant="subtitle2">{t[RSC.INFERENCE_RESULTS_LABEL]}</Typography>
-    {visibleRunIds.map(runId => <CurrentRunGroup key={runId} runId={runId} expanded={expandedRunIds.has(runId)} onToggle={() => setExpandedRunIds(current => { const next = new Set(current); if (next.has(runId)) next.delete(runId); else next.add(runId); return next; })} onDelete={() => inference.remove(runId)} onOpenRequest={onOpenRequest} />)}
+    {visibleRunIds.map(runId => <CurrentRunGroup key={runId} runId={runId} models={models} expanded={expandedRunIds.has(runId)} onToggle={() => setExpandedRunIds(current => { const next = new Set(current); if (next.has(runId)) next.delete(runId); else next.add(runId); return next; })} onDelete={() => inference.remove(runId)} onOpenRequest={onOpenRequest} />)}
   </Box>}
   </Box>;
 }
-function CurrentRunGroup({ runId, expanded, onToggle, onDelete, onOpenRequest }: { runId: string; expanded: boolean; onToggle: () => void; onDelete: () => void; onOpenRequest: (requestId: string) => void }) {
+function CurrentRunGroup({ runId, models, expanded, onToggle, onDelete, onOpenRequest }: { runId: string; models: DeploymentRecord[]; expanded: boolean; onToggle: () => void; onDelete: () => void; onOpenRequest: (requestId: string) => void }) {
   const run = useModel(inference.runModel(runId)).value;
-  return run ? <InferenceRunGroup run={run} expanded={expanded} onToggle={onToggle} onDelete={onDelete} onOpenRequest={onOpenRequest} /> : null;
+  const contract = run ? contractForRun(models.find(model => model.id === run.modelId), run.loadGeneration) : null;
+  return run ? <InferenceRunGroup run={run} contract={contract} expanded={expanded} onToggle={onToggle} onDelete={onDelete} onOpenRequest={onOpenRequest} /> : null;
 }
-function InferenceRunGroup({ run, expanded, onToggle, onDelete, onOpenRequest }: { run: InferenceRun; expanded: boolean; onToggle: () => void; onDelete: () => void; onOpenRequest: (requestId: string) => void }) {
+function InferenceRunGroup({ run, contract, expanded, onToggle, onDelete, onOpenRequest }: { run: InferenceRun; contract: string | null; expanded: boolean; onToggle: () => void; onDelete: () => void; onOpenRequest: (requestId: string) => void }) {
   const { t } = useTranslation(); const summary = monitoringSummaryFor(run); const detailsId = `inference-run-details-${run.id}`;
   const settings = run.settings
     ? formatMessage(t[RSC.INFERENCE_RUN_SETTINGS_TEXT], { concurrency: run.settings.concurrency, repetitions: run.settings.repetitions, intervalSeconds: run.settings.intervalMs / 1000, maxTokens: run.settings.maxTokens })
@@ -100,6 +102,7 @@ function InferenceRunGroup({ run, expanded, onToggle, onDelete, onOpenRequest }:
     <Collapse id={detailsId} data-testid="inference-run-details" in={expanded} timeout={0} unmountOnExit>
       <Divider />
       <Box sx={{ p: 1, display: "grid", gap: 1, minWidth: 0 }}>
+        <SpeculativeContract contract={contract} />
         <RunObservability runId={run.id} />
         <Paper variant="outlined" sx={{ p: .75, minWidth: 0 }}><StageSummary summary={summary} /></Paper>
         <InferenceWaveResults key={run.id} run={run} onOpen={onOpenRequest} />
@@ -200,14 +203,15 @@ function HistoryListRow({ runId, onOpen }: { runId: string; onOpen: (runId: stri
   </Box>;
 }
 
-function HistoryDetailPage({ runId, onBack, onOpenRequest }: { runId: string; onBack: () => void; onOpenRequest: (requestId: string, runId: string) => void }) {
+function HistoryDetailPage({ runId, models, onBack, onOpenRequest }: { runId: string; models: DeploymentRecord[]; onBack: () => void; onOpenRequest: (requestId: string, runId: string) => void }) {
   const { t } = useTranslation(); const run = useModel(inference.runModel(runId)).value;
-  return <Box data-testid="inference-history-detail" sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Box><Button onClick={onBack}>{t[RSC.INFERENCE_HISTORY_BACK_BUTTON]}</Button><Typography variant="h2" sx={{ mt: 1 }}>{t[RSC.INFERENCE_HISTORY_DETAIL_LABEL]}</Typography></Box>{run && <RunActions run={run} />}</Box>{run ? <HistoryDetail run={run} onOpenRequest={onOpenRequest} /> : <Paper variant="outlined" sx={{ p: 3 }}><Typography color="text.secondary">{t[RSC.INFERENCE_HISTORY_NOT_FOUND_MESSAGE]}</Typography></Paper>}</Box>;
+  return <Box data-testid="inference-history-detail" sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Box><Button onClick={onBack}>{t[RSC.INFERENCE_HISTORY_BACK_BUTTON]}</Button><Typography variant="h2" sx={{ mt: 1 }}>{t[RSC.INFERENCE_HISTORY_DETAIL_LABEL]}</Typography></Box>{run && <RunActions run={run} />}</Box>{run ? <HistoryDetail run={run} models={models} onOpenRequest={onOpenRequest} /> : <Paper variant="outlined" sx={{ p: 3 }}><Typography color="text.secondary">{t[RSC.INFERENCE_HISTORY_NOT_FOUND_MESSAGE]}</Typography></Paper>}</Box>;
 }
 
-function HistoryDetail({ run, onOpenRequest }: { run: InferenceRun; onOpenRequest: (requestId: string, runId: string) => void }) {
+function HistoryDetail({ run, models, onOpenRequest }: { run: InferenceRun; models: DeploymentRecord[]; onOpenRequest: (requestId: string, runId: string) => void }) {
   const { t } = useTranslation(); const summary = monitoringSummaryFor(run);
-  return <Box sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Paper variant="outlined" sx={{ p: 1.25, minWidth: 0 }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Typography variant="subtitle1">{run.modelName}</Typography></Box><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: .25 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(run.createdAt).toLocaleString()}</Typography><Box sx={{ mt: 1 }}><SummaryOverview run={run} summary={summary} /></Box>{run.error && <Alert severity="warning" sx={{ mt: 1 }}>{<InferenceError detail={run.error} />}</Alert>}</Paper><RunObservability runId={run.id} /><Paper variant="outlined" sx={{ p: 1 }}><StageSummary summary={summary} /></Paper><InferenceWaveResults key={run.id} run={run} onOpen={requestId => onOpenRequest(requestId, run.id)} /></Box>;
+  const contract = contractForRun(models.find(model => model.id === run.modelId), run.loadGeneration);
+  return <Box sx={{ display: "grid", gap: 1.25, minWidth: 0, width: "100%" }}><Paper variant="outlined" sx={{ p: 1.25, minWidth: 0 }}><Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}><Typography variant="subtitle1">{run.modelName}</Typography></Box><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: .25 }}>{t[RSC.INFERENCE_HISTORY_CREATED_LABEL]}: {new Date(run.createdAt).toLocaleString()}</Typography><Box sx={{ mt: 1, display: "grid", gap: .5 }}><SpeculativeContract contract={contract} /><SummaryOverview run={run} summary={summary} /></Box>{run.error && <Alert severity="warning" sx={{ mt: 1 }}>{<InferenceError detail={run.error} />}</Alert>}</Paper><RunObservability runId={run.id} /><Paper variant="outlined" sx={{ p: 1 }}><StageSummary summary={summary} /></Paper><InferenceWaveResults key={run.id} run={run} onOpen={requestId => onOpenRequest(requestId, run.id)} /></Box>;
 }
 
 function RequestDetailPage({ requestId, onBack }: { requestId: string; onBack: () => void }) {

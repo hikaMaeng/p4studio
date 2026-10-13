@@ -13,4 +13,11 @@ export enum RSC {
   INFERENCE_SPECULATIVE_REPLAY_LABEL = "inference.speculative.replay.label",
   INFERENCE_SPECULATIVE_TOTAL_MESSAGE = "inference.speculative.total.message",
   INFERENCE_SPECULATIVE_TRIMMED_MESSAGE = "inference.speculative.trimmed.message",
+  INFERENCE_SPECULATIVE_CONTRACT_LABEL = "inference.speculative.contract.label",
+  INFERENCE_SPECULATIVE_CONTRACT_MESSAGE = "inference.speculative.contract.message",
+  INFERENCE_SPECULATIVE_CONTRACT_UNAVAILABLE_MESSAGE = "inference.speculative.contract.unavailable.message",
+  INFERENCE_SPECULATIVE_CONTRACT_MODE_CC = "inference.speculative.contract.mode.cc",
+  INFERENCE_SPECULATIVE_CONTRACT_MODE_DEFERRED = "inference.speculative.contract.mode.deferred",
+  INFERENCE_SPECULATIVE_CONTRACT_MODE_CHECKPOINT = "inference.speculative.contract.mode.checkpoint",
+  INFERENCE_SPECULATIVE_CONTRACT_MODE_NONE = "inference.speculative.contract.mode.none",
 }

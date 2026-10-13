@@ -2,6 +2,8 @@ import hy3 from "./presets/hy3.js";
 import step from "./presets/step.js";
 import qwenNone from "./presets/qwen-none.js";
 import qwenMtp from "./presets/qwen-mtp.js";
+import qwenCc from "./presets/qwen-cc.js";
+import qwenCcW from "./presets/qwen-cc-w.js";
 import mimo from "./presets/mimo.js";
 
 export interface DeploymentPreset {
@@ -14,4 +16,4 @@ export interface DeploymentPreset {
   stages: { referenceAgent: string; referenceNode: string; artifact: string; layerStart: number; layerEnd: number;
     device: string; planText: string; loadOptionsJson: string }[];
 }
-export const deploymentPresets: readonly DeploymentPreset[] = [hy3, step, qwenNone, qwenMtp, mimo];
+export const deploymentPresets: readonly DeploymentPreset[] = [hy3, step, qwenNone, qwenMtp, qwenCc, qwenCcW, mimo];

@@ -2,6 +2,8 @@ export const STUDIO_DOMAIN_VERSION = 1;
 export * from "./protocol/agent-groups/index.js";
 export * from "./protocol/graph-inventory/index.js";
 export * from "./protocol/deployments/index.js";
+export * from "./protocol/deployments/compatibility.js";
+export * from "./protocol/deployments/cc-env.js";
 export * from "./protocol/deployments/payload.js";
 export * from "./protocol/deployments/session.js";
 export * from "./protocol/deployments/resource-profile.js";
