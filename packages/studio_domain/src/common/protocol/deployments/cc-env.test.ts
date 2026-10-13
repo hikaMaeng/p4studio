@@ -4,7 +4,7 @@ import { checkCcEnvironmentAgreement, parseSpeculativeContract, stageCcEnv, summ
 const stage = (environment: [string, string][] | undefined, loadOptionsJson = true) => ({
   nodeId: "n0",
   ...(loadOptionsJson
-    ? { loadOptionsJson: JSON.stringify({ binary: "b", endpoint: "127.0.0.1:1", environment }) }
+    ? { loadOptionsJson: JSON.stringify({ endpoint: "127.0.0.1:1", environment }) }
     : { environmentJson: JSON.stringify(environment) }),
 });
 const pair = (name: string, value: string): [string, string] => [name, value];

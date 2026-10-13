@@ -9,7 +9,7 @@ import { LLAMA_TYPES } from "./payload.js";
 const model = (): DeploymentRecord => deploymentSchema.parse({
   id: "deployment", name: "test", adapter: "custom", ingressAgentId: "", totalLayers: 3, contextSize: 1, sequenceCapacity: 1, nBatch: 1, nUbatch: 1, timeoutMs: 100,
   loadContentType: "load", loadedContentType: "loaded", unloadContentType: "unload", unloadedContentType: "unloaded", errorContentType: "error",
-  stages: [0, 1, 2].map(i => ({ id: `s${i}`, agentId: "agent", nodeId: `n${i}`, nodeGeneration: 7, artifact: "model.gguf", layerStart: i, layerEnd: i + 1, binary: "stage", endpoint: `127.0.0.1:${51000 + i}`, device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" })),
+  stages: [0, 1, 2].map(i => ({ id: `s${i}`, agentId: "agent", nodeId: `n${i}`, nodeGeneration: 7, artifact: "model.gguf", layerStart: i, layerEnd: i + 1, endpoint: `127.0.0.1:${51000 + i}`, device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" })),
   status: "loading", loadGeneration: 42, operationId: "operation", error: "", reports: [], resolvedAddresses: {}, createdAt: "now", updatedAt: "now",
 });
 const addresses = new Map([["agent", "tcp://127.0.0.1:51055"]]);

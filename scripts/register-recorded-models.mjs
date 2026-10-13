@@ -99,7 +99,7 @@ try {
         nodeId: previous?.stages[index]?.nodeId ?? `${preset.id}-${randomUUID().slice(0, 8)}-${index}`,
         nodeGeneration: previous?.stages[index]?.nodeGeneration ?? 1,
         artifact: source.artifact, layerStart: source.layerStart, layerEnd: source.layerEnd,
-        binary: options.binary, endpoint: options.endpoint, device: source.device,
+        endpoint: options.endpoint, device: source.device,
         options: '', argsJson: JSON.stringify(options.args ?? []), environmentJson: JSON.stringify(options.environment ?? []), customPayload: '{}',
         planText: source.planText, loadOptionsJson: source.loadOptionsJson, referenceAgent: source.referenceAgent };
     });

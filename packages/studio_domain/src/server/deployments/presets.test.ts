@@ -58,7 +58,7 @@ it("keeps malformed text editable but refuses sending it or trusting stale place
 });
 it("migrates legacy inputs without replacing their Windows paths or load configuration", () => {
   const input = emptyDeployment(), stage = emptyStage();
-  stage.artifact = 'S:\\models with spaces\\model.gguf'; stage.binary = 'C:\\runtime\\server.exe'; stage.endpoint = '127.0.0.1:53001';
+  stage.artifact = 'S:\\models with spaces\\model.gguf'; stage.endpoint = '127.0.0.1:53001';
   input.stages.push(stage); const before = buildLoadPayload(input, stage, 23); editAsText(input, stage);
   expect(buildLoadPayload(input, stage, 23)).toEqual(before);
 });

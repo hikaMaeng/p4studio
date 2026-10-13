@@ -70,3 +70,5 @@ node scripts/register-recorded-models.mjs http://127.0.0.1:43120 tests/reports/s
 A2는 [앱 이벤트 소비 시험](../apps/studio/src/front/features/inference/api.test.ts)의 BatchObservation 수신→같은 stage 중복 제거→다른 stage 별도 누적→저장→새 API 복원을 따른다. [TEMP 변이 실행기](../tests/integration/studio-revamp-mutation.mjs)는 빌드된 도메인을 작업 트리 밖에 복사하고 `addBatchRequestDistributions` 호출 한 줄만 제거한다. 정상 복사본 통과, 변이 실패, 제품 SHA-256 유지로 연결 시험의 실효성을 검사한다.
 
 [브라우저 시나리오](../tests/browser/studio-revamp.mjs)는 A1–A4, B1–B2, C2의 한국어·영어 오류 4종, D의 세 preset·노트를 검사한다. 모사 보고의 LOAD 성공·자원 존재 필드도 현재 계약대로 갖추고 실제 P4 접속은 0이어야 한다. [Windows 실행기](../tests/browser/run-studio-revamp.ps1)는 대화상자 방지와 테스트 Chromium 잔류 0을 검사한다. 초기 모델 선택은 값이 달라질 때만 갱신해 모델 목록 로딩 전 반복 emit을 막는다. 실행 이력·스크린샷은 tests/reports와 tests/plans의 Git 제외 자료이며 현재 시험 방법은 [testing](testing.md)이 소유한다.
+
+프리셋의 `source.configSha256`·`artifactSha256`·`evidenceFiles`는 과거 원본 증거의 SHA이며 현재 Studio 프리셋의 해시가 아니다. 실행 파일 소유 계약 변경으로 현재 프리셋 LOAD 옵션에서 `binary`만 제외했다. 원본 증거와 측정값·SHA는 재작성하지 않으며, 현재 옵션의 제거 여부는 [회귀 시험](../packages/studio_domain/src/server/deployments/no-binary.test.ts)이 검사한다.

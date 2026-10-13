@@ -11,7 +11,7 @@ const agents = ['head', 'gateway', 'tail'].map(name => ({ id: crypto.randomUUID(
 const topology = { agents, groups: [{ id: crypto.randomUUID(), name: 'fixture-group', gatewayAgentId: agents[1].id, memberAgentIds: [agents[0].id, agents[1].id] }] };
 const now = new Date().toISOString();
 const stages = [0, 1, 1, 2].map((agentIndex, index) => ({ id: `stage-${index}`, agentId: agents[agentIndex].id, nodeId: `node-${index}`, nodeGeneration: 9,
-  artifact: 'fixture.gguf', layerStart: index, layerEnd: index + 1, binary: 'fixture', endpoint: '', device: '', options: '', argsJson: '[]', environmentJson: '[]', customPayload: '{}',
+  artifact: 'fixture.gguf', layerStart: index, layerEnd: index + 1, endpoint: '', device: '', options: '', argsJson: '[]', environmentJson: '[]', customPayload: '{}',
   loadOptionsJson: JSON.stringify({ resource_profile: { max_input_tokens: 150000, max_request_bytes: 1048576, max_request_retained_bytes: 67108864, max_requests: 10, max_output_tokens_per_request: 100, max_output_tokens: 1000 } }) }));
 const record = deploymentSchema.parse({ id: crypto.randomUUID(), name: 'SESSION socket lifecycle fixture', adapter: 'llamacpp', totalLayers: 4, contextSize: 512,
   sequenceCapacity: 10, nBatch: 128, nUbatch: 64, timeoutMs: 3000, loadContentType: '', loadedContentType: '', unloadContentType: '', unloadedContentType: '', errorContentType: '',

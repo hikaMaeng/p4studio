@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withoutLegacyBinary } from "./load-options.js";
 
 const positive = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const text = z.string().trim().min(1).max(4096).refine(v => !v.includes("\0"));
@@ -6,10 +7,10 @@ export const stageSchema = z.object({
   id: text, agentId: z.string().max(4096), nodeId: text, nodeGeneration: positive,
   allocation: z.object({ queueCapacity: positive, completionCapacity: positive, retainedCapacity: positive, retainedBytes: positive }).optional(),
   artifact: z.string().max(4096), layerStart: z.number().int().min(0), layerEnd: positive,
-  binary: z.string().max(4096), endpoint: z.string().max(256), device: z.string().max(128),
+  endpoint: z.string().max(256), device: z.string().max(128),
   options: z.string().max(32768), argsJson: z.string().max(32768), environmentJson: z.string().max(32768),
   customPayload: z.string().max(131072),
-  planText: z.string().max(131072).optional(), loadOptionsJson: z.string().max(131072).optional(),
+  planText: z.string().max(131072).optional(), loadOptionsJson: z.string().max(131072).transform(withoutLegacyBinary).optional(),
   referenceAgent: z.string().max(4096).optional(),
 });
 export const deploymentInputSchema = z.object({

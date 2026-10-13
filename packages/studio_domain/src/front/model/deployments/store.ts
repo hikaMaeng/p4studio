@@ -1,6 +1,7 @@
 import { SliceModel } from "../SliceModel.js";
 import type { DeploymentInput, DeploymentRecord, PlacementStage } from "../../../common/protocol/deployments/index.js";
 import { buildLoadPayload, editAsText, llamaPlanSummary } from "../../../common/protocol/deployments/payload.js";
+import { withoutLegacyBinary } from "../../../common/protocol/deployments/load-options.js";
 import type { DeploymentPreset } from "../../../common/protocol/deployments/presets.js";
 
 export interface DeploymentGateway {
@@ -16,7 +17,7 @@ export function emptyDeployment(): DeploymentInput {
     loadContentType: "", loadedContentType: "", unloadContentType: "", unloadedContentType: "", errorContentType: "", stages: [] };
 }
 export function emptyStage(): PlacementStage {
-  return { id: crypto.randomUUID(), agentId: "", nodeId: "", nodeGeneration: 1, artifact: "", layerStart: 0, layerEnd: 1, binary: "", endpoint: "", device: "", options: "--kv-unified", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
+  return { id: crypto.randomUUID(), agentId: "", nodeId: "", nodeGeneration: 1, artifact: "", layerStart: 0, layerEnd: 1, endpoint: "", device: "", options: "--kv-unified", argsJson: "[]", environmentJson: "[]", customPayload: "{}" };
 }
 class DeploymentStore {
   readonly records = new SliceModel<DeploymentRecord[]>([]);
@@ -64,7 +65,7 @@ class DeploymentStore {
     input.stages = preset.stages.map((stage, index) => {
       const options = JSON.parse(stage.loadOptionsJson);
       return { ...emptyStage(), ...stage, id: crypto.randomUUID(), agentId: find(stage.referenceAgent),
-        nodeId: `${preset.id}-${suffix}-${index}`, binary: options.binary, endpoint: options.endpoint };
+        nodeId: `${preset.id}-${suffix}-${index}`, endpoint: options.endpoint };
     });
     this.editor.mutate(v => { v.input = input; }); this.selection.set(input.stages[0]?.id ?? "");
     this.libraryOpen.set(false);
@@ -93,8 +94,9 @@ class DeploymentStore {
     this.editor.mutate(v => {
       const stage = v.input.stages.find(s => s.id === id)!; stage[key] = value;
       if (v.input.adapter === "llamacpp" && stage.planText !== undefined) {
+        if (stage.loadOptionsJson !== undefined) stage.loadOptionsJson = withoutLegacyBinary(stage.loadOptionsJson);
         try { Object.assign(stage, llamaPlanSummary(stage.planText)); } catch { /* Incomplete text remains editable. */ }
-        try { const options = JSON.parse(stage.loadOptionsJson ?? "{}"); stage.binary = options.binary ?? ""; stage.endpoint = options.endpoint ?? ""; } catch { /* Validated on save/load. */ }
+        try { const options = JSON.parse(stage.loadOptionsJson ?? "{}"); stage.endpoint = options.endpoint ?? ""; } catch { /* Validated on save/load. */ }
       }
     });
   }

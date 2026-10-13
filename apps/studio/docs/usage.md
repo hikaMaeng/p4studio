@@ -76,3 +76,5 @@ P4STUDIO_AGENT_MANAGEMENT는 기본[]인 private JSON 설정이다. 각 항목�
 승인 키는 apps/studio/docker/volumes/ssh/<identityName>, 기본 management_identity에 두며 Git 제외·read-only mount한다. known_hosts는 이미 검증된 host key를 사용한다. 비밀키·credential은 보고서나 evidence archive에 포함하지 않는다. 인증·승인 hash가 바뀌면 자동 우회하지 않고 실패를 표시한다.
 
 MiMo 같은 대형 모델은 대상 agent에서 실제 접근 가능한 local/remote path를 설정한다. Studio 서버나 SSH user에서의 파일 존재를 다른 실행 identity의 사용 가능 증거로 바꾸지 않는다. mapped drive는 세션에 따라 없을 수 있다. retained request budget과 execution sequence slots는 별개이며 LOAD profile 변경 후 재적재가 필요하다.
+
+- 배치 LOAD 옵션에 실행 파일 경로를 넣지 않는다. 실행 파일은 agent가 정하며 모델 경로는 여전히 대상 agent 머신 기준이다. 옛 배치의 `binary`는 [호환 계약](../../../packages/studio_domain/docs/api.md#agent-native)에 따라 무시한다. 운영 반영은 전체 P4 agent 재배포 후 Studio 병합·배포 순서다.

@@ -25,7 +25,7 @@
 | OUTPUT `output-v6`: 필수 `output_ordinal` | [completion.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs) `ApprovedOutputWire` | [output.ts](../packages/studio_domain/src/common/protocol/inference/output.ts)의 strict schema와 요청별 순번 버퍼. v5 등 다른 버전은 run을 명시적 오류로 종료한다 |
 | transport `delivery-failure-v1` 통지 | [event/mod.rs](../../p4/layers/protocol/src/event/mod.rs), [retry.rs](../../p4/entrypoints/agent/src/event_runtime/transport/retry.rs) | [delivery-failure.ts](../packages/p4-protocol/src/event/delivery-failure.ts). 대기 중인 exchange와 PREFILL의 대기만 끝내며 정산·terminal로 취급하지 않는다 |
 | `resource_profile` version 2: OUTER footprint 3종과 `outer_token_issue_window` 필수, completion store가 모든 예약을 동시에 담아야 한다 | [resource_profile.rs](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/resource_profile.rs), [lifecycle.rs](../../p4/tools/event-drive/src/run/lifecycle.rs) | [resource-profile.ts](../packages/studio_domain/src/common/protocol/deployments/resource-profile.ts)가 LOAD 직전에 검증하고 `retained_bytes`를 산정한다. [노드 수명](node-lifecycle.md) |
-| LOAD의 `binary`는 agent의 `P4_STAGED_SERVER_BINARY`와 같은 경로여야 한다 | [event-protocol-v2.md](../../p4/docs/event-protocol-v2.md) Load | Studio는 agent 설정을 읽을 수 없으므로 검증하지 않는다. 불일치는 P4의 LOAD 거부로 드러난다 |
+| 실행 파일은 agent의 로컬 승인 설정으로 결정한다 | [agent 실행 설정](../../p4/entrypoints/agent/src/event_runtime/adapters.rs), [Studio 계약](../packages/studio_domain/docs/api.md#agent-native) | Studio는 LOAD에 `binary`를 보내지 않는다. 이 행은 새 P4 계약을 전제로 하며 운영 적용 전 전체 agent 재배포가 필요하다 |
 
 2026-10-05 요청 취소 대조(역사): 당시 P4 HEAD `ee4979a3c2f6f92c048ca70d5d8b1238e39876c2`의 [CancelCommand](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/commands.rs), [worker cancel](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/node/worker/cancel.rs), [completion payload](../../p4/layers/adapters/llamacpp/staged/adapter/src/v2/completion.rs)와 `tools/event-drive` 생산자·시험을 확인했다. 그 시점의 Studio 경로는 원래 PREFILL OUTER에서 `cancel-v1`을 발행했다. `LLAMA_REQUEST_CANCELLED`의 `native_kv_stop_proven=false`는 즉각적인 native/KV 정지 증명이 아니다. 이후 scope 단위 종료가 추가되어 현재 Studio Stop/UNLOAD는 아래 SCOPE_CLOSE 경로를 사용한다.
 
@@ -87,7 +87,7 @@ OUTER endpoint ── entry agent ── target agent ── node ── adapter
 
 `tools/event-drive`는 위 흐름의 실제 요청 생산자/결과 소비자 예시다. 현재 드라이버는 동일 agent의 LOAD를 직렬화하고 서로 다른 agent의 LOAD를 wave로 구성한다. 이 실험 정책이나 고정 포트·모델·시나리오를 Studio 제품 제약으로 그대로 복사하지 않는다.
 
-모든 모델 경로와 staged binary 경로는 대상 머신 기준이다. 관리 API 서버의 드라이브 접근 성공이 원격 agent 계정의 접근 성공을 보장하지 않는다. 합법적인 stage cut·메모리/부하 여유·build identity는 adapter 응답과 해당 모델/backend 검증을 따른다.
+모든 모델 경로는 대상 머신 기준이다. 실행 파일은 agent의 로컬 승인 설정으로 정하며 Studio가 경로를 선언하지 않는다. 관리 API 서버의 드라이브 접근 성공이 원격 agent 계정의 접근 성공을 보장하지 않는다. 합법적인 stage cut·메모리/부하 여유·build identity는 adapter 응답과 해당 모델/backend 검증을 따른다.
 
 <a id="source-map"></a>
 

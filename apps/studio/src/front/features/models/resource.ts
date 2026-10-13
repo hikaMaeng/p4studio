@@ -89,7 +89,6 @@ export enum RSC {
   MODELS_LAYER_START_LABEL = "models.layer.start.label",
   MODELS_LAYER_END_LABEL = "models.layer.end.label",
   MODELS_FILE_MESSAGE = "models.file.message",
-  MODELS_BINARY_LABEL = "models.binary.label",
   MODELS_ENDPOINT_LABEL = "models.endpoint.label",
   MODELS_DEVICE_LABEL = "models.device.label",
   MODELS_OPTIONS_LABEL = "models.options.label",

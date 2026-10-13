@@ -35,3 +35,5 @@
 
 - [개편 계약](../../../docs/studio-revamp.md): common/session 소비자는 browser SESSION 실행기이며 LOAD 원문 계약·세대 일치만 권위로 삼는다. front/batch-requests 소비자는 run 관측·이력·분포 패널이며 다른 OUTER 소유자·과거 분포를 추정하지 않는다. common/insightNotes 소비자는 SQLite·HTTP·editor·preset·등록 스크립트이고 필드 부재를 허용한다. n_seq_max는 plan 파서를 재사용하며 retained request budget과 섞지 않는다.
 - SESSION 사전 거부 코드의 소비자는 앱 API·activity/history·오류 화면이다. 도메인은 번역 문자열을 반환하지 않는다. 코드 변경은 8개 언어 resource key와 앱 소비 시험을 함께 갱신한다.
+
+- LOAD `binary` 제거의 소비자는 브라우저 LOAD 실행기, 편집 store, HTTP·SQLite 배치와 이력이다. 모델 경로·다른 옵션·세대는 보존한다. 실행 파일 소유와 구형 선언 호환은 [agent 실행 파일 계약](api.md#agent-native)을 따른다.

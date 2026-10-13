@@ -116,3 +116,13 @@ History Recover passes the run LOAD generation through `DeploymentStore.operate(
 DeploymentInput.insightNotes는 optional 최대32768자이며 선언 JSON·API·편집·preset 적용에 보존된다. inference settings/input.repeatMode는 optional scheduled/after-completion이며 과거 값은 scheduled 의미다. speculative 패널은 경로 rounds 비율과 replay>=0.65 설명을 제공한다. 입장 시각은 wire에 없어 두 TTFT 하위 구간은 측정 불가다.
 
 `llamaSessionContract`의 사전 거부는 `Error.message`에 [SESSION_CONTRACT_ERRORS](../src/common/protocol/deployments/session.ts) 코드만 반환한다. 추가 인자는 없다. `stages/reports/generation/invalid/partial/mismatch`는 각각 stage 수 부족, LOAD 보고 누락·중복, 세대 불일치, 잘못된 계약 문자열, 일부 계약 누락, 계약 불일치다. 소비자는 코드를 그대로 보존하고 [InferenceError](../../../apps/studio/src/front/features/inference/InferenceError.tsx)가 resource key로 번역한다.
+
+<a id="agent-native"></a>
+
+## Agent 실행 파일
+
+[stageSchema](../src/common/protocol/deployments/index.ts), [LOAD 생성](../src/common/protocol/deployments/payload.ts), [옵션 정규화](../src/common/protocol/deployments/load-options.ts)의 계약: llama.cpp LOAD는 `binary`를 요구하거나 전송하지 않는다. 실행 파일은 agent의 로컬 승인 설정이 정한다. 모델 파일 경로·plan·endpoint·용량·환경은 Studio가 계속 소유한다. 다른 adapter의 opaque `customPayload`는 해당 공개 계약을 유지한다.
+
+옛 stage의 최상위 `binary`는 스키마의 알 수 없는 키 제거로 무시한다. `loadOptionsJson`의 최상위 `binary`는 유효한 JSON 객체일 때 읽기·저장·편집에서 제거하며, LOAD 생성도 별도로 제외한다. 다른 키와 중첩 데이터는 보존한다. 작성 중인 잘못된 JSON은 보존하되 LOAD 검증에서 거부한다. SQLite 원본을 읽기만 할 때 변경하지 않으며 일괄 DB 마이그레이션은 없다. 편집 저장한 선언에는 해당 키가 남지 않는다.
+
+운영 순서: `binary` 없는 LOAD를 받는 새 P4로 **전체 agent 재배포 → Studio 병합·배포**. 옛 agent `8d11dd980`는 누락을 `load names no staged native binary`로 거부한다. 이 브랜치의 로컬 시험은 새 agent의 실제 적재 성공을 증명하지 않는다. [호환 시험](../src/server/deployments/no-binary.test.ts), [SQLite·HTTP 소비 시험](../../../apps/studio/src/server/api/deployments.test.ts).
