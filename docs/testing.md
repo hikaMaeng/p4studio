@@ -39,3 +39,14 @@ node --import tsx tests/integration/connection-teardown.mjs --agent-binary=<test
 Windows에서는 [시험 실행기](../tests/browser/run-studio-revamp.ps1)를 사용한다. `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/browser/run-studio-revamp.ps1 -Url http://127.0.0.1:43180 -Out tests/reports/studio-revamp/browser`. `SetErrorMode(0x8003)`를 자식에게 상속하고 Chromium의 breakpad·crash reporter·오류 대화상자를 끈다. 실행 후 테스트 전용 Chromium 경로의 잔류 프로세스 0 및 새 WER 프로세스 0을 검사한다. 사용자의 Chrome/WebView 프로세스는 종료하지 않는다.
 
 숨김 디렉터리(`.cache`) 아래에서 Express의 정적 파일 처리가 404를 반환하면 `dist/front`, `dist/server`를 TEMP의 일반 경로로 복사해 같은 산출물을 실행한다. 임시 SQLite는 계속 작업 트리 안에 둔다. 숨김 파일 보호 정책을 시험 편의로 바꾸지 않는다. A2 변이 검사는 build 이후 `node tests/integration/studio-revamp-mutation.mjs --out tests/reports/studio-revamp/mutation`으로 실행한다. 정상 복사본 통과·호출 제거 복사본 실패·제품 파일 해시 유지가 모두 필요하다.
+
+- [binary 제거 브라우저 시험](../tests/browser/no-binary.mjs)은 포트 43181의 격리 Studio·임시 SQLite에서 옛 선언을 직접 주입하고 deep URL·reload·배치 편집·저장, 실행 경로 입력/JSON/미리보기 부재와 8개 언어 안내를 검사한다. 실제 P4 연결은 0이어야 한다. [독립 변이](../tests/integration/no-binary-mutation.mjs)는 빌드 후 실행하며 결과는 무시된 `tests/reports/no-binary/`에 보존한다.
+
+```powershell
+# Windows 자식 프로세스의 크래시 대화상자를 끄고 Chromium·WER 잔류도 검사한다.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/browser/run-no-binary.ps1
+node tests/integration/no-binary-mutation.mjs
+node tests/integration/no-binary-preset-import.mjs
+```
+
+브라우저 시험은 이 worktree의 `apps/studio/dist`를 TEMP에 그대로 복사해 실행한다. `.cache` 경로를 Express `sendFile`이 숨김 경로로 거부하는 문제를 피해 제품 빌드 산출물을 검사하며 운영 서버·DB는 열지 않는다.
