@@ -1,7 +1,8 @@
 import { Router, json } from 'express';
-import { inferenceRoutes, parseInferenceRun, type InferenceRun, type InferenceRunsResponse, type InferenceHistoryErrorResponse } from '@p4studio/studio_domain/common';
-import { historyWriteError, historyDeleteError } from '@p4studio/studio_domain/server';
+import { inferenceRoutes, parseInferenceRun, llamaUbatchSize, type InferenceRun, type InferenceRunsResponse, type InferenceHistoryErrorResponse, type DeploymentRecord } from '@p4studio/studio_domain/common';
+import { historyWriteError, historyDeleteError, projectHistoryUbatch } from '@p4studio/studio_domain/server';
 import type { StudioDatabase } from '../database/client.js';
+import { DeploymentRepository } from '../database/deployments.js';
 
 /** 브라우저가 작성한 관측만 저장한다. P4 명령과 토큰 스트림은 중계하지 않는다. */
 export function createInferenceHistoryRouter(database: StudioDatabase) {
@@ -16,6 +17,16 @@ export function createInferenceHistoryRouter(database: StudioDatabase) {
   router.use('/api/inference/runs', json({ limit: '16mb' }));
   router.get(inferenceRoutes.runs.path, (_req, res) => {
     const runs = db.prepare('SELECT document FROM inference_history').all().map(row => parseInferenceRun(JSON.parse(String(row.document))));
+    const deployments = new DeploymentRepository(db), current = deployments.list(), archive = new Map<string, DeploymentRecord[]>();
+    for (const run of runs) {
+      if (!run.loadGeneration) continue;
+      let record = current.find(record => record.id === run.modelId && record.loadGeneration === run.loadGeneration && ['loaded', 'ready', 'unloaded'].includes(record.status));
+      if (!record) {
+        if (!archive.has(run.modelId)) archive.set(run.modelId, deployments.history(run.modelId).map(row => row.record));
+        record = archive.get(run.modelId)!.find(record => record.loadGeneration === run.loadGeneration && ['loaded', 'ready', 'unloaded'].includes(record.status));
+      }
+      if (record) projectHistoryUbatch(run, llamaUbatchSize(record));
+    }
     res.json({ runs } satisfies InferenceRunsResponse);
   });
   router.put(inferenceRoutes.saveRun.path, (req, res) => {

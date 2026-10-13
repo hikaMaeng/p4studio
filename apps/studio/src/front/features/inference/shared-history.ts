@@ -11,6 +11,8 @@ export class SharedInferenceHistory extends BrowserInferenceHistory {
     const merged = new Map(remote.map(run => [run.id, run]));
     for (const run of local) {
       const saved = merged.get(run.id);
+      // 정산된 공유 기록에는 같은 LOAD 세대에서 교정한 표시값이 있을 수 있다.
+      if (saved?.state === 'completed' && run.state === 'completed' && saved.ownershipCheckpoint?.admitted === run.ownershipCheckpoint?.admitted && saved.ownershipCheckpoint?.settled === run.ownershipCheckpoint?.settled) continue;
       if (!saved || (run.ownershipCheckpoint?.settled ?? 0) >= (saved.ownershipCheckpoint?.settled ?? 0)) merged.set(run.id, run);
     }
     return { timingVersion: 3, runs: [...merged.values()] };

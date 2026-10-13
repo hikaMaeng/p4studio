@@ -11,3 +11,16 @@ export function historyDeleteError(run: InferenceRun): string | null {
   return ['preparing', 'running', 'settling', 'cancelling'].includes(run.state) || (run.pendingSettlement ?? 0) > 0 || (run.ownershipCheckpoint?.admitted ?? 0) > (run.ownershipCheckpoint?.settled ?? 0)
     ? '미정산 실행은 삭제할 수 없습니다.' : null;
 }
+/** 동일 LOAD 세대의 선언으로 잘못된 기본 UBATCH와 그 대체 분모만 교정한다. */
+export function projectHistoryUbatch(run: InferenceRun, ubatch: number | null): InferenceRun {
+  if (!ubatch || !run.nUbatch || ubatch === run.nUbatch) return run;
+  const previous = run.nUbatch;
+  for (const item of [...run.telemetrySeries.batches, ...(run.monitoringSummary?.stages ?? [])]) {
+    const old = item.fallbackCapacityRows;
+    if (old % previous !== 0) continue;
+    item.fallbackCapacityRows = old / previous * ubatch;
+    item.capacityRows += item.fallbackCapacityRows - old;
+  }
+  run.nUbatch = ubatch;
+  return run;
+}

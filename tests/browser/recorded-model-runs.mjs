@@ -51,13 +51,20 @@ export async function finishRecordedRun(page, artifactDirectory, label, runId) {
   const name = await group.getAttribute('aria-label');
   const id = runId ?? name.slice(name.lastIndexOf(' · ') + 3);
   await page.waitForFunction(id => {
-    const raw = localStorage.getItem('p4studio.inference.history.v1');
-    const run = raw && JSON.parse(raw).runs.find(r => r.id === id);
-    return run && !['preparing','running','settling','cancelling'].includes(run.state);
+    const row = [...document.querySelectorAll('[data-testid="inference-run-group"]')].find(e => e.getAttribute('aria-label')?.endsWith(id));
+    return row && !row.querySelector('[data-testid="inference-run-stop"]');
   }, id, { timeout: 1200000 });
-  const run = await page.evaluate(id => JSON.parse(localStorage.getItem('p4studio.inference.history.v1')).runs.find(r => r.id === id), id);
+  const run = await page.evaluate(id => new Promise((resolve, reject) => {
+    const open = indexedDB.open('p4studio.inference-history', 1);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result, get = db.transaction('runs', 'readonly').objectStore('runs').get(id);
+      get.onsuccess = () => { db.close(); resolve(get.result?.run); };
+      get.onerror = () => { db.close(); reject(get.error); };
+    };
+  }), id);
   await page.getByRole('button', { name: '기록', exact: true }).click();
-  await page.getByTestId('inference-history-row').first().getByTestId('inference-history-open').click();
+  await page.getByTestId('inference-history-row').filter({ has: page.getByRole('button', { name: run.modelName, exact: true }) }).first().getByTestId('inference-history-open').click();
   await page.waitForURL(`**/inference/history/${id}`);
   await page.getByTestId('inference-history-detail').waitFor();
   const text = await page.getByTestId('inference-history-detail').innerText();

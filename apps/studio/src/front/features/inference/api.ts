@@ -1,6 +1,6 @@
 import { P4_DELIVERY_FAILURE_CONTENT_TYPE, parseP4DeliveryFailure, type P4AgentSnapshot, type P4Event } from "@p4studio/p4-protocol";
 import {
-  canAttemptInference, deploymentRoutes, llamaDispatchLimits, llamaSessionContract, parseDeploymentList, parseInferenceRuns,
+  canAttemptInference, deploymentRoutes, llamaDispatchLimits, llamaSessionContract, llamaUbatchSize, parseDeploymentList, parseInferenceRuns,
   classifyP4Output, classifyP4Telemetry, OutputOrdinalBuffer, parseP4ApprovedOutput, parseP4BatchObservation, parseP4StageSpan, parseP4SpeculativeRound, type DeploymentRecord, type GraphAgent,
   type InferenceMonitoring, type InferenceRequest, type InferenceRun, type InferenceRunInput, type P4BatchObservation,
   P4_SCOPE_CLOSE_CONTENT_TYPE,
@@ -249,7 +249,7 @@ const gateway: InferenceGateway = {
     if (!Number.isSafeInteger(total) || retained > limits.maxRequests || retained * input.maxTokens > limits.maxOutputTokens) throw new Error(`The requested ${retained} retained submissions require a larger LOAD resource profile (requests ${limits.maxRequests}, output tokens ${limits.maxOutputTokens}); unload and expand the model before running`);
     // LOAD 계약 불일치는 접속 전에 거부한다. 송신 순서는 head→tail을 유지한다.
     llamaSessionContract(model);
-    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens, repeatMode: input.repeatMode ?? "scheduled" }, nUbatch: model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
+    const run: InferenceRun = { id: crypto.randomUUID(), modelId: model.id, modelName: model.name, loadGeneration: model.loadGeneration, state: "preparing", submitted: 0, completed: 0, createdAt: now(), error: null, settings: { concurrency: input.concurrency, repetitions: input.repetitions, intervalMs: input.intervalMs, maxTokens: input.maxTokens, repeatMode: input.repeatMode ?? "scheduled" }, nUbatch: llamaUbatchSize(model) ?? model.nUbatch, monitoring: [], monitoringSummary: null, telemetrySeries: { version: 1, output: [], batches: [], spans: [] }, requests: [] };
     const cancellation = new InferenceCancellation(run, model.loadGeneration, () => publish(run), model.timeoutMs);
     const unregister = inferenceExecutions.register(model, cancellation);
     runs.set(run.id, run); ownedRunIds.add(run.id);

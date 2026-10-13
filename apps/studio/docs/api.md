@@ -72,6 +72,8 @@ MiMo 입력은 실측 ChatML·`<think></think>` 접미사를 적용하고 MiMo/Q
 
 완료 후 반복의 LOAD 보관 한도 검사는 한 웨이브의 동시 요청 수를 사용한다. 예정 시각 반복은 웨이브가 겹칠 수 있어 총 요청 수를 보수적으로 예약한다. 전체 제출 수를 기록하는 소유권 checkpoint는 유지한다.
 
+UBATCH 표시는 모델 폼의 기본값 대신 모든 stage의 실제 LOAD 선언이 일치할 때 그 값을 사용한다. 과거 공유 이력은 동일 LOAD 세대의 적재·언로드 선언(현재 또는 보관 이력)으로 기본값과 대체 용량 분모만 교정해 조회한다. 실제 P4 용량·발행 행·응답·시간은 변경하지 않으며 원 저장 기록은 유지한다.
+
 [관측·워크로드·SESSION 계약](../../../docs/studio-revamp.md)이 네 phase·소유 요청 분포·입장 미측정·경로 비율·반복 방식·v4/v5·합의 실패 의미를 소유한다. [model editor](../src/front/features/models/ModelEditorPage.tsx)의 기본 구성에서 기록된 preset과 insightNotes를 표시·편집한다. 저장·조회는 optional notes를 그대로 보존하며 서버는 SESSION·PREFILL을 실행하지 않는다.
 
 [InferenceError](../src/front/features/inference/InferenceError.tsx)는 SESSION 사전 거부 코드 6종을 feature resource key로 번역한다. activity/history에는 코드를 유지하며 언어 변경 시 새 번역을 표시한다. 알려지지 않은 P4 오류의 원문 보존과 기존 submission/owner 정산은 유지한다. 모델 선택의 초기 정규화는 현재 값이 달라질 때만 query slice를 갱신한다.

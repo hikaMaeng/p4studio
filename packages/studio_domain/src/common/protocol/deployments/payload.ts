@@ -94,6 +94,14 @@ export function readLlamaPayload(stage: PlacementStage, generation: number): Rec
   if (payload.environment !== undefined && (!Array.isArray(payload.environment) || payload.environment.some(v => !Array.isArray(v) || v.length !== 2 || v.some(s => typeof s !== "string")))) throw new Error("environment must contain [name, value] pairs");
   return payload;
 }
+/** 모든 stage의 실제 LOAD가 같은 UBATCH를 선언할 때만 공통 표시값을 제공한다. */
+export function llamaUbatchSize(input: DeploymentInput): number | null {
+  if (input.adapter !== "llamacpp" || !input.stages.length) return null;
+  try {
+    const values = input.stages.map(stage => Number(buildLoadPayload(input, stage, 1).n_ubatch));
+    return values.every(value => Number.isSafeInteger(value) && value > 0 && value === values[0]) ? values[0]! : null;
+  } catch { return null; }
+}
 
 /** Migrate legacy form data once. Thereafter text is the sole LOAD argument source. */
 export function editAsText(input: DeploymentInput, stage: PlacementStage): void {
