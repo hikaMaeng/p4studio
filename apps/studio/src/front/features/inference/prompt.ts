@@ -1,5 +1,8 @@
 /** Model-specific prompt formatting belongs to the Studio OUTER. */
 export function wirePrompt(model: { stages: readonly { artifact: string }[] }, prompt: string): string {
+  if (model.stages.some(stage => /mimo/i.test(stage.artifact))) {
+    return `<|im_start|>user\n${prompt.trim()}<|im_end|><|im_start|>assistant\n<think></think>`;
+  }
   if (model.stages.some(stage => /gemma[\s_-]?4/i.test(stage.artifact))) {
     return `<|turn>user\n${prompt.trim()}<turn|>\n<|turn>model\n<|channel>thought\n<channel|>`;
   }
@@ -16,5 +19,7 @@ export function wireOptions(model: { stages: readonly { artifact: string }[] }):
   if (model.stages.some(stage => /gemma[\s_-]?4/i.test(stage.artifact))) {
     return JSON.stringify({ temperature: 0, seed: 7, top_k: 64, stop: ["<turn|>"] });
   }
+  if (model.stages.some(stage => /mimo/i.test(stage.artifact))) return JSON.stringify({ temperature: 0, seed: 7, top_k: 64, stop: ["<|im_end|>"] });
+  if (model.stages.some(stage => /qwen/i.test(stage.artifact))) return JSON.stringify({ temperature: 0, seed: 7, stop: ["<|im_end|>"] });
   return "";
 }

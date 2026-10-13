@@ -5,6 +5,7 @@
 - `apps/studio`: Express API와 Vite React UI를 함께 소유하는 단일 서비스 모듈
 - `packages/p4-protocol`: P4 공개 event-v3 codec와 TCP length framing 경계
 - SQLite: UI가 소유하는 에이전트, 노드, 모델, 파이프라인 지식
+- 운영 추론 이력: 브라우저가 작성한 응답 전문·관측의 SQLite 보관은 [공유 이력 계약](../apps/studio/docs/api.md#운영-추론-이력)을 따른다. 서버는 실행·반환 경로를 소유하지 않는다.
 - Browser P4 owner: 브라우저는 deployment/inference마다 same-origin WebSocket 세션을 열고, OUTER endpoint·event/correlation/causation ID·순서·응답 판정을 소유함
 - Server bridge: 저장된 agent ID만 인가한 뒤 [browser bridge](../apps/studio/src/server/agent-socket/browser-bridge.ts)가 WebSocket binary와 P4 TCP bytes를 decode·reframe 없이 양방향 전달함. 서버는 P4 명령·응답 매칭·토큰 stream을 소유하지 않음
 - Network: 브리지는 [TCP dial routing](../apps/studio/src/server/agent-socket/routes.ts)과 runtime 소유 SSH tunnel을 이용할 수 있으나, 이는 TCP 목적지만 바꾸며 P4 event 의미를 해석하지 않음

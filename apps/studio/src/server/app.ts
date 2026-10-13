@@ -9,6 +9,7 @@ import { createDeploymentRouter } from "./api/deployments.js";
 import { OperationLeases, createLeaseRouter } from "./operations/leases.js";
 import { AgentRecovery, createRecoveryRouter } from "./operations/recovery.js";
 import type { ManagementProfile } from "./operations/windows.js";
+import { createInferenceHistoryRouter } from "./api/inference-history.js";
 
 export const createApp = (
   database: StudioDatabase,
@@ -17,6 +18,7 @@ export const createApp = (
 ) => {
   const app = express();
   app.disable("x-powered-by");
+  app.use(createInferenceHistoryRouter(database));
   app.use(express.json({ limit: "1mb" }));
   app.get("/health", (_request, response) => response.json({ status: "ok", database: "ready", instance: hostname() }));
   app.get("/api/capabilities", (_request, response) => response.json({

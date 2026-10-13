@@ -28,7 +28,8 @@ import { acquireOperationLease } from "../../p4/lease.js";
 import { inspectGraphAgent } from "../../p4/inspection.js";
 import { recordSessionProof } from "../models/api.js";
 import { wireOptions, wirePrompt } from "./prompt.js";
-import { BrowserInferenceHistory, HISTORY_KEY } from "./history.js";
+import { HISTORY_KEY } from "./history.js";
+import { SharedInferenceHistory } from "./shared-history.js";
 
 // See apps/studio/docs/api.md#browser-owned-inference.
 const SESSION_READY = "application/vnd.p4.llamacpp.session-ready-v4+json";
@@ -41,7 +42,7 @@ const monitoringRequests = new Map<string, Promise<InferenceMonitoring>>();
 const monitoringLoops = new Map<string, object>();
 let monitoringInspectionInFlight = false;
 const ownedRunIds = new Set<string>();
-const history = new BrowserInferenceHistory(() => [...runs.values()]);
+const history = new SharedInferenceHistory(() => [...runs.values()]);
 const publishTimers = new Map<string, number>();
 let persistTimer: number | undefined;
 

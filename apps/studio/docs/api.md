@@ -62,6 +62,12 @@ UI: `/agent-groups`, `/agent-groups/new`, `/agent-groups/:id`, `/agent-groups/:i
 
 ## 개편 관측·실측 선언
 
+### 운영 추론 이력
+
+브라우저 [공유 이력](../src/front/features/inference/shared-history.ts)은 기존 IndexedDB의 반환 소유권 checkpoint를 유지하고, 브라우저가 작성한 실행 전문·관측을 `PUT /api/inference/runs/:id`로 운영 SQLite에 보존한다. `GET /api/inference/runs`로 다른 브라우저에서도 복원하며 `DELETE /api/inference/runs/:id`는 미정산 실행을 거부한다. [저장 라우터](../src/server/api/inference-history.ts)는 P4를 실행하지 않는다. 기록 복원은 원래 OUTER 연결 복원이 아니며, 진행 중인 다른 브라우저의 기록은 기존 unknown 판정을 따른다. payload 상한은16MiB다.
+
+MiMo 입력은 실측 ChatML·`<think></think>` 접미사를 적용하고 MiMo/Qwen은 temperature0·seed7·종료 문자열을 보낸다. [프롬프트 생산자](../src/front/features/inference/prompt.ts)와 [회귀 시험](../src/front/features/inference/prompt.test.ts)이 소유한다.
+
 [관측·워크로드·SESSION 계약](../../../docs/studio-revamp.md)이 네 phase·소유 요청 분포·입장 미측정·경로 비율·반복 방식·v4/v5·합의 실패 의미를 소유한다. [model editor](../src/front/features/models/ModelEditorPage.tsx)의 기본 구성에서 기록된 preset과 insightNotes를 표시·편집한다. 저장·조회는 optional notes를 그대로 보존하며 서버는 SESSION·PREFILL을 실행하지 않는다.
 
 [InferenceError](../src/front/features/inference/InferenceError.tsx)는 SESSION 사전 거부 코드 6종을 feature resource key로 번역한다. activity/history에는 코드를 유지하며 언어 변경 시 새 번역을 표시한다. 알려지지 않은 P4 오류의 원문 보존과 기존 submission/owner 정산은 유지한다. 모델 선택의 초기 정규화는 현재 값이 달라질 때만 query slice를 갱신한다.
