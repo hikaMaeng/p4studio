@@ -54,3 +54,5 @@ node tests/integration/no-binary-preset-import.mjs
 ## 운영 실측 구성 브라우저 실행
 
 [등록·실행 동선](../tests/browser/recorded-model-runs.mjs)은 운영 URL을 받아 모델 구성의 필드·stage 추가/편집·저장, 질의 설정·전송, 완료와 응답 전문·관측 화면을 검사한다. 직접 HTTP 등록·추론 호출은 하지 않는다. 실행 로그·JSON·스크린샷은 Git 제외 tests/reports에 둔다. 공유 이력은 새 브라우저 context의 기록 메뉴에서 복원해 확인한다. 다른 브라우저의 기록은 원래 OUTER 연결이나 실행 권한을 복원하지 않는다.
+
+완료 판정은 송신 화면의 실행 종료 뒤 별도 기록 상세 화면이 읽는 공유 저장본으로 한다. 전체 제출 수는 동시 수×반복 수와 같아야 하며 전부 완료·미정산0·비어 있지 않은 정상 응답이어야 한다. 관측용 응답 읽기는 UI가 소비하는 JSON을 기록한다. localStorage 호환 미러의 용량 초과, IndexedDB 저장 직전의 중간본, Chromium inspector 응답 캐시의 제거를 모델 실행 실패로 판정하지 않는다.

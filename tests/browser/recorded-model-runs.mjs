@@ -39,8 +39,8 @@ export async function startRecordedRun(page, modelName, { concurrency, repetitio
   await page.getByLabel('프롬프트', { exact: false }).fill(prompt);
   const previous = await page.getByTestId('inference-run-group').evaluateAll(es => es.map(e => e.getAttribute('aria-label')));
   await page.getByRole('button', { name: '질의 전송', exact: true }).click();
-  await page.waitForFunction(previous => [...document.querySelectorAll('[data-testid="inference-run-group"]')].some(e => !previous.includes(e.getAttribute('aria-label'))), previous, { timeout: 30000 });
-  const current = (await page.getByTestId('inference-run-group').evaluateAll(es => es.map(e => e.getAttribute('aria-label')))).find(name => !previous.includes(name));
+  await page.waitForFunction(({ previous, modelName }) => [...document.querySelectorAll('[data-testid="inference-run-group"]')].some(e => e.getAttribute('aria-label')?.startsWith(`${modelName} · `) && !previous.includes(e.getAttribute('aria-label'))), { previous, modelName }, { timeout: 30000 });
+  const current = (await page.getByTestId('inference-run-group').evaluateAll(es => es.map(e => e.getAttribute('aria-label')))).find(name => name.startsWith(`${modelName} · `) && !previous.includes(name));
   return current.slice(current.lastIndexOf(' · ') + 3);
 }
 
@@ -53,27 +53,34 @@ export async function finishRecordedRun(page, artifactDirectory, label, runId) {
   await page.waitForFunction(id => {
     const row = [...document.querySelectorAll('[data-testid="inference-run-group"]')].find(e => e.getAttribute('aria-label')?.endsWith(id));
     return row && !row.querySelector('[data-testid="inference-run-stop"]');
-  }, id, { timeout: 1200000 });
-  const run = await page.evaluate(id => new Promise((resolve, reject) => {
-    const open = indexedDB.open('p4studio.inference-history', 1);
-    open.onerror = () => reject(open.error);
-    open.onsuccess = () => {
-      const db = open.result, get = db.transaction('runs', 'readonly').objectStore('runs').get(id);
-      get.onsuccess = () => { db.close(); resolve(get.result?.run); };
-      get.onerror = () => { db.close(); reject(get.error); };
+  }, id, { timeout: 7200000 });
+  const viewer = await page.context().newPage();
+  // UI가 읽는 응답을 관찰한다. 긴 기록은 inspector 캐시에서 다시 꺼내지 않는다.
+  await viewer.addInitScript(() => {
+    const json = Response.prototype.json;
+    Response.prototype.json = async function () {
+      const value = await json.call(this);
+      if (this.url.endsWith('/api/inference/runs')) window.__recordedRuns = value.runs;
+      return value;
     };
-  }), id);
-  await page.getByRole('button', { name: '기록', exact: true }).click();
-  await page.getByTestId('inference-history-row').filter({ has: page.getByRole('button', { name: run.modelName, exact: true }) }).first().getByTestId('inference-history-open').click();
-  await page.waitForURL(`**/inference/history/${id}`);
-  await page.getByTestId('inference-history-detail').waitFor();
-  const text = await page.getByTestId('inference-history-detail').innerText();
+  });
+  let run;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await viewer.goto(`${new URL(page.url()).origin}/inference/history/${id}`);
+    await viewer.waitForFunction(() => Array.isArray(window.__recordedRuns));
+    run = await viewer.evaluate(id => window.__recordedRuns.find(value => value.id === id), id);
+    if (run && !['preparing','running','settling','cancelling'].includes(run.state)) break;
+    await viewer.waitForTimeout(500);
+  }
+  await viewer.getByTestId('inference-run-summary').waitFor();
+  const text = await viewer.getByTestId('inference-history-detail').innerText();
   await fs.writeFile(`${artifactDirectory}/${label}.run.json`, JSON.stringify(run, null, 2));
   await fs.writeFile(`${artifactDirectory}/${label}.screen.txt`, text);
-  await page.screenshot({ path: `${artifactDirectory}/${label}.png`, fullPage: true });
+  await viewer.screenshot({ path: `${artifactDirectory}/${label}.png`, fullPage: true });
+  await viewer.close();
   const ttft = text.match(/TTFT p95\s+([^\n]+)/)?.[1];
   const tps = text.match(/출력 TPS 평균 \/ 최고\s+([^\n]+)/)?.[1];
   const result = { label, id, modelId: run.modelId, modelName: run.modelName, state: run.state, submitted: run.submitted, completed: run.completed, pendingSettlement: run.pendingSettlement, settings: run.settings, TPS: tps, TTFT: ttft, error: run.error, screenshot: `${label}.png`, 응답길이: run.requests.map(r => r.text.length), 분포: run.batchRequestDistributions, 라운드: run.speculative?.rounds };
-  if (run.state !== 'completed' || run.completed !== run.submitted || run.requests.some(r => !r.text.trim() || r.error)) throw new Error(`실행 실패: ${JSON.stringify(result)}`);
+  if (run.state !== 'completed' || run.completed !== run.submitted || run.submitted !== run.settings.concurrency * run.settings.repetitions || run.pendingSettlement || run.requests.some(r => !r.text.trim() || r.error)) throw new Error(`실행 실패: ${JSON.stringify(result)}`);
   return result;
 }
