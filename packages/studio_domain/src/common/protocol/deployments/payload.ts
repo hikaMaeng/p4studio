@@ -1,4 +1,5 @@
 import type { DeploymentInput, PlacementStage } from "./index.js";
+import { withoutLegacyBinary } from "./load-options.js";
 
 export type LlamaDispatchLimits = { maxRequests: number; maxOutputTokensPerRequest: number; maxOutputTokens: number; maxInputTokens: number; maxRequestBytes: number; maxRequestRetainedBytes: number };
 
@@ -80,7 +81,8 @@ export function readLlamaPayload(stage: PlacementStage, generation: number): Rec
   if (!options || typeof options !== "object" || Array.isArray(options)) throw new Error("LOAD options must be a JSON object");
   if ("plan" in options || "load_generation" in options) throw new Error("Edit plan separately; load_generation is assigned when loading");
   const payload: Record<string, unknown> = { ...options, plan: stage.planText, load_generation: generation };
-  for (const key of ["binary", "endpoint"]) if (typeof payload[key] !== "string" || !String(payload[key]).trim()) throw new Error(`LOAD requires ${key}`);
+  delete payload.binary;
+  for (const key of ["endpoint"]) if (typeof payload[key] !== "string" || !String(payload[key]).trim()) throw new Error(`LOAD requires ${key}`);
   for (const key of ["n_batch", "n_ubatch", "context_size", "total_context_size", "sequence_capacity"]) {
     if (!Number.isSafeInteger(payload[key]) || Number(payload[key]) <= 0) throw new Error(`LOAD requires a positive ${key}`);
   }
@@ -95,7 +97,10 @@ export function readLlamaPayload(stage: PlacementStage, generation: number): Rec
 
 /** Migrate legacy form data once. Thereafter text is the sole LOAD argument source. */
 export function editAsText(input: DeploymentInput, stage: PlacementStage): void {
-  if (input.adapter !== "llamacpp" || stage.planText !== undefined) return;
+  if (input.adapter !== "llamacpp") return;
+  delete (stage as unknown as Record<string, unknown>).binary;
+  if (stage.loadOptionsJson !== undefined) stage.loadOptionsJson = withoutLegacyBinary(stage.loadOptionsJson);
+  if (stage.planText !== undefined) return;
   const { plan, load_generation: _generation, ...options } = buildLoadPayload(input, stage, 1);
   stage.planText = String(plan); stage.loadOptionsJson = JSON.stringify(options, null, 2);
 }
@@ -140,7 +145,7 @@ export function buildLoadPayload(plan: DeploymentInput, stage: PlacementStage, g
     "--kv-layer-begin", stage.layerStart, "--kv-layer-end", stage.layerEnd, "--n-seq-max", plan.sequenceCapacity,
     "--batch-size", plan.nBatch, "--ubatch-size", plan.nUbatch, "--ctx-size", plan.contextSize * plan.sequenceCapacity];
   if (stage.device) tokens.push("--device", quotePlan(stage.device));
-  return { load_generation: generation, binary: stage.binary, endpoint: stage.endpoint,
+  return { load_generation: generation, endpoint: stage.endpoint,
     plan: `${tokens.join(" ")} ${stage.options}`.trim(), args, environment,
     n_batch: plan.nBatch, n_ubatch: plan.nUbatch, context_size: plan.contextSize,
     total_context_size: plan.contextSize * plan.sequenceCapacity, sequence_capacity: plan.sequenceCapacity,

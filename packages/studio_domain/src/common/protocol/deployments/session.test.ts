@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { checkLoadStageContracts, llamaSessionContract, LLAMA_SESSION_V4, LLAMA_SESSION_V5, SESSION_CONTRACT_ERRORS } from "./session.js";
 import type { DeploymentRecord } from "./index.js";
 const model = (contracts: unknown[]) => ({ loadGeneration: 42, stages: contracts.map((_, index) => ({ id: String(index), agentId: "agent", nodeId: String(index), nodeGeneration: 1,
-  artifact: "model.gguf", layerStart: index, layerEnd: index + 1, binary: "binary", endpoint: "", device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" })),
+  artifact: "model.gguf", layerStart: index, layerEnd: index + 1, endpoint: "", device: "", options: "", argsJson: "[]", environmentJson: "[]", customPayload: "{}" })),
   reports: contracts.map((contract, index) => ({ stageId: String(index), state: "loaded" as const, detail: "", failureDetail: "", loadRequested: true, updatedAt: "", telemetry: contract === undefined ? {} : { load_generation: 42, speculative_contract: contract } })) });
 it("전체 필드 부재는 네 필드 SESSION v4를 유지한다", () => {
   expect(llamaSessionContract(model([undefined, undefined]))).toEqual({ contentType: LLAMA_SESSION_V4, fields: {} });

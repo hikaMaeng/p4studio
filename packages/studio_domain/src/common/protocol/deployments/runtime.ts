@@ -39,7 +39,7 @@ export function validateDeployment(plan: DeploymentInput): void {
     if (identities.has(key)) throw new Error("A node cannot hold two placements in one model"); identities.add(key);
     if (stageIds.has(stage.id)) throw new Error("Placement IDs must be unique"); stageIds.add(stage.id);
     const endpoint = String(payload.endpoint ?? stage.endpoint);
-    if (plan.adapter === "llamacpp" && (!stage.artifact.trim() || !String(payload.binary).trim() || !/^(?:\d{1,3}(?:\.\d{1,3}){3}|\[[\da-fA-F:]+\]):\d+$/.test(endpoint))) throw new Error("Each llama.cpp node requires an agent-local model file, runtime binary and IP:port endpoint");
+    if (plan.adapter === "llamacpp" && (!stage.artifact.trim() || !/^(?:\d{1,3}(?:\.\d{1,3}){3}|\[[\da-fA-F:]+\]):\d+$/.test(endpoint))) throw new Error("Each llama.cpp node requires an agent-local model file and IP:port endpoint");
     if (plan.adapter === "llamacpp") {
       const port = Number(endpoint.slice(endpoint.lastIndexOf(":") + 1));
       if (port < 1 || port > 65535) throw new Error("Invalid runtime port");

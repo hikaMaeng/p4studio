@@ -24,7 +24,8 @@ const preset = {
     evidenceMissing: artifact.evidence_missing ?? null, cleanupError: artifact.cleanup_error ?? null },
   stages: config.nodes.map(node => {
     const { agent, node: nodeId, generation: _generation, plan, ...options } = node;
-    // Mirror tools/event-drive/src/run/load.rs, excluding fresh command identity.
+    // 과거 원본 증거 SHA는 유지하되 실행 파일은 agent가 정하므로 현재 옵션에서 제외한다.
+    delete options.binary;
     options.ready_timeout_ms = config.timeout_ms; options.io_timeout_ms = config.timeout_ms;
     return { referenceAgent: agent, referenceNode: nodeId, artifact: field(plan, '--model'),
       layerStart: Number(field(plan, '--layer-begin')), layerEnd: Number(field(plan, '--layer-end')),

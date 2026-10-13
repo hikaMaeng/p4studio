@@ -18,3 +18,5 @@
 - Agent-target LOAD/UNLOAD와 최종 lifecycle 결과만 노드 생성·제거 계약이다. 중복 ID 거부는 기존 노드를 회수하지 않고, 불명 LOAD는 별도 연결의 순간적인 부재만으로 해소하지 않는다. [회수 계약](node-lifecycle.md).
 
 [개편 계약](studio-revamp.md): 입장 시각·다른 OUTER 소유자·과거 분포를 추정하지 않는다. 실측 preset은 원격 적재 가능성의 증거가 아니며 운영 DB 등록은 별도 승인 후 공개 API로 수행한다.
+
+- LOAD의 실행 파일은 agent가 로컬 승인 설정으로 결정한다. Studio는 llama.cpp `binary`를 보내지 않는다. 구형 저장 선언의 무시·재저장과 운영 적용 순서는 [계약](../packages/studio_domain/docs/api.md#agent-native)을 따른다.

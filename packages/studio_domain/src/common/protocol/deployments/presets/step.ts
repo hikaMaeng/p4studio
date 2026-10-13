@@ -33,7 +33,7 @@ export default {
       "layerEnd": 4,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 0 --layer-end 4 --kv-layer-begin 0 --kv-layer-end 4 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 45 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43200\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"0\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43200\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"0\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -43,7 +43,7 @@ export default {
       "layerEnd": 8,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 4 --layer-end 8 --kv-layer-begin 4 --kv-layer-end 8 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 41 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43201\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43201\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -53,7 +53,7 @@ export default {
       "layerEnd": 11,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 8 --layer-end 11 --kv-layer-begin 8 --kv-layer-end 11 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 37 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43202\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"2\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43202\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"2\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -63,7 +63,7 @@ export default {
       "layerEnd": 13,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 11 --layer-end 13 --kv-layer-begin 11 --kv-layer-end 13 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 34 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43203\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"3\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43203\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"3\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -73,7 +73,7 @@ export default {
       "layerEnd": 16,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 13 --layer-end 16 --kv-layer-begin 13 --kv-layer-end 16 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 32 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43204\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"4\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43204\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"4\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -83,7 +83,7 @@ export default {
       "layerEnd": 18,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 16 --layer-end 18 --kv-layer-begin 16 --kv-layer-end 18 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 29 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43205\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"5\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43205\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"5\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -93,7 +93,7 @@ export default {
       "layerEnd": 21,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 18 --layer-end 21 --kv-layer-begin 18 --kv-layer-end 21 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 27 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43206\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"6\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43206\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"6\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.111:43013",
@@ -103,7 +103,7 @@ export default {
       "layerEnd": 23,
       "device": "ROCm0",
       "planText": "--model \"/home/banya/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 21 --layer-end 23 --kv-layer-begin 21 --kv-layer-end 23 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 24 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43207\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"7\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43207\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"7\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -113,7 +113,7 @@ export default {
       "layerEnd": 26,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 23 --layer-end 26 --kv-layer-begin 23 --kv-layer-end 26 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 22 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43200\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"0\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43200\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"0\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -123,7 +123,7 @@ export default {
       "layerEnd": 29,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 26 --layer-end 29 --kv-layer-begin 26 --kv-layer-end 29 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 19 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43201\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43201\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -133,7 +133,7 @@ export default {
       "layerEnd": 32,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 29 --layer-end 32 --kv-layer-begin 29 --kv-layer-end 32 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 16 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|32|33|34|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43202\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"2\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43202\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"2\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -143,7 +143,7 @@ export default {
       "layerEnd": 35,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 32 --layer-end 35 --kv-layer-begin 32 --kv-layer-end 35 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 13 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|35|36|37|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43203\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"3\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43203\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"3\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -153,7 +153,7 @@ export default {
       "layerEnd": 38,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 35 --layer-end 38 --kv-layer-begin 35 --kv-layer-end 38 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 10 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|38|39|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43204\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"4\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43204\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"4\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -163,7 +163,7 @@ export default {
       "layerEnd": 40,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 38 --layer-end 40 --kv-layer-begin 38 --kv-layer-end 40 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 7 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|40|41|42|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43205\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"5\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43205\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"5\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -173,7 +173,7 @@ export default {
       "layerEnd": 43,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 40 --layer-end 43 --kv-layer-begin 40 --kv-layer-end 43 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 5 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|43|44)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43206\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"6\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43206\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"6\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     },
     {
       "referenceAgent": "tcp://10.10.10.2:43013",
@@ -183,7 +183,7 @@ export default {
       "layerEnd": 45,
       "device": "ROCm0",
       "planText": "--model \"/home/banya2/models/step37-merged/Step-3.7-Flash-Q4_K_XL.gguf\" --memory-topology discrete --layer-begin 43 --layer-end 45 --kv-layer-begin 43 --kv-layer-end 45 --n-seq-max 16 --spec-type none --kv-unified --batch-size 512 --ubatch-size 512 --ctx-size 1608192 --n-gpu-layers 2 --device ROCm0 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --override-tensor \"blk\\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42)\\..*=CPU\"",
-      "loadOptionsJson": "{\n  \"binary\": \"/home/banya2/.local/p4/f3658f1b/bin/p4_staged_server\",\n  \"endpoint\": \"127.0.0.1:43207\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"7\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
+      "loadOptionsJson": "{\n  \"endpoint\": \"127.0.0.1:43207\",\n  \"args\": [],\n  \"environment\": [\n    [\n      \"ROCR_VISIBLE_DEVICES\",\n      \"7\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HELLO\",\n      \"1\"\n    ],\n    [\n      \"P4_STAGED_TRACE_HOP\",\n      \"1\"\n    ]\n  ],\n  \"n_batch\": 512,\n  \"n_ubatch\": 512,\n  \"context_size\": 100512,\n  \"total_context_size\": 1608192,\n  \"sequence_capacity\": 16,\n  \"ready_timeout_ms\": 10800000,\n  \"io_timeout_ms\": 10800000\n}"
     }
   ]
 };
