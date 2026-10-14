@@ -72,6 +72,7 @@ export function createDeploymentRouter(database: StudioDatabase) {
   router.put(deploymentRoutes.reconcile.path, (req, res) => {
     const record = repository.get(String(req.params.id));
     if (!record) return res.status(404).json(rejected("Model not found"));
+    if (leases.lifecycleOwnsModel(record.id)) return res.status(409).json(rejected("Model load or unload is in progress; inspect again after it finishes"));
     const input = deploymentReconciliationSchema.safeParse(req.body);
     if (!input.success) return res.status(400).json(rejected(input.error.message));
     const { expectedUpdatedAt, ...receipt } = input.data;

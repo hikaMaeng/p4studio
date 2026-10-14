@@ -1,5 +1,7 @@
 # API
 
+활성 LOAD/UNLOAD lease가 모델 원장을 소유하는 동안 `/:id/reconcile` 저장은 409로 거부한다. 다른 창의 상태 조회가 실행자의 `expectedUpdatedAt`을 바꾸어 정상 적재를 rollback시키지 않도록 한다. 소유 작업 종료 후 조회 결과를 저장할 수 있으며, 조회 자체와 P4 lifecycle 완료 의미는 구분한다. 회귀 시험은 `src/server/api/deployment-revision.test.ts`가 소유한다.
+
 서비스 API는 루트 [API 문서](../../../docs/api.md)를 따른다. API DTO는 `src/common/domain.ts`가 소유한다.
 
 모델 배치 API는 [domain deployment 계약](../../../packages/studio_domain/src/common/protocol/deployments/index.ts)의 schema·route를 양쪽에서 사용한다. [router](../src/server/api/deployments.ts)는 `/api/model-deployments` GET/POST, `/:id` GET/DELETE/PUT, browser-authored `/:id/receipt` PUT와 `/:id/reconcile` PUT를 제공한다. receipt와 reconcile은 `expectedUpdatedAt` 불일치 시 409로 오래된 레코드 덮어쓰기를 거부한다. `DELETE`는 원격 P4 UNLOAD가 아니라 Studio 선언 삭제이며, 복구가 필요한 기록은 명시적 `discard=true` 없이는 409로 거부한다. `/:id/load`와 `/:id/unload`는 server execution을 거부한다. LOAD terminal receipt는 `loaded`만 증명한다. 모델 설정의 긴 제한 시간은 LOAD에만 적용하며, 각 UNLOAD 응답 대기는 최대 2분이다. 응답이 없으면 자원 부재로 단정하지 않고 결과를 미확인으로 보존해 INSPECT 또는 lifecycle 응답으로 재확인한다. 재기동 시 진행 중이거나 적재된 상태는 미확인으로 바뀌고 이전 관측과 SESSION 증명은 지워지므로, 재조회와 새 SESSION 검증이 필요하다. [브라우저 SESSION flow](../src/front/features/inference/api.ts)가 현재 generation의 모든 stage에서 동일한 `session_id`와 `load_generation`을 검증하고 기록했을 때만 `ready`로 표시한다. 브라우저가 WebSocket P4 연결을 수행한 뒤 상태·노드별 receipt 또는 [조회 관측](../../../packages/studio_domain/docs/api.md#model-refresh)을 저장한다.

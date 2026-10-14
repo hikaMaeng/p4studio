@@ -113,6 +113,8 @@ export class OperationLeases {
   agentResources(agentId: string): Resource[] { return [{ key: `agent:${agentId}`, exclusive: true }]; }
   isRecovery(id: string) { return this.all().some(value => value.operationId === id && value.kind === "recovery"); }
   recoveryOwnsModel(id: string) { return this.all().some(value => value.kind === "recovery" && value.resources.some(resource => resource.key === `model:${id}`)); }
+  /** LOAD/UNLOAD 원장 저장 소유권. */
+  lifecycleOwnsModel(id: string) { return this.all().some(value => !value.revoked && ["load", "unload"].includes(value.kind) && value.resources.some(resource => resource.key === `model:${id}`)); }
 }
 const acquisition = z.object({ operationId: z.string().uuid(), modelId: z.string().min(1), expectedUpdatedAt: z.string().min(1), action: z.enum(["load", "unload", "inference"]), ownerToken: z.string().uuid().optional() }).strict().refine(value => value.action !== "inference" || !!value.ownerToken, "Inference admission requires its private owner capability");
 export function createLeaseRouter(db: DatabaseSync, leases: OperationLeases) {
